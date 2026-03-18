@@ -52,13 +52,17 @@ from src.helper import _VIT_CONFIGS
 # ---------------------------------------------------------------------------
 
 class ViTIntegrator(nn.Module):
-    """Lightweight ViT that integrates per-slice CLS tokens across a volume.
+    """Lightweight cross-slice attention integrator.
+
+    Uses 2 transformer layers to learn cross-slice relationships from
+    pretrained per-slice features. Lighter than a full ViT since the input
+    features are already high-quality (from a 12-layer pretrained encoder).
 
     Input: (B, num_slices, embed_dim) -- one representation per slice.
-    Output: (B, embed_dim) -- pooled volume representation.
+    Output: (B, embed_dim) -- pooled volume representation via CLS token.
     """
 
-    def __init__(self, num_slices=32, embed_dim=768, depth=5, num_heads=12):
+    def __init__(self, num_slices=32, embed_dim=768, depth=2, num_heads=12):
         super(ViTIntegrator, self).__init__()
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(torch.zeros(1, num_slices + 1, embed_dim))
@@ -207,7 +211,7 @@ def run_patch_downstream(config, device):
     integrator = ViTIntegrator(
         num_slices=data_cfg['num_slices'],
         embed_dim=embed_dim,
-        depth=model_cfg.get('integrator_depth', 5),
+        depth=model_cfg.get('integrator_depth', 2),
         num_heads=model_cfg.get('integrator_heads', 12),
     ).to(device)
 

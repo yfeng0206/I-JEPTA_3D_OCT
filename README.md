@@ -16,7 +16,7 @@ Standard I-JEPA applied to individual 256x256 OCT slices. Each slice is patchifi
 
 Training data: 6,000 volumes x 32 slices = 192,000 slice images (self-supervised, no labels needed). The pretrained encoder replaces ConvNeXt as the feature extractor for downstream classification.
 
-For downstream, each of the 32 slices is encoded independently, producing 32 feature vectors. A ViT integrator (trained from scratch on 6K labeled volumes) learns cross-slice relationships and feeds a classification head.
+For downstream, each of the 32 slices is encoded independently, producing 32 feature vectors. A lightweight 2-layer cross-slice attention module (trained from scratch on 6K labeled volumes) learns cross-slice relationships and feeds a classification head. Only 2 layers are needed because the input features are already high-quality from the 12-layer pretrained encoder, consistent with the video transformer literature (ViViT, TimeSformer) which uses 2-4 temporal layers on top of spatial features.
 
 ### Slice-level I-JEPA
 
@@ -54,7 +54,7 @@ The feature extractor is fine-tuned with a very low learning rate (1e-6) rather 
 
 | Approach | What is trained | Params trained | Method |
 |----------|----------------|---------------|--------|
-| Patch-level | ViT integrator (5 layers, 768-d) + MLP | ~23M | 32 slice features from frozen encoder, CLS token, BCEWithLogitsLoss |
+| Patch-level | Cross-slice attention (2 layers, 768-d) + MLP | ~9.5M | 32 slice features from frozen encoder, CLS token, BCEWithLogitsLoss |
 | Slice-level | MLP head only | ~1.5K | Average pool over 32 encoded slice features, BCEWithLogitsLoss |
 
 ## Comparison with Original I-JEPA

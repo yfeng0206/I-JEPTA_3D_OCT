@@ -11,7 +11,7 @@ model:
   patch_size: 16
   crop_size: 256
   freeze_encoder: true
-  integrator_depth: 5
+  integrator_depth: 2
   integrator_heads: 12
   integrator_dim: 768
 training:
