@@ -1,0 +1,22 @@
+mode: slice
+data:
+  data_dir: /tmp/fairvision_data/data
+  num_slices: 32
+  slice_size: 256
+  batch_size: 16
+  num_workers: 4
+model:
+  slice_encoder_checkpoint: /tmp/ijepa_outputs/slice_ep100/jepa_slice-latest.pth.tar
+  fe_checkpoint: /tmp/fairvision_data/feature_extractor.pth
+  enc_depth: 12
+  enc_dim: 768
+  enc_heads: 12
+  freeze_encoder: true
+training:
+  lr: 0.001
+  weight_decay: 0.01
+  epochs: 100
+  patience: 20
+  seed: 42
+logging:
+  output_dir: /tmp/ijepa_outputs/downstream_slice

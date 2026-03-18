@@ -1,0 +1,27 @@
+mode: patch
+data:
+  data_dir: /tmp/fairvision_data/data
+  num_slices: 32
+  slice_size: 256
+  batch_size: 8
+  num_workers: 4
+model:
+  encoder_checkpoint: /tmp/ijepa_outputs/patch_vitb16_ep100/jepa_patch-latest.pth.tar
+  encoder_name: vit_base
+  patch_size: 16
+  crop_size: 256
+  freeze_encoder: true
+  integrator_depth: 5
+  integrator_heads: 12
+  integrator_dim: 768
+training:
+  lr_integrator: 0.0001
+  lr_encoder: 0.000001
+  lr_head: 0.001
+  weight_decay: 0.01
+  epochs: 50
+  patience: 10
+  warmup_epochs: 3
+  seed: 42
+logging:
+  output_dir: /tmp/ijepa_outputs/downstream_patch

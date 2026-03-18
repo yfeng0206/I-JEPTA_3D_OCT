@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.cache/
+*.pt
+*.pth
+*.pth.tar
+data/
+outputs/
+checkpoints/
+*.log
+.env

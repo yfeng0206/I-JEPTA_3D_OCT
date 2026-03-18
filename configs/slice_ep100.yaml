@@ -1,0 +1,36 @@
+data:
+  batch_size: 8
+  num_workers: 4
+  pin_mem: true
+  data_dir: /tmp/fairvision_data/data
+  num_slices: 32
+  slice_size: 256
+mask:
+  num_slices: 32
+  num_pred_masks: 4
+  enc_mask_scale: [0.75, 0.9]
+  pred_mask_scale: [0.1, 0.2]
+  min_keep: 10
+meta:
+  enc_depth: 12
+  enc_dim: 768
+  enc_heads: 12
+  pred_depth: 6
+  pred_emb_dim: 384
+  use_bfloat16: false
+  load_checkpoint: false
+  read_checkpoint: null
+  fe_checkpoint: /tmp/fairvision_data/feature_extractor.pth
+optimization:
+  epochs: 100
+  lr: 0.0003
+  start_lr: 0.00005
+  final_lr: 0.000001
+  warmup: 10
+  weight_decay: 0.04
+  final_weight_decay: 0.4
+  ema: [0.996, 1.0]
+  ipe_scale: 1.0
+logging:
+  folder: /tmp/ijepa_outputs/slice_ep100
+  write_tag: jepa_slice

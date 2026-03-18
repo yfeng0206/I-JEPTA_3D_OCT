@@ -1,0 +1,372 @@
+"""
+Patch-level I-JEPA pretraining on OCT slices.
+
+Each OCT volume is sliced into individual 2-D images (256x256), which are
+treated as independent samples for standard I-JEPA training with 2-D block
+masking on the 16x16 patch grid.
+
+Usage:
+    torchrun --nproc_per_node=4 train_patch.py --config configs/patch_vitb16_ep100.yaml
+
+Compatible with PyTorch 1.13.1 and Python 3.8.
+"""
+
+import argparse
+import copy
+import math
+import os
+import sys
+import time
+
+import torch
+import torch.nn.functional as F
+from torch.cuda.amp import GradScaler, autocast
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader, ConcatDataset
+from torch.utils.data.distributed import DistributedSampler
+
+import yaml
+
+# Ensure the project root is on the path so `src.*` imports work when
+# invoked as ``python src/train_patch.py`` or via torchrun.
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from src.helper import init_patch_model, init_opt, load_checkpoint, save_checkpoint
+from src.masks.multiblock import MaskCollator
+from src.masks.utils import apply_masks
+from src.datasets.oct_slices import OCTSliceDataset
+from src.transforms import make_transforms
+from src.utils.distributed import init_distributed
+from src.utils.logging import CSVLogger, AverageMeter, gpu_timer
+from src.utils.tensors import repeat_interleave_batch
+
+
+# ---------------------------------------------------------------------------
+# Momentum scheduler for EMA
+# ---------------------------------------------------------------------------
+
+def momentum_schedule(base_value, final_value, num_steps):
+    """Yield a cosine schedule from base_value to final_value over num_steps."""
+    for step in range(num_steps):
+        progress = step / max(1, num_steps - 1)
+        value = final_value - (final_value - base_value) * (
+            math.cos(math.pi * progress) + 1.0
+        ) / 2.0
+        yield value
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main(args):
+    # ---- Load config -------------------------------------------------------
+    with open(args.config, 'r') as f:
+        config = yaml.safe_load(f)
+
+    data_cfg = config['data']
+    mask_cfg = config['mask']
+    meta_cfg = config['meta']
+    opt_cfg = config['optimization']
+    log_cfg = config['logging']
+
+    # ---- Distributed setup -------------------------------------------------
+    world_size, rank = init_distributed()
+    local_rank = int(os.environ.get('LOCAL_RANK', 0))
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
+        device = torch.device('cuda', local_rank)
+    else:
+        device = torch.device('cpu')
+
+    is_main = (rank == 0)
+
+    # ---- Output directory --------------------------------------------------
+    output_dir = log_cfg['folder']
+    write_tag = log_cfg['write_tag']
+    if is_main:
+        os.makedirs(output_dir, exist_ok=True)
+
+    # ---- Logging -----------------------------------------------------------
+    csv_logger = None
+    if is_main:
+        csv_path = os.path.join(output_dir, '%s-log.csv' % write_tag)
+        csv_logger = CSVLogger(
+            csv_path,
+            'epoch', 'iteration', 'loss', 'lr', 'wd', 'ema',
+            'data_time_ms', 'forward_time_ms', 'backward_time_ms',
+            'gpu_mem_mb',
+        )
+
+    def log(msg):
+        if is_main:
+            print(msg, flush=True)
+
+    log('=' * 70)
+    log('Patch-level I-JEPA Pretraining')
+    log('  Config:     %s' % args.config)
+    log('  World size: %d' % world_size)
+    log('  Device:     %s' % device)
+    if torch.cuda.is_available():
+        log('  GPU:        %s' % torch.cuda.get_device_name(device))
+        log('  GPU memory: %.1f GB' % (torch.cuda.get_device_properties(device).total_mem / 1e9))
+    log('=' * 70)
+
+    # ---- Model -------------------------------------------------------------
+    encoder, predictor = init_patch_model(
+        device=device,
+        patch_size=mask_cfg['patch_size'],
+        crop_size=data_cfg['crop_size'],
+        model_name=meta_cfg['model_name'],
+        pred_depth=meta_cfg['pred_depth'],
+        pred_emb_dim=meta_cfg['pred_emb_dim'],
+    )
+
+    # Target encoder (EMA copy)
+    target_encoder = copy.deepcopy(encoder)
+    for p in target_encoder.parameters():
+        p.requires_grad = False
+
+    enc_params = sum(p.numel() for p in encoder.parameters())
+    pred_params = sum(p.numel() for p in predictor.parameters())
+    log('  Encoder params:   %s' % format(enc_params, ','))
+    log('  Predictor params: %s' % format(pred_params, ','))
+
+    # ---- Mask collator -----------------------------------------------------
+    crop_size = data_cfg['crop_size']
+    mask_collator = MaskCollator(
+        input_size=(crop_size, crop_size),
+        patch_size=mask_cfg['patch_size'],
+        enc_mask_scale=tuple(mask_cfg['enc_mask_scale']),
+        pred_mask_scale=tuple(mask_cfg['pred_mask_scale']),
+        aspect_ratio=tuple(mask_cfg['aspect_ratio']),
+        nenc=mask_cfg['num_enc_masks'],
+        npred=mask_cfg['num_pred_masks'],
+        min_keep=mask_cfg['min_keep'],
+        allow_overlap=mask_cfg['allow_overlap'],
+    )
+
+    # ---- Transforms --------------------------------------------------------
+    transform = make_transforms(
+        crop_size=crop_size,
+        crop_scale=tuple(data_cfg.get('crop_scale', (0.3, 1.0))),
+        gaussian_blur=data_cfg.get('use_gaussian_blur', False),
+        horizontal_flip=data_cfg.get('use_horizontal_flip', False),
+        color_distortion=data_cfg.get('use_color_distortion', False),
+        color_jitter=data_cfg.get('color_jitter_strength', 0.0),
+    )
+
+    # ---- Dataset -----------------------------------------------------------
+    data_dir = data_cfg['data_dir']
+    num_slices = data_cfg.get('num_slices', 32)
+    log('Loading dataset from %s ...' % data_dir)
+
+    # Build datasets from Training and Validation splits
+    datasets = []
+    for split in ['Training', 'Validation']:
+        split_dir = os.path.join(data_dir, split)
+        if os.path.isdir(split_dir):
+            ds = OCTSliceDataset(
+                data_dir=split_dir,
+                num_slices=num_slices,
+                slice_size=crop_size,
+                transform=transform,
+            )
+            datasets.append(ds)
+            log('  %s: %d slices (%d volumes)' % (split, len(ds), len(ds.file_paths)))
+
+    if len(datasets) == 0:
+        raise FileNotFoundError("No data splits found under %s" % data_dir)
+
+    train_dataset = ConcatDataset(datasets) if len(datasets) > 1 else datasets[0]
+    log('  Total slices: %d' % len(train_dataset))
+
+    train_sampler = DistributedSampler(
+        train_dataset, num_replicas=world_size, rank=rank, shuffle=True,
+    )
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=data_cfg['batch_size'],
+        sampler=train_sampler,
+        num_workers=data_cfg['num_workers'],
+        pin_memory=data_cfg.get('pin_mem', True),
+        drop_last=True,
+        collate_fn=mask_collator,
+    )
+
+    iterations_per_epoch = len(train_loader)
+    log('  Batches per epoch: %d' % iterations_per_epoch)
+    log('  Effective batch size: %d' % (data_cfg['batch_size'] * world_size))
+
+    # ---- Optimizer ---------------------------------------------------------
+    optimizer, scaler, lr_scheduler, wd_scheduler = init_opt(
+        encoder=encoder,
+        predictor=predictor,
+        wd=opt_cfg['weight_decay'],
+        final_wd=opt_cfg['final_weight_decay'],
+        start_lr=opt_cfg['start_lr'],
+        ref_lr=opt_cfg['lr'],
+        final_lr=opt_cfg['final_lr'],
+        iterations_per_epoch=iterations_per_epoch,
+        warmup=opt_cfg['warmup'],
+        num_epochs=opt_cfg['epochs'],
+        ipe_scale=opt_cfg.get('ipe_scale', 1.0),
+        use_bfloat16=meta_cfg.get('use_bfloat16', False),
+    )
+
+    # ---- DDP wrap ----------------------------------------------------------
+    if world_size > 1:
+        encoder = DDP(encoder, device_ids=[local_rank])
+        predictor = DDP(predictor, device_ids=[local_rank])
+
+    # ---- Load checkpoint ---------------------------------------------------
+    start_epoch = 0
+    if meta_cfg.get('load_checkpoint', False) and meta_cfg.get('read_checkpoint'):
+        r_path = meta_cfg['read_checkpoint']
+        enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
+        pred_unwrap = predictor.module if hasattr(predictor, 'module') else predictor
+        enc_unwrap, pred_unwrap, target_encoder, optimizer, scaler, start_epoch = \
+            load_checkpoint(device, r_path, enc_unwrap, pred_unwrap,
+                            target_encoder, optimizer, scaler)
+
+    # ---- Momentum schedule for EMA -----------------------------------------
+    ema_start, ema_end = opt_cfg['ema']
+    total_steps = opt_cfg['epochs'] * iterations_per_epoch
+    mom_schedule = momentum_schedule(ema_start, ema_end, total_steps)
+
+    # Fast-forward momentum schedule if resuming
+    for _ in range(start_epoch * iterations_per_epoch):
+        next(mom_schedule)
+
+    # ---- Training loop -----------------------------------------------------
+    log('-' * 70)
+    log('Starting training from epoch %d to %d' % (start_epoch + 1, opt_cfg['epochs']))
+    log('-' * 70)
+
+    for epoch in range(start_epoch, opt_cfg['epochs']):
+        train_sampler.set_epoch(epoch)
+        loss_meter = AverageMeter()
+
+        t_epoch_start = time.time()
+
+        for itr, (imgs, masks_enc, masks_pred) in enumerate(train_loader):
+            t_data = time.time()
+
+            # Move to device
+            imgs = imgs.to(device, non_blocking=True)
+            masks_enc = [m.to(device, non_blocking=True) for m in masks_enc]
+            masks_pred = [m.to(device, non_blocking=True) for m in masks_pred]
+
+            B = imgs.size(0)
+
+            data_ms = (time.time() - t_data) * 1000.0
+
+            def _forward_backward():
+                optimizer.zero_grad(set_to_none=True)
+
+                # Target path (no gradient)
+                with torch.no_grad():
+                    h = target_encoder(imgs)  # (B, N, D) full patch features
+                    h = F.layer_norm(h, (h.size(-1),))
+                    # Extract target features at predicted positions
+                    h = apply_masks(h, masks_pred)
+                    # Repeat for each encoder mask
+                    h = repeat_interleave_batch(h, B, repeat=len(masks_enc))
+
+                # Context path (with gradient)
+                use_amp = (scaler is not None)
+                if use_amp:
+                    with autocast():
+                        z = encoder(imgs, masks_enc)  # masked context tokens
+                        z = predictor(z, masks_enc, masks_pred)  # predict targets
+                        loss = F.smooth_l1_loss(z, h)
+                else:
+                    z = encoder(imgs, masks_enc)
+                    z = predictor(z, masks_enc, masks_pred)
+                    loss = F.smooth_l1_loss(z, h)
+
+                if use_amp:
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    optimizer.step()
+
+                return loss.item()
+
+            (loss_val, fwd_bwd_ms) = gpu_timer(_forward_backward)
+
+            # Scheduler steps
+            lr_val = lr_scheduler.step()
+            wd_val = wd_scheduler.step()
+
+            # EMA update
+            m = next(mom_schedule)
+            enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
+            with torch.no_grad():
+                for p_online, p_target in zip(enc_unwrap.parameters(),
+                                              target_encoder.parameters()):
+                    p_target.data.mul_(m).add_((1.0 - m) * p_online.detach().data)
+
+            loss_meter.update(loss_val)
+
+            # GPU memory
+            gpu_mem_mb = 0.0
+            if torch.cuda.is_available():
+                gpu_mem_mb = torch.cuda.max_memory_allocated(device) / (1024 * 1024)
+
+            # Log every 50 iterations
+            if is_main and (itr + 1) % 50 == 0:
+                log('  [Epoch %d/%d | Iter %d/%d] loss=%.4f  lr=%.2e  wd=%.4f  '
+                    'ema=%.5f  gpu=%.0fMB'
+                    % (epoch + 1, opt_cfg['epochs'], itr + 1, iterations_per_epoch,
+                       loss_val, lr_val, wd_val, m, gpu_mem_mb))
+
+            # CSV log
+            if csv_logger is not None:
+                csv_logger.log(
+                    epoch + 1, itr + 1, loss_val, lr_val, wd_val, m,
+                    data_ms, fwd_bwd_ms, 0.0, gpu_mem_mb,
+                )
+
+        # End-of-epoch summary
+        epoch_time = time.time() - t_epoch_start
+        log('Epoch %d/%d complete  (%.0fs)  avg_loss=%.4f'
+            % (epoch + 1, opt_cfg['epochs'], epoch_time, loss_meter.avg))
+
+        # Save checkpoint (main process only)
+        if is_main:
+            # Latest checkpoint
+            latest_path = os.path.join(output_dir, '%s-latest.pth.tar' % write_tag)
+            save_checkpoint(
+                latest_path, encoder, predictor, target_encoder, optimizer,
+                scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
+                world_size, lr_val,
+            )
+            # Periodic checkpoint every 25 epochs
+            if (epoch + 1) % 25 == 0:
+                ep_path = os.path.join(output_dir, '%s-ep%d.pth.tar' % (write_tag, epoch + 1))
+                save_checkpoint(
+                    ep_path, encoder, predictor, target_encoder, optimizer,
+                    scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
+                    world_size, lr_val,
+                )
+
+    log('=' * 70)
+    log('Training complete.')
+    log('=' * 70)
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Patch-level I-JEPA pretraining')
+    parser.add_argument('--config', type=str, required=True,
+                        help='Path to YAML config file')
+    args = parser.parse_args()
+    main(args)
