@@ -21,6 +21,8 @@ meta:
   load_checkpoint: false
   read_checkpoint: null
   fe_checkpoint: /tmp/fairvision_data/feature_extractor.pth
+  freeze_fe: false
+  fe_lr: 1e-6
 optimization:
   epochs: 100
   lr: 0.0003
@@ -31,6 +33,7 @@ optimization:
   final_weight_decay: 0.4
   ema: [0.996, 1.0]
   ipe_scale: 1.0
+  patience: 15
 logging:
   folder: /tmp/ijepa_outputs/slice_ep100
   write_tag: jepa_slice

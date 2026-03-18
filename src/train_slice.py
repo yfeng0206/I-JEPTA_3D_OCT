@@ -115,12 +115,16 @@ def main(args):
         log('  GPU memory: %.1f GB' % (torch.cuda.get_device_properties(device).total_mem / 1e9))
     log('=' * 70)
 
-    # ---- Frozen feature extractor ------------------------------------------
+    # ---- Feature extractor -------------------------------------------------
     fe_checkpoint = meta_cfg.get('fe_checkpoint', None)
-    log('Loading frozen feature extractor...')
-    feature_extractor = init_feature_extractor(device, checkpoint_path=fe_checkpoint)
+    freeze_fe = meta_cfg.get('freeze_fe', False)
+    fe_lr = float(meta_cfg.get('fe_lr', 1e-6))
+    log('Loading feature extractor (freeze=%s, lr=%.1e)...' % (freeze_fe, fe_lr))
+    feature_extractor = init_feature_extractor(
+        device, checkpoint_path=fe_checkpoint, freeze=freeze_fe)
     fe_params = sum(p.numel() for p in feature_extractor.parameters())
-    log('  FE params: %s (all frozen)' % format(fe_params, ','))
+    fe_trainable = sum(p.numel() for p in feature_extractor.parameters() if p.requires_grad)
+    log('  FE params: %s total, %s trainable' % (format(fe_params, ','), format(fe_trainable, ',')))
 
     # ---- Slice-level model -------------------------------------------------
     num_slices = data_cfg['num_slices']
@@ -158,25 +162,25 @@ def main(args):
     slice_size = data_cfg.get('slice_size', 256)
     log('Loading dataset from %s ...' % data_dir)
 
-    # Build datasets from Training and Validation splits
-    datasets = []
-    for split in ['Training', 'Validation']:
-        split_dir = os.path.join(data_dir, split)
-        if os.path.isdir(split_dir):
-            ds = OCTVolumeDataset(
-                data_dir=split_dir,
-                num_slices=num_slices,
-                slice_size=slice_size,
-                return_label=False,
-            )
-            datasets.append(ds)
-            log('  %s: %d volumes' % (split, len(ds)))
+    # Training set
+    train_dir = os.path.join(data_dir, 'Training')
+    if not os.path.isdir(train_dir):
+        raise FileNotFoundError("No Training split found under %s" % data_dir)
+    train_dataset = OCTVolumeDataset(
+        data_dir=train_dir, num_slices=num_slices,
+        slice_size=slice_size, return_label=False,
+    )
+    log('  Training: %d volumes' % len(train_dataset))
 
-    if len(datasets) == 0:
-        raise FileNotFoundError("No data splits found under %s" % data_dir)
-
-    train_dataset = ConcatDataset(datasets) if len(datasets) > 1 else datasets[0]
-    log('  Total volumes: %d' % len(train_dataset))
+    # Validation set (for val loss tracking)
+    val_dir = os.path.join(data_dir, 'Validation')
+    val_dataset = None
+    if os.path.isdir(val_dir):
+        val_dataset = OCTVolumeDataset(
+            data_dir=val_dir, num_slices=num_slices,
+            slice_size=slice_size, return_label=False,
+        )
+        log('  Validation: %d volumes' % len(val_dataset))
 
     train_sampler = DistributedSampler(
         train_dataset, num_replicas=world_size, rank=rank, shuffle=True,
@@ -190,6 +194,21 @@ def main(args):
         drop_last=True,
         collate_fn=mask_collator,
     )
+
+    val_loader = None
+    if val_dataset is not None:
+        val_sampler = DistributedSampler(
+            val_dataset, num_replicas=world_size, rank=rank, shuffle=False,
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=data_cfg['batch_size'],
+            sampler=val_sampler,
+            num_workers=data_cfg['num_workers'],
+            pin_memory=data_cfg.get('pin_mem', True),
+            drop_last=False,
+            collate_fn=mask_collator,
+        )
 
     iterations_per_epoch = len(train_loader)
     log('  Batches per epoch: %d' % iterations_per_epoch)
@@ -209,6 +228,8 @@ def main(args):
         num_epochs=opt_cfg['epochs'],
         ipe_scale=opt_cfg.get('ipe_scale', 1.0),
         use_bfloat16=meta_cfg.get('use_bfloat16', False),
+        feature_extractor=feature_extractor if not freeze_fe else None,
+        fe_lr=fe_lr if not freeze_fe else None,
     )
 
     # ---- DDP wrap ----------------------------------------------------------
@@ -235,9 +256,43 @@ def main(args):
     for _ in range(start_epoch * iterations_per_epoch):
         next(mom_schedule)
 
+    # ---- Val loss evaluation function --------------------------------------
+    @torch.no_grad()
+    def evaluate_val():
+        if val_loader is None:
+            return None
+        enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
+        enc_unwrap.eval()
+        predictor_unwrap = predictor.module if hasattr(predictor, 'module') else predictor
+        predictor_unwrap.eval()
+        val_loss_meter = AverageMeter()
+        for volumes, masks_enc_v, masks_pred_v in val_loader:
+            volumes = volumes.to(device, non_blocking=True)
+            masks_enc_v = [m.to(device, non_blocking=True) for m in masks_enc_v]
+            masks_pred_v = [m.to(device, non_blocking=True) for m in masks_pred_v]
+            B_v, S_v, C_v, H_v, W_v = volumes.shape
+            flat = volumes.reshape(B_v * S_v, C_v, H_v, W_v)
+            slice_feats = feature_extractor(flat).reshape(B_v, S_v, -1)
+            h = target_encoder(slice_feats)
+            h = F.layer_norm(h, (h.size(-1),))
+            h = apply_masks(h, masks_pred_v)
+            h = repeat_interleave_batch(h, B_v, repeat=len(masks_enc_v))
+            z = enc_unwrap(slice_feats, masks_enc_v)
+            z = predictor_unwrap(z, masks_enc_v, masks_pred_v)
+            loss = F.smooth_l1_loss(z, h)
+            val_loss_meter.update(loss.item())
+        enc_unwrap.train()
+        predictor_unwrap.train()
+        return val_loss_meter.avg
+
     # ---- Training loop -----------------------------------------------------
+    patience = opt_cfg.get('patience', 15)
+    best_val_loss = float('inf')
+    epochs_no_improve = 0
+
     log('-' * 70)
-    log('Starting training from epoch %d to %d' % (start_epoch + 1, opt_cfg['epochs']))
+    log('Starting training from epoch %d to %d (patience=%d)'
+        % (start_epoch + 1, opt_cfg['epochs'], patience))
     log('-' * 70)
 
     for epoch in range(start_epoch, opt_cfg['epochs']):
@@ -256,8 +311,13 @@ def main(args):
 
             B, S, C, H, W = volumes.shape
 
-            # --- Encode slices with frozen feature extractor ---
-            with torch.no_grad():
+            # --- Encode slices with feature extractor ---
+            if freeze_fe:
+                with torch.no_grad():
+                    flat = volumes.reshape(B * S, C, H, W)
+                    slice_features = feature_extractor(flat)  # (B*S, 768)
+                    slice_features = slice_features.reshape(B, S, -1)  # (B, S, 768)
+            else:
                 flat = volumes.reshape(B * S, C, H, W)
                 slice_features = feature_extractor(flat)  # (B*S, 768)
                 slice_features = slice_features.reshape(B, S, -1)  # (B, S, 768)
@@ -333,10 +393,33 @@ def main(args):
 
         # End-of-epoch summary
         epoch_time = time.time() - t_epoch_start
-        log('Epoch %d/%d complete  (%.0fs)  avg_loss=%.4f'
-            % (epoch + 1, opt_cfg['epochs'], epoch_time, loss_meter.avg))
 
-        # Save checkpoint (main process only)
+        # Validation loss
+        val_loss = evaluate_val()
+        val_str = '  val_loss=%.4f' % val_loss if val_loss is not None else ''
+        improved = ''
+
+        if val_loss is not None:
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                epochs_no_improve = 0
+                improved = ' *'
+                # Save best model
+                if is_main:
+                    best_path = os.path.join(output_dir, '%s-best.pth.tar' % write_tag)
+                    save_checkpoint(
+                        best_path, encoder, predictor, target_encoder, optimizer,
+                        scaler, epoch + 1, val_loss, data_cfg['batch_size'],
+                        world_size, lr_val,
+                    )
+            else:
+                epochs_no_improve += 1
+
+        log('Epoch %d/%d  (%.0fs)  train_loss=%.4f%s%s'
+            % (epoch + 1, opt_cfg['epochs'], epoch_time, loss_meter.avg,
+               val_str, improved))
+
+        # Save latest checkpoint (main process only)
         if is_main:
             latest_path = os.path.join(output_dir, '%s-latest.pth.tar' % write_tag)
             save_checkpoint(
@@ -352,8 +435,13 @@ def main(args):
                     world_size, lr_val,
                 )
 
+        # Early stopping
+        if val_loss is not None and epochs_no_improve >= patience:
+            log('Early stopping: val loss has not improved for %d epochs' % patience)
+            break
+
     log('=' * 70)
-    log('Training complete.')
+    log('Training complete. Best val loss: %.4f' % best_val_loss)
     log('=' * 70)
 
 

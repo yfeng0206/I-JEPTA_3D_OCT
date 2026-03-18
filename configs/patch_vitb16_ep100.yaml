@@ -36,6 +36,7 @@ optimization:
   final_weight_decay: 0.4
   ema: [0.996, 1.0]
   ipe_scale: 1.0
+  patience: 15
 logging:
   folder: /tmp/ijepa_outputs/patch_vitb16_ep100
   write_tag: jepa_patch

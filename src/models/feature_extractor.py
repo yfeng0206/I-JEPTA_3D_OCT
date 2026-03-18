@@ -38,8 +38,10 @@ class FrozenFeatureExtractor(nn.Module):
     """
 
     def __init__(self, checkpoint_path=None,
-                 convnext_name="facebook/convnext-tiny-224"):
+                 convnext_name="facebook/convnext-tiny-224",
+                 freeze=True):
         super().__init__()
+        self._freeze = freeze
 
         # ------------------------------------------------------------------
         # 1. Load ConvNextModel from HuggingFace
@@ -78,16 +80,18 @@ class FrozenFeatureExtractor(nn.Module):
             self._load_slivit_checkpoint(checkpoint_path)
 
         # ------------------------------------------------------------------
-        # 3. Freeze all parameters
+        # 3. Freeze parameters if requested
         # ------------------------------------------------------------------
-        self.eval()
-        for param in self.parameters():
-            param.requires_grad = False
+        if freeze:
+            self.eval()
+            for param in self.parameters():
+                param.requires_grad = False
 
         logger.info(
-            "FrozenFeatureExtractor initialised from '%s'%s — all params frozen.",
+            "FeatureExtractor initialised from '%s'%s — %s.",
             convnext_name,
             f" + checkpoint '{checkpoint_path}'" if checkpoint_path else "",
+            "frozen" if freeze else "trainable (low LR recommended)",
         )
 
     def _load_slivit_checkpoint(self, checkpoint_path):
@@ -153,8 +157,10 @@ class FrozenFeatureExtractor(nn.Module):
         )
 
     def train(self, mode=True):
-        """Override to keep the module permanently in eval mode."""
-        return super().train(False)
+        """If frozen, keep permanently in eval mode."""
+        if self._freeze:
+            return super().train(False)
+        return super().train(mode)
 
     def forward(self, x):
         """Extract a 768-d feature vector from a single 2-D slice.

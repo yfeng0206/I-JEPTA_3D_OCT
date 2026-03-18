@@ -124,31 +124,30 @@ def init_slice_model(device, num_slices=32, embed_dim=768, enc_depth=6,
     return encoder, predictor
 
 
-def init_feature_extractor(device, checkpoint_path=None):
-    """Initialize a frozen ConvNeXt feature extractor for the slice-level approach.
+def init_feature_extractor(device, checkpoint_path=None, freeze=True):
+    """Initialize a ConvNeXt feature extractor for the slice-level approach.
 
     Args:
         device: Target torch device.
         checkpoint_path: Optional path to SLIViT pretrained ConvNeXt weights.
+        freeze: If True, all params are frozen. If False, params are trainable
+                (use a low LR like 1e-6).
 
     Returns:
         FrozenFeatureExtractor on *device*.
     """
-    fe = FrozenFeatureExtractor(checkpoint_path=checkpoint_path)
+    fe = FrozenFeatureExtractor(checkpoint_path=checkpoint_path, freeze=freeze)
     fe = fe.to(device)
     return fe
 
 
 def init_opt(encoder, predictor, wd, final_wd, start_lr, ref_lr, final_lr,
              iterations_per_epoch, warmup, num_epochs, ipe_scale=1.0,
-             use_bfloat16=False):
+             use_bfloat16=False, feature_extractor=None, fe_lr=None):
     """Initialize AdamW optimizer with warmup cosine LR and cosine WD schedules.
 
-    Creates four parameter groups:
-      - encoder params with weight decay
-      - predictor params with weight decay
-      - encoder params without weight decay (bias, LayerNorm)
-      - predictor params without weight decay (bias, LayerNorm)
+    Creates parameter groups for encoder, predictor, and optionally a
+    feature extractor (with its own learning rate).
 
     Args:
         encoder: The encoder model.
@@ -163,6 +162,9 @@ def init_opt(encoder, predictor, wd, final_wd, start_lr, ref_lr, final_lr,
         num_epochs: Total number of training epochs.
         ipe_scale: Scale factor for iterations per epoch.
         use_bfloat16: Whether to use bfloat16 mixed precision.
+        feature_extractor: Optional unfrozen feature extractor to include
+            in the optimizer with a separate learning rate.
+        fe_lr: Learning rate for the feature extractor (e.g., 1e-6).
 
     Returns:
         (optimizer, scaler, lr_scheduler, wd_scheduler)
@@ -177,6 +179,14 @@ def init_opt(encoder, predictor, wd, final_wd, start_lr, ref_lr, final_lr,
         {'params': enc_no_wd_params, 'weight_decay': 0.0},
         {'params': pred_no_wd_params, 'weight_decay': 0.0},
     ]
+
+    # Add feature extractor params with its own LR
+    if feature_extractor is not None and fe_lr is not None:
+        fe_wd_params, fe_no_wd_params = _split_wd_params(feature_extractor)
+        if fe_wd_params:
+            param_groups.append({'params': fe_wd_params, 'weight_decay': wd, 'lr': fe_lr})
+        if fe_no_wd_params:
+            param_groups.append({'params': fe_no_wd_params, 'weight_decay': 0.0, 'lr': fe_lr})
 
     optimizer = torch.optim.AdamW(param_groups)
 
