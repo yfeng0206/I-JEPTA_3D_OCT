@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gitattributes
+__pycache__
+*.pyc
+*.pt
+*.pth
+*.pth.tar
+data/
+outputs/
+checkpoints/
+configs/aml_*.yml
