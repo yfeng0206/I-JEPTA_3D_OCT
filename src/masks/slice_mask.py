@@ -132,25 +132,24 @@ class SliceMaskCollator:
                     torch.tensor(sorted(per_sample_pred[p]), dtype=torch.long)
                 )
 
-        collated_masks_enc = self._pad_and_stack([all_enc])
-        collated_masks_pred = self._pad_and_stack(all_pred)
+        collated_masks_enc = self._truncate_and_stack([all_enc])
+        collated_masks_pred = self._truncate_and_stack(all_pred)
 
         return collated_batch, collated_masks_enc, collated_masks_pred
 
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _pad_and_stack(mask_groups):
+    def _truncate_and_stack(mask_groups):
         # type: (List[List[torch.Tensor]]) -> List[torch.Tensor]
-        """Pad each group to equal length and stack into (B, max_len)."""
+        """Truncate each group to the minimum length and stack into (B, min_len).
+
+        This matches the original I-JEPA approach: all samples in a batch
+        must have the same number of mask indices per target block.
+        """
         result = []
         for group in mask_groups:
-            max_len = max(t.numel() for t in group)
-            padded = []
-            for t in group:
-                if t.numel() < max_len:
-                    pad_val = t[-1].expand(max_len - t.numel())
-                    t = torch.cat([t, pad_val])
-                padded.append(t)
-            result.append(torch.stack(padded, dim=0))
+            min_len = min(t.numel() for t in group)
+            truncated = [t[:min_len] for t in group]
+            result.append(torch.stack(truncated, dim=0))
         return result

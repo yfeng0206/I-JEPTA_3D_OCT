@@ -322,7 +322,7 @@ def main(args):
                     slice_features = slice_features.reshape(B, S, -1)  # (B, S, 768)
             else:
                 # Process in chunks to avoid OOM (B*S can be 256+ images)
-                fe_chunk = 4
+                fe_chunk = 2
                 flat = volumes.reshape(B * S, C, H, W)
                 feat_chunks = []
                 for i in range(0, flat.size(0), fe_chunk):
