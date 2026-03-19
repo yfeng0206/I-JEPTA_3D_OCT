@@ -272,7 +272,10 @@ def main(args):
             masks_pred_v = [m.to(device, non_blocking=True) for m in masks_pred_v]
             B_v, S_v, C_v, H_v, W_v = volumes.shape
             flat = volumes.reshape(B_v * S_v, C_v, H_v, W_v)
-            slice_feats = feature_extractor(flat).reshape(B_v, S_v, -1)
+            fc = []
+            for i in range(0, flat.size(0), 4):
+                fc.append(feature_extractor(flat[i:i+4]))
+            slice_feats = torch.cat(fc, dim=0).reshape(B_v, S_v, -1)
             h = target_encoder(slice_feats)
             h = F.layer_norm(h, (h.size(-1),))
             h = apply_masks(h, masks_pred_v)
@@ -318,9 +321,13 @@ def main(args):
                     slice_features = feature_extractor(flat)  # (B*S, 768)
                     slice_features = slice_features.reshape(B, S, -1)  # (B, S, 768)
             else:
+                # Process in chunks to avoid OOM (B*S can be 256+ images)
+                fe_chunk = 4
                 flat = volumes.reshape(B * S, C, H, W)
-                slice_features = feature_extractor(flat)  # (B*S, 768)
-                slice_features = slice_features.reshape(B, S, -1)  # (B, S, 768)
+                feat_chunks = []
+                for i in range(0, flat.size(0), fe_chunk):
+                    feat_chunks.append(feature_extractor(flat[i:i+fe_chunk]))
+                slice_features = torch.cat(feat_chunks, dim=0).reshape(B, S, -1)
 
             data_ms = (time.time() - t_data) * 1000.0
 
