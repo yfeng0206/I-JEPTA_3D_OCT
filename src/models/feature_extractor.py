@@ -188,10 +188,6 @@ class FrozenFeatureExtractor(nn.Module):
         else:
             hidden = encoder_out
 
-        # Apply final layer norm if present
-        if not isinstance(self.final_layernorm, nn.Identity):
-            hidden = self.final_layernorm(hidden)
-
         # Global average pool: (B, 768, H, W) -> (B, 768)
         if hidden.dim() == 4:
             pooled = hidden.mean(dim=[2, 3])
@@ -200,6 +196,10 @@ class FrozenFeatureExtractor(nn.Module):
             pooled = hidden.mean(dim=1)
         else:
             pooled = hidden
+
+        # Apply final layer norm after pooling (now shape is [B, 768])
+        if not isinstance(self.final_layernorm, nn.Identity):
+            pooled = self.final_layernorm(pooled)
 
         return pooled
 
