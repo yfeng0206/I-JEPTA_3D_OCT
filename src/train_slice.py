@@ -334,12 +334,27 @@ def main(args):
             def _forward_backward():
                 optimizer.zero_grad(set_to_none=True)
 
+                # Diagnostic: log shapes and mask content on first iter
+                if epoch == start_epoch and itr == 0 and is_main:
+                    log('  [DIAG] slice_features: %s' % str(slice_features.shape))
+                    log('  [DIAG] masks_enc: %s' % str([m.shape for m in masks_enc]))
+                    log('  [DIAG] masks_pred: %s' % str([m.shape for m in masks_pred]))
+                    log('  [DIAG] masks_enc[0][0]: %s' % str(masks_enc[0][0].tolist()))
+                    log('  [DIAG] masks_pred[0][0]: %s' % str(masks_pred[0][0].tolist()))
+                    log('  [DIAG] masks_pred[1][0]: %s' % str(masks_pred[1][0].tolist()))
+                    log('  [DIAG] slice_features stats: mean=%.4f std=%.4f min=%.4f max=%.4f'
+                        % (slice_features.mean().item(), slice_features.std().item(),
+                           slice_features.min().item(), slice_features.max().item()))
+
                 # Target path (no gradient)
                 with torch.no_grad():
                     h = target_encoder(slice_features)  # (B, S, D)
                     h = F.layer_norm(h, (h.size(-1),))
                     h = apply_masks(h, masks_pred)
                     h = repeat_interleave_batch(h, B, repeat=len(masks_enc))
+
+                if epoch == start_epoch and itr == 0 and is_main:
+                    log('  [DIAG] h (target): %s mean=%.4f std=%.4f' % (str(h.shape), h.mean().item(), h.std().item()))
 
                 # Context path (with gradient)
                 use_amp = (scaler is not None)
@@ -352,6 +367,10 @@ def main(args):
                     z = encoder(slice_features, masks_enc)
                     z = predictor(z, masks_enc, masks_pred)
                     loss = F.smooth_l1_loss(z, h)
+
+                if epoch == start_epoch and itr == 0 and is_main:
+                    log('  [DIAG] z (pred): %s mean=%.4f std=%.4f' % (str(z.shape), z.mean().item(), z.std().item()))
+                    log('  [DIAG] loss=%.6f' % loss.item())
 
                 if use_amp:
                     scaler.scale(loss).backward()
