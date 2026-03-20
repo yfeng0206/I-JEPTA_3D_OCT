@@ -379,6 +379,81 @@ def main(args):
                     data_ms, fwd_bwd_ms, 0.0, gpu_mem_mb,
                 )
 
+        # End-of-epoch diagnostic: prediction quality on one batch
+        if is_main and val_loader is not None:
+            enc_diag = encoder.module if hasattr(encoder, 'module') else encoder
+            pred_diag = predictor.module if hasattr(predictor, 'module') else predictor
+            enc_diag.eval()
+            pred_diag.eval()
+            with torch.no_grad():
+                for diag_imgs, diag_menc, diag_mpred in val_loader:
+                    diag_imgs = diag_imgs.to(device)
+                    diag_menc = [m.to(device) for m in diag_menc]
+                    diag_mpred = [m.to(device) for m in diag_mpred]
+                    B_d = diag_imgs.size(0)
+
+                    # Target
+                    h_d = target_encoder(diag_imgs)
+                    h_d = F.layer_norm(h_d, (h_d.size(-1),))
+                    h_masked = apply_masks(h_d, diag_mpred)
+                    h_masked = repeat_interleave_batch(h_masked, B_d, repeat=len(diag_menc))
+
+                    # Prediction
+                    z_d = enc_diag(diag_imgs, diag_menc)
+                    z_d = pred_diag(z_d, diag_menc, diag_mpred)
+
+                    # Cosine similarity
+                    cos_sim = F.cosine_similarity(z_d, h_masked, dim=-1)
+                    avg_cos = cos_sim.mean().item()
+                    min_cos = cos_sim.min().item()
+                    max_cos = cos_sim.max().item()
+
+                    # L2 distance
+                    l2_dist = (z_d - h_masked).norm(dim=-1).mean().item()
+
+                    # Representation diversity: pairwise cosine across all patches (first sample)
+                    num_patches = h_d.size(1)
+                    all_reps = F.normalize(h_d[0], dim=-1)
+                    pairwise = all_reps @ all_reps.T
+                    mask_diag = ~torch.eye(num_patches, dtype=torch.bool, device=device)
+                    avg_pairwise = pairwise[mask_diag].mean().item()
+
+                    log('  [DIAG] Epoch %d: cos_sim=%.4f (min=%.4f max=%.4f) '
+                        'l2_dist=%.4f  rep_diversity=%.4f (1.0=collapsed)'
+                        % (epoch + 1, avg_cos, min_cos, max_cos, l2_dist, avg_pairwise))
+                    log('  [DIAG] z shape=%s h shape=%s num_patches=%d'
+                        % (str(z_d.shape), str(h_masked.shape), num_patches))
+                    break
+            enc_diag.train()
+            pred_diag.train()
+
+        # Train eval loss (20 batches, no grad)
+        if is_main and val_loader is not None:
+            enc_u = encoder.module if hasattr(encoder, 'module') else encoder
+            pred_u = predictor.module if hasattr(predictor, 'module') else predictor
+            enc_u.eval()
+            pred_u.eval()
+            train_eval_meter = AverageMeter()
+            with torch.no_grad():
+                for t_idx, (t_imgs, t_menc, t_mpred) in enumerate(train_loader):
+                    if t_idx >= 20:
+                        break
+                    t_imgs = t_imgs.to(device)
+                    t_menc = [m.to(device) for m in t_menc]
+                    t_mpred = [m.to(device) for m in t_mpred]
+                    B_t = t_imgs.size(0)
+                    h_t = target_encoder(t_imgs)
+                    h_t = F.layer_norm(h_t, (h_t.size(-1),))
+                    h_t = apply_masks(h_t, t_mpred)
+                    h_t = repeat_interleave_batch(h_t, B_t, repeat=len(t_menc))
+                    z_t = enc_u(t_imgs, t_menc)
+                    z_t = pred_u(z_t, t_menc, t_mpred)
+                    train_eval_meter.update(F.smooth_l1_loss(z_t, h_t).item())
+            if is_main:
+                log('  train_eval_loss=%.6f' % train_eval_meter.avg)
+            enc_u.train()
+            pred_u.train()
+
         # End-of-epoch summary
         epoch_time = time.time() - t_epoch_start
 

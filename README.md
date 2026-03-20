@@ -6,7 +6,7 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 Our SLIViT experiments reached 0.869 test AUC using a ConvNeXt feature extractor pretrained on Kermany OCT (CNV, DME, drusen, normal) and a ViT integrator trained on 6K labeled FairVision volumes. Two bottlenecks limited further improvement: the ConvNeXt features were pretrained on a different task (not glaucoma), and the ViT integrator was trained from scratch on a small labeled dataset.
 
-I-JEPA addresses both by learning representations directly from unlabeled OCT data through masked prediction in representation space. No hand-crafted augmentations are needed. We implement two complementary approaches that target each bottleneck separately.
+I-JEPA addresses both by learning representations directly from unlabeled OCT data through masked prediction in representation space. No hand-crafted augmentations are needed. We implement two approaches that target each bottleneck separately, with patch-level being the primary approach.
 
 ## Approaches
 
@@ -14,15 +14,15 @@ I-JEPA addresses both by learning representations directly from unlabeled OCT da
 
 Standard I-JEPA applied to individual 256x256 OCT slices. Each slice is patchified into a 16x16 grid of 256 patches. The encoder learns within-slice spatial features (retinal layer boundaries, RNFL thickness patterns, optic nerve structures) by predicting masked patch representations from context patches.
 
-Training data: 6,000 volumes x 32 slices = 192,000 slice images (self-supervised, no labels needed). The pretrained encoder replaces ConvNeXt as the feature extractor for downstream classification.
+Training data: 6,000 volumes x 100 slices = 600,000 slice images (self-supervised, no labels needed). Using 100 uniformly sampled slices from the 200 available per volume provides dense coverage while reducing redundancy from near-identical adjacent slices. The pretrained encoder replaces ConvNeXt as the feature extractor for downstream classification.
 
 For downstream, each of the 32 slices is encoded independently, producing 32 feature vectors. A lightweight 2-layer cross-slice attention module (trained from scratch on 6K labeled volumes) learns cross-slice relationships and feeds a classification head. Only 2 layers are needed because the input features are already high-quality from the 12-layer pretrained encoder, consistent with the video transformer literature (ViViT, TimeSformer) which uses 2-4 temporal layers on top of spatial features.
 
-### Slice-level I-JEPA
+### Slice-level I-JEPA (experimental)
 
-I-JEPA applied to sequences of slice features within each volume. A ConvNeXt feature extractor (fine-tuned with low LR) encodes each of the 32 slices to a 768-d vector. The slice-level encoder then learns cross-slice relationships by predicting masked slice representations from context slices using 1D contiguous masking.
+I-JEPA applied to sequences of slice features within each volume. A ConvNeXt feature extractor encodes each of the 32 slices to a 768-d vector. The slice-level encoder then learns cross-slice relationships by predicting masked slice representations from context slices using 1D contiguous masking.
 
-Training data: 6,000 volumes (self-supervised). The pretrained slice encoder captures which spatial patterns across slices are predictive. For downstream, the encoder output is average-pooled and classified with an MLP head (~1.5K params), minimizing overfitting risk.
+Training data: 6,000 volumes (self-supervised). In practice, we found that 32 slice tokens from a pretrained ConvNeXt lack sufficient diversity for I-JEPA pretraining: representations collapse to near-uniform vectors (pairwise cosine similarity >0.999) and the prediction loss reaches near-zero within 1-2 epochs. This is because adjacent OCT slices produce highly correlated features, making the masked prediction task trivially solvable by interpolation regardless of masking strategy. The patch-level approach avoids this by operating on 256 diverse spatial patches per image.
 
 ## Architecture
 
@@ -61,7 +61,7 @@ The feature extractor is fine-tuned with a very low learning rate (1e-6) rather 
 
 | | Original I-JEPA | Patch-level (ours) | Slice-level (ours) |
 |--|----------------|-------------------|-------------------|
-| Dataset | ImageNet 1.2M | 192K OCT slices | 6K OCT volumes |
+| Dataset | ImageNet 1.2M | 600K OCT slices | 6K OCT volumes |
 | Image size | 224x224 | 256x256 | N/A (32 tokens) |
 | Encoder | ViT-H/14 (630M, 32 layers) | ViT-B/16 (86M, 12 layers) | SliceViT (85M, 12 layers) |
 | Predictor | 384-d, 12 layers | 384-d, 6 layers | 384-d, 6 layers |
@@ -119,7 +119,7 @@ Slice-level memory is dominated by the model weights, not activations (only 32 t
 
 | Phase | Dataset | Batch | Time/epoch | Epochs | Total |
 |-------|---------|-------|-----------|--------|-------|
-| Patch pretraining | 192K slices | 128 eff | ~5 min | 100 | ~8 hrs |
+| Patch pretraining | 600K slices | 128 eff | ~15 min | 100 | ~25 hrs |
 | Slice pretraining | 6K volumes | 32 eff | ~3.5 min | 100 | ~6 hrs |
 | Downstream (patch) | 6K labeled | 32 eff | ~2 min | 20-50 | ~1-2 hrs |
 | Downstream (slice) | 6K labeled | 64 eff | ~1 min | 20-100 | ~0.5-2 hrs |
@@ -157,7 +157,7 @@ Harvard FairVision Glaucoma subset:
 - 10,000 subjects total (6,000 train / 1,000 validation / 3,000 test)
 - Each subject has a 200x200x200 OCT B-scan volume stored as `.npz`
 - Binary labels: glaucoma (1) or not (0)
-- 32 slices uniformly sampled from each volume, resized to 256x256
+- 100 slices uniformly sampled from each volume for patch-level (600K images), resized to 256x256
 - ~63GB compressed, available on [HuggingFace](https://huggingface.co/datasets/ming0100/Harvard_FairVision)
 
 ## Project Structure
@@ -172,7 +172,7 @@ src/
     slice_mask.py            1D contiguous masking (slice-level)
     utils.py                 apply_masks helper
   datasets/
-    oct_slices.py            Individual slice dataset (192K images)
+    oct_slices.py            Individual slice dataset (600K images at 100 slices)
     oct_volumes.py           Volume dataset (6K volumes)
   utils/
     tensors.py               trunc_normal_, repeat_interleave_batch

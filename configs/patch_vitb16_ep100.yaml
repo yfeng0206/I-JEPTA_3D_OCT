@@ -5,7 +5,7 @@ data:
   num_workers: 4
   pin_mem: true
   data_dir: /tmp/fairvision_data/data
-  num_slices: 32
+  num_slices: 100
   color_jitter_strength: 0.0
   use_color_distortion: false
   use_gaussian_blur: false

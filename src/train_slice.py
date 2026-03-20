@@ -417,8 +417,103 @@ def main(args):
                     data_ms, fwd_bwd_ms, 0.0, gpu_mem_mb,
                 )
 
+        # End-of-epoch diagnostic: prediction quality on one sample
+        if is_main:
+            enc_unwrap_diag = encoder.module if hasattr(encoder, 'module') else encoder
+            pred_unwrap_diag = predictor.module if hasattr(predictor, 'module') else predictor
+            enc_unwrap_diag.eval()
+            pred_unwrap_diag.eval()
+            with torch.no_grad():
+                # Grab one batch from val
+                for diag_batch in val_loader:
+                    diag_vol, diag_menc, diag_mpred = diag_batch
+                    diag_vol = diag_vol.to(device)
+                    diag_menc = [m.to(device) for m in diag_menc]
+                    diag_mpred = [m.to(device) for m in diag_mpred]
+                    B_d, S_d, C_d, H_d, W_d = diag_vol.shape
+                    flat_d = diag_vol.reshape(B_d * S_d, C_d, H_d, W_d)
+                    fc_d = []
+                    for ii in range(0, flat_d.size(0), 4):
+                        fc_d.append(feature_extractor(flat_d[ii:ii+4]))
+                    sf_d = torch.cat(fc_d, dim=0).reshape(B_d, S_d, -1)
+
+                    # Target
+                    h_d = target_encoder(sf_d)
+                    h_d = F.layer_norm(h_d, (h_d.size(-1),))
+                    h_masked = apply_masks(h_d, diag_mpred)
+                    h_masked = repeat_interleave_batch(h_masked, B_d, repeat=len(diag_menc))
+
+                    # Prediction
+                    z_d = enc_unwrap_diag(sf_d, diag_menc)
+                    z_d = pred_unwrap_diag(z_d, diag_menc, diag_mpred)
+
+                    # Cosine similarity per token
+                    cos_sim = F.cosine_similarity(z_d, h_masked, dim=-1)  # (B*npred, N_target)
+                    avg_cos = cos_sim.mean().item()
+                    min_cos = cos_sim.min().item()
+                    max_cos = cos_sim.max().item()
+
+                    # Representation diversity: pairwise cosine sim across all 32 positions
+                    all_reps = h_d[0]  # (32, 768) first sample
+                    all_reps_norm = F.normalize(all_reps, dim=-1)
+                    pairwise = all_reps_norm @ all_reps_norm.T  # (32, 32)
+                    # Exclude diagonal
+                    mask_diag = ~torch.eye(32, dtype=torch.bool, device=device)
+                    avg_pairwise = pairwise[mask_diag].mean().item()
+
+                    # L2 distance
+                    l2_dist = (z_d - h_masked).norm(dim=-1).mean().item()
+
+                    log('  [DIAG] Epoch %d: cos_sim=%.4f (min=%.4f max=%.4f) '
+                        'l2_dist=%.4f  rep_diversity=%.4f (1.0=collapsed, 0.0=diverse)'
+                        % (epoch + 1, avg_cos, min_cos, max_cos, l2_dist, avg_pairwise))
+                    log('  [DIAG] context=%s' % diag_menc[0][0].tolist())
+                    log('  [DIAG] target_block0=%s target_block1=%s'
+                        % (diag_mpred[0][0].tolist(), diag_mpred[1][0].tolist()))
+
+                    # Train set loss (on one batch from train loader)
+                    break
+
+            enc_unwrap_diag.train()
+            pred_unwrap_diag.train()
+
+        # Also compute train set loss (full eval on a subset)
+        train_eval_loss = None
+        if is_main and val_loader is not None:
+            enc_u = encoder.module if hasattr(encoder, 'module') else encoder
+            pred_u = predictor.module if hasattr(predictor, 'module') else predictor
+            enc_u.eval()
+            pred_u.eval()
+            train_eval_meter = AverageMeter()
+            with torch.no_grad():
+                for t_idx, (t_vol, t_menc, t_mpred) in enumerate(train_loader):
+                    if t_idx >= 20:  # sample 20 batches
+                        break
+                    t_vol = t_vol.to(device)
+                    t_menc = [m.to(device) for m in t_menc]
+                    t_mpred = [m.to(device) for m in t_mpred]
+                    B_t, S_t, C_t, H_t, W_t = t_vol.shape
+                    flat_t = t_vol.reshape(B_t * S_t, C_t, H_t, W_t)
+                    fc_t = []
+                    for ii in range(0, flat_t.size(0), 4):
+                        fc_t.append(feature_extractor(flat_t[ii:ii+4]))
+                    sf_t = torch.cat(fc_t, dim=0).reshape(B_t, S_t, -1)
+                    h_t = target_encoder(sf_t)
+                    h_t = F.layer_norm(h_t, (h_t.size(-1),))
+                    h_t = apply_masks(h_t, t_mpred)
+                    h_t = repeat_interleave_batch(h_t, B_t, repeat=len(t_menc))
+                    z_t = enc_u(sf_t, t_menc)
+                    z_t = pred_u(z_t, t_menc, t_mpred)
+                    train_eval_meter.update(F.smooth_l1_loss(z_t, h_t).item())
+            train_eval_loss = train_eval_meter.avg
+            enc_u.train()
+            pred_u.train()
+
         # End-of-epoch summary
         epoch_time = time.time() - t_epoch_start
+
+        if train_eval_loss is not None and is_main:
+            log('  train_eval_loss=%.6f' % train_eval_loss)
 
         # Validation loss
         val_loss = evaluate_val()
