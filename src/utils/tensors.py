@@ -37,22 +37,28 @@ def trunc_normal_(tensor, mean=0., std=1.):
 
 
 def repeat_interleave_batch(x, B, repeat):
-    """Repeat each element in a batch ``repeat`` times.
+    """Repeat batches block-wise, matching the original I-JEPA implementation.
 
-    Given a tensor ``x`` of shape (B, ...), returns a tensor of shape
-    (B * repeat, ...) where each sample is repeated ``repeat`` consecutive
-    times.  This is useful for multi-mask handling where every image needs
-    to be paired with several different masks.
+    Input ``x`` has shape ``(N * B, ...)``, interpreted as ``N`` groups of
+    ``B`` samples each.  For each group, the ``B`` samples are emitted
+    ``repeat`` times before moving to the next group.
+
+    Example with N=2, B=3, repeat=2:
+        Input groups:   [g0_s0, g0_s1, g0_s2,  g1_s0, g1_s1, g1_s2]
+        Output:         [g0_s0, g0_s1, g0_s2,  g0_s0, g0_s1, g0_s2,
+                         g1_s0, g1_s1, g1_s2,  g1_s0, g1_s1, g1_s2]
 
     Args:
-        x: Input tensor of shape (B, ...).
-        B: Batch size (leading dimension of *x*).
-        repeat: Number of times to repeat each sample.
+        x: Input tensor of shape (N * B, ...).
+        B: Batch size per group.
+        repeat: Number of times to repeat each group.
 
     Returns:
-        Tensor of shape (B * repeat, ...).
+        Tensor of shape (N * B * repeat, ...).
     """
-    N = x.shape[0] // B
-    x = x.unsqueeze(1).repeat(1, repeat, *([1] * (x.dim() - 1)))
-    x = x.reshape(B * repeat * N, *x.shape[2:])
+    N = len(x) // B
+    x = torch.cat([
+        torch.cat([x[i * B:(i + 1) * B] for _ in range(repeat)], dim=0)
+        for i in range(N)
+    ], dim=0)
     return x

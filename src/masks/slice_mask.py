@@ -1,12 +1,10 @@
 """1-D slice-level masking collator for slice-level I-JEPA.
 
-Operates on a sequence of ``num_slices`` slice tokens (default 32) and
-produces contiguous runs of masked / visible slices analogous to the 2-D
-block masks used in patch-level I-JEPA.
-
-The output format matches the original I-JEPA MaskCollator:
-- masks_enc: list of 1 tensor of shape (B, num_context) — context indices
-- masks_pred: list of npred tensors, each (B, min_seg_len) — target indices
+Matches the original I-JEPA MaskCollator design:
+- Context is a sampled contiguous BLOCK (not the full complement of targets)
+- Target positions within the context block are removed
+- Slices outside both context and target are ignored
+- All pred masks are truncated to the same global minimum length
 """
 
 import random
@@ -20,7 +18,7 @@ class SliceMaskCollator:
 
     Args:
         num_slices: Total number of slice tokens in each volume.
-        enc_mask_scale: (min, max) fraction of slices to keep as context.
+        enc_mask_scale: (min, max) fraction of slices for the context block.
         pred_mask_scale: (min, max) fraction of slices per target segment.
         npred: Number of target segments per volume.
         min_keep: Minimum number of context slices to retain.
@@ -60,12 +58,11 @@ class SliceMaskCollator:
         B = len(tensors)
         collated_batch = torch.stack(tensors, dim=0)
 
-        # Collect per-sample masks
-        all_enc_indices = []    # list of B lists of context indices
-        all_pred_indices = []   # list of B lists of npred target segments
+        all_enc_indices = []
+        all_pred_indices = []
 
         for _ in range(B):
-            # Sample npred target segments
+            # 1. Sample target segments first
             target_set = set()
             segments = []
             for _ in range(self.npred):
@@ -74,25 +71,26 @@ class SliceMaskCollator:
                 segments.append(sorted(seg))
                 target_set.update(seg)
 
-            # Context = complement of all targets
-            context = sorted(i for i in range(self.num_slices) if i not in target_set)
+            # 2. Sample a contiguous CONTEXT BLOCK (like original I-JEPA)
+            ctx_len = self._sample_segment_length(self.enc_mask_scale)
+            ctx_block = set(self._sample_segment(ctx_len, self.num_slices))
 
-            # Ensure min_keep context slices
+            # 3. Remove target positions from context block
+            context = sorted(ctx_block - target_set)
+
+            # 4. Ensure minimum context slices
+            attempts = 0
+            while len(context) < self.min_keep and attempts < 20:
+                ctx_len = self._sample_segment_length(self.enc_mask_scale)
+                ctx_block = set(self._sample_segment(ctx_len, self.num_slices))
+                context = sorted(ctx_block - target_set)
+                attempts += 1
+
+            # If still too few, fall back to full complement
             if len(context) < self.min_keep:
-                deficit = self.min_keep - len(context)
-                extra = random.sample(sorted(target_set), min(deficit, len(target_set)))
-                context = sorted(set(context) | set(extra))
-                extra_set = set(extra)
-                segments = [
-                    [idx for idx in seg if idx not in extra_set]
-                    for seg in segments
-                ]
-                # Ensure no segment is empty
-                remaining = sorted(target_set - extra_set)
-                segments = [
-                    seg if len(seg) > 0 else ([random.choice(remaining)] if remaining else [0])
-                    for seg in segments
-                ]
+                context = sorted(
+                    i for i in range(self.num_slices) if i not in target_set
+                )
 
             all_enc_indices.append(context)
             all_pred_indices.append(segments)
@@ -102,11 +100,9 @@ class SliceMaskCollator:
         enc_mask = torch.stack([
             torch.tensor(ctx[:min_enc], dtype=torch.long)
             for ctx in all_enc_indices
-        ], dim=0)  # (B, min_enc)
+        ], dim=0)
 
-        # Build predictor masks: find the GLOBAL minimum segment length
-        # across ALL blocks and ALL samples (like original I-JEPA), so
-        # apply_masks can torch.cat the results along dim=0.
+        # Build predictor masks: global minimum segment length
         global_min_seg = min(
             len(all_pred_indices[b][p])
             for b in range(B)
@@ -119,6 +115,6 @@ class SliceMaskCollator:
             pred_masks.append(torch.stack([
                 torch.tensor(all_pred_indices[b][p][:global_min_seg], dtype=torch.long)
                 for b in range(B)
-            ], dim=0))  # (B, global_min_seg)
+            ], dim=0))
 
         return collated_batch, [enc_mask], pred_masks

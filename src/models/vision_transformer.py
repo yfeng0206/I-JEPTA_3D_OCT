@@ -545,58 +545,44 @@ class VisionTransformerPredictor(nn.Module):
             "(target positions)."
         )
 
+        if not isinstance(masks_x, list):
+            masks_x = [masks_x]
+        if not isinstance(masks, list):
+            masks = [masks]
+
         B = x.shape[0] // len(masks_x)  # actual batch size
 
         # 1. Project context tokens into predictor dimension
         x = self.predictor_embed(x)  # (B_total, N_ctx, Dp)
 
         # 2. Add positional embeddings to context tokens
-        x_pos = self.predictor_pos_embed.expand(B, -1, -1)  # (B, N_all, Dp)
-        x_pos_ctx = apply_masks(x_pos, masks_x)  # (B_total, N_ctx, Dp)
-        x = x + x_pos_ctx
+        x_pos = self.predictor_pos_embed.repeat(B, 1, 1)  # (B, N_all, Dp)
+        x += apply_masks(x_pos, masks_x)  # (B_total, N_ctx, Dp)
 
-        # 3. Create mask tokens for target positions and add pos embed
-        # Determine number of targets per mask and replicate per context mask
         _, N_ctx, Dp = x.shape
-        pred_tokens_list = []
-        for m in masks:
-            N_target = m.shape[1]
-            # Expand mask tokens for each sample in batch
-            mask_tokens = self.mask_token.expand(B, N_target, -1)  # (B, N_t, Dp)
-            # Add positional embedding at target positions
-            m_pos = apply_masks(x_pos, [m])  # (B, N_t, Dp)
-            mask_tokens = mask_tokens + m_pos
-            pred_tokens_list.append(mask_tokens)
 
-        # Repeat context for each target mask and concatenate with mask tokens
-        # x is (B * len(masks_x), N_ctx, Dp) — one context copy per context mask
-        # We need to pair each context copy with each target mask
-        results = []
-        for i, pred_tokens in enumerate(pred_tokens_list):
-            # pred_tokens: (B, N_target, Dp)
-            N_target = pred_tokens.shape[1]
+        # 3. Create mask tokens for ALL target positions at once
+        pos_embs = self.predictor_pos_embed.repeat(B, 1, 1)
+        pos_embs = apply_masks(pos_embs, masks)  # (B * npred, N_target, Dp)
+        pos_embs = repeat_interleave_batch(pos_embs, B, repeat=len(masks_x))
 
-            # Repeat pred_tokens for each context mask variation
-            pred_tokens_rep = repeat_interleave_batch(
-                pred_tokens, B, len(masks_x),
-            )  # (B * len(masks_x), N_target, Dp)
+        pred_tokens = self.mask_token.repeat(pos_embs.size(0), pos_embs.size(1), 1)
+        pred_tokens += pos_embs
 
-            # Concatenate: [context_tokens | mask_tokens]
-            tokens = torch.cat([x, pred_tokens_rep], dim=1)  # (B_total, N_ctx+N_t, Dp)
+        # 4. Repeat context for each target mask and concatenate
+        x = x.repeat(len(masks), 1, 1)  # (B * npred, N_ctx, Dp)
+        x = torch.cat([x, pred_tokens], dim=1)  # (B * npred, N_ctx + N_target, Dp)
 
-            # Run through predictor transformer blocks
-            for blk in self.predictor_blocks:
-                tokens = blk(tokens)
+        # 5. Single transformer pass
+        for blk in self.predictor_blocks:
+            x = blk(x)
+        x = self.predictor_norm(x)
 
-            tokens = self.predictor_norm(tokens)
+        # 6. Extract predictions (mask token outputs only)
+        x = x[:, N_ctx:]
+        x = self.predictor_proj(x)
 
-            # Extract only the mask token outputs (last N_target tokens)
-            pred_out = tokens[:, N_ctx:, :]  # (B_total, N_target, Dp)
-
-            # Project back to encoder dimension
-            pred_out = self.predictor_proj(pred_out)  # (B_total, N_target, D)
-
-            results.append(pred_out)
+        results = [x]
 
         return torch.cat(results, dim=0)  # (B_total * len(masks), N_target, D)
 
@@ -784,6 +770,11 @@ class SlicePredictor(nn.Module):
     def forward(self, x, masks_x, masks):
         """Predict target representations from context slice tokens.
 
+        Matches the original I-JEPA VisionTransformerPredictor: all target
+        mask tokens are concatenated and processed in a SINGLE transformer
+        pass so that mask tokens from different target blocks can attend to
+        each other.
+
         Args:
             x: (B_total, N_ctx, embed_dim) — context tokens from SliceEncoder.
             masks_x: List of index tensors for context slice positions.
@@ -791,11 +782,16 @@ class SlicePredictor(nn.Module):
 
         Returns:
             Predicted representations at target positions, projected to
-            encoder dim.
+            encoder dim.  Shape: (B * len(masks), N_target, embed_dim).
         """
         assert (masks is not None) and (masks_x is not None), (
             "SlicePredictor requires both masks_x and masks."
         )
+
+        if not isinstance(masks_x, list):
+            masks_x = [masks_x]
+        if not isinstance(masks, list):
+            masks = [masks]
 
         B = x.shape[0] // len(masks_x)
 
@@ -803,40 +799,33 @@ class SlicePredictor(nn.Module):
         x = self.predictor_embed(x)  # (B_total, N_ctx, Dp)
 
         # 2. Add positional embeddings to context tokens
-        x_pos = self.predictor_pos_embed.expand(B, -1, -1)  # (B, S, Dp)
-        x_pos_ctx = apply_masks(x_pos, masks_x)  # (B_total, N_ctx, Dp)
-        x = x + x_pos_ctx
+        x_pos = self.predictor_pos_embed.repeat(B, 1, 1)  # (B, S, Dp)
+        x += apply_masks(x_pos, masks_x)  # (B_total, N_ctx, Dp)
 
-        # 3. Create mask tokens for target positions and add pos embed
         _, N_ctx, Dp = x.shape
-        pred_tokens_list = []
-        for m in masks:
-            N_target = m.shape[1]
-            mask_tokens = self.mask_token.expand(B, N_target, -1)
-            m_pos = apply_masks(x_pos, [m])
-            mask_tokens = mask_tokens + m_pos
-            pred_tokens_list.append(mask_tokens)
 
-        # Pair each context copy with each target mask
-        results = []
-        for i, pred_tokens in enumerate(pred_tokens_list):
-            N_target = pred_tokens.shape[1]
+        # 3. Create mask tokens for ALL target positions at once
+        pos_embs = self.predictor_pos_embed.repeat(B, 1, 1)
+        pos_embs = apply_masks(pos_embs, masks)  # (B * npred, N_target, Dp)
+        pos_embs = repeat_interleave_batch(pos_embs, B, repeat=len(masks_x))
 
-            pred_tokens_rep = repeat_interleave_batch(
-                pred_tokens, B, len(masks_x),
-            )
+        pred_tokens = self.mask_token.repeat(pos_embs.size(0), pos_embs.size(1), 1)
+        pred_tokens += pos_embs
 
-            tokens = torch.cat([x, pred_tokens_rep], dim=1)
+        # 4. Repeat context for each target mask and concatenate
+        x = x.repeat(len(masks), 1, 1)  # (B * npred, N_ctx, Dp)
+        x = torch.cat([x, pred_tokens], dim=1)  # (B * npred, N_ctx + N_target, Dp)
 
-            for blk in self.predictor_blocks:
-                tokens = blk(tokens)
+        # 5. Single transformer pass
+        for blk in self.predictor_blocks:
+            x = blk(x)
+        x = self.predictor_norm(x)
 
-            tokens = self.predictor_norm(tokens)
-            pred_out = tokens[:, N_ctx:, :]
-            pred_out = self.predictor_proj(pred_out)
-            results.append(pred_out)
+        # 6. Extract predictions (mask token outputs only)
+        x = x[:, N_ctx:]
+        x = self.predictor_proj(x)
 
-        return torch.cat(results, dim=0)
+        return x
 
 
 # ===================================================================
