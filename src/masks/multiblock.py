@@ -194,30 +194,37 @@ class MaskCollator:
                     torch.tensor(per_image_pred[p], dtype=torch.long)
                 )
 
-        # Pad within each mask group so every image has the same number of
-        # indices (required for batching).  We replicate the last index.
-        collated_masks_enc = self._pad_and_stack(masks_enc)
-        collated_masks_pred = self._pad_and_stack(masks_pred)
+        # Truncate encoder masks: per-group min (each enc mask independently)
+        collated_masks_enc = self._truncate_and_stack(masks_enc)
+
+        # Truncate predictor masks: GLOBAL min across all pred groups and
+        # all samples, so apply_masks can torch.cat along dim=0.
+        global_min_pred = min(
+            t.numel() for group in masks_pred for t in group
+        )
+        global_min_pred = max(global_min_pred, 1)
+        collated_masks_pred = []
+        for group in masks_pred:
+            collated_masks_pred.append(torch.stack(
+                [t[:global_min_pred] for t in group], dim=0
+            ))
 
         return collated_batch, collated_masks_enc, collated_masks_pred
 
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _pad_and_stack(mask_groups):
+    def _truncate_and_stack(mask_groups):
         # type: (List[List[torch.Tensor]]) -> List[torch.Tensor]
-        """Pad each group so every sample has the same length, then stack.
+        """Truncate each group to the minimum length and stack.
 
-        Returns a list of tensors, each (B, max_len) within its group.
+        Returns a list of tensors, each (B, min_len) within its group.
         """
         result = []
         for group in mask_groups:
-            max_len = max(t.numel() for t in group)
-            padded = []
-            for t in group:
-                if t.numel() < max_len:
-                    pad_val = t[-1].expand(max_len - t.numel())
-                    t = torch.cat([t, pad_val])
-                padded.append(t)
-            result.append(torch.stack(padded, dim=0))  # (B, max_len)
+            min_len = min(t.numel() for t in group)
+            min_len = max(min_len, 1)
+            result.append(torch.stack(
+                [t[:min_len] for t in group], dim=0
+            ))
         return result

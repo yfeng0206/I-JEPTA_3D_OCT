@@ -42,7 +42,9 @@ echo "=== Installing dependencies ==="
 pip install transformers scikit-learn pillow pyyaml azure-storage-blob azure-identity 2>&1 | tail -5
 
 echo "=== Downloading data ==="
-cd "$(dirname "$0")/../src"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT/src"
 python -c "
 import sys
 sys.path.insert(0, '.')
@@ -88,7 +90,7 @@ for blob in blobs:
             print('Downloaded %d files...' % downloaded)
 print('Downloaded %d new files' % downloaded)
 "
-cd "$(dirname "$0")/.."
+cd "$PROJECT_ROOT"
 
 echo "=== Generating config ==="
 CONFIG_PATH="${OUTPUT_DIR}/config.yaml"
