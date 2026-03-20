@@ -76,6 +76,22 @@ The feature extractor is fine-tuned with a very low learning rate (1e-6) rather 
 
 We use ViT-B instead of ViT-H because our dataset is 6-160x smaller than ImageNet. The predictor is 6 layers (not 12) to maintain the 2:1 encoder:predictor ratio. Learning rate is scaled down proportionally to the smaller effective batch size. fp16 is used instead of bfloat16 (T4 limitation). Slice-level masking is 1D contiguous since adjacent OCT slices contain similar structures.
 
+## Adapting I-JEPA for 1D Slice Sequences
+
+The original I-JEPA operates on 2D patch grids from natural images. Adapting it to 1D slice sequences involved three key design choices.
+
+### Joint predictor processing
+
+The predictor concatenates mask tokens from all 4 target blocks together with context tokens and processes them in a single transformer pass. This allows mask tokens from different target blocks to attend to each other through self-attention, making the prediction problem a joint reasoning task across the full volume rather than 4 independent interpolations.
+
+### Sampled context block
+
+The context mask is a contiguous block of slices (75-90% of the sequence) rather than all non-target positions. Target slices that fall within this block are removed, creating gaps. Slices outside the context block are invisible to the encoder. This prevents trivial interpolation from immediate neighbors and forces the encoder to learn broader spatial relationships across the volume.
+
+### Block-wise batch repetition
+
+When pairing batch samples with multiple masks, samples are repeated in block-wise order (all samples for group 0, then all for group 1) to maintain correct alignment between predicted and target representations across the multi-mask I-JEPA training loop.
+
 ## Memory Budget
 
 Per GPU (T4 16GB), fp16 mixed precision.
@@ -129,7 +145,7 @@ AdamW with cosine learning rate schedule (warmup then decay) and cosine weight d
 
 Patch-level uses 2D block masking: 4 rectangular target blocks (15-20% of patches each, aspect ratio 0.75-1.5) and 1 large context block (85-100% of patches, targets removed). Block sizes are sampled once per batch for consistency; positions are random per image.
 
-Slice-level uses 1D contiguous masking: 4 contiguous segments of 3-6 slices as targets, with the remaining 24-29 slices as context. Contiguous masking is chosen because adjacent OCT slices share structural features, making the prediction task semantically meaningful.
+Slice-level uses 1D contiguous masking: 4 contiguous segments of 3-6 slices as targets. The context is a sampled contiguous block (75-90% of slices) with target positions removed, matching how the original I-JEPA samples context. Slices outside both the context block and target segments are invisible to the encoder, preventing trivial interpolation between adjacent slices.
 
 ### Early stopping
 
