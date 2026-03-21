@@ -119,7 +119,7 @@ Slice-level memory is dominated by the model weights, not activations (only 32 t
 
 | Phase | Dataset | Batch | Time/epoch | Epochs | Total |
 |-------|---------|-------|-----------|--------|-------|
-| Patch pretraining | 600K slices | 128 eff | ~15 min | 100 | ~25 hrs |
+| Patch pretraining | 600K slices | 256 eff | ~50 min | 50 | ~42 hrs |
 | Slice pretraining | 6K volumes | 32 eff | ~3.5 min | 100 | ~6 hrs |
 | Downstream (patch) | 6K labeled | 32 eff | ~2 min | 20-50 | ~1-2 hrs |
 | Downstream (slice) | 6K labeled | 64 eff | ~1 min | 20-100 | ~0.5-2 hrs |
@@ -150,6 +150,41 @@ Slice-level uses 1D contiguous masking: 4 contiguous segments of 3-6 slices as t
 ### Early stopping
 
 Both pretraining scripts evaluate reconstruction loss on the validation set each epoch. Training stops if validation loss does not improve for 15 epochs. Best model (by val loss) is saved separately from the latest checkpoint.
+
+## Preliminary Results
+
+### Slice-level: representation collapse
+
+Slice-level I-JEPA training on 6K volumes (32 slice tokens each) collapsed within 1-2 epochs across multiple configurations. Diagnostics showed:
+
+| Epoch | train_loss | val_loss | cos_sim (pred vs actual) | rep_diversity (lower=better) |
+|-------|-----------|---------|--------------------------|------------------------------|
+| 1 | 0.0375 | 0.0006 | 0.9998 | 0.9983 |
+| 2 | 0.0006 | 0.0003 | 1.0000 | 0.9993 |
+| 3 | 0.0000 | 0.0000 | 1.0000 | 0.9992 |
+
+The encoder converged to producing near-identical representations for all 32 slice positions (pairwise cosine similarity 0.999), making prediction trivial. This occurred regardless of masking strategy (full complement vs sampled block context, per-block vs joint predictor). The root cause is insufficient token diversity: adjacent OCT slices produce highly correlated ConvNeXt features, and 32 tokens is too few for I-JEPA's prediction task to remain challenging.
+
+### Patch-level: meaningful learning
+
+Patch-level I-JEPA on 600K individual slices (100 per volume, 256 patches per slice) showed healthy training dynamics in a 3-epoch validation run:
+
+| Epoch | train_loss | val_loss | cos_sim | rep_diversity | train_eval_loss |
+|-------|-----------|---------|---------|---------------|-----------------|
+| 1 | 0.2194 | 0.2932 | 0.5518 | 0.5471 | 0.2990 |
+| 2 | 0.2716 | 0.2502 | 0.6169 | 0.7949 | 0.2495 |
+| 3 | 0.2418 | 0.2390 | 0.5900 | 0.4583 | 0.2400 |
+
+Key observations:
+- **No collapse**: loss stays in the 0.22-0.30 range, cosine similarity between predicted and actual representations is ~0.55-0.62 (far from trivial)
+- **Representations are diverse**: pairwise cosine similarity across patches decreases from 0.55 to 0.46 (lower = more diverse, opposite of slice-level)
+- **Val loss consistently improves**: 0.2932 → 0.2502 → 0.2390, indicating genuine learning
+- **Train loss rises during warmup then decreases**: expected behavior as the EMA target encoder produces increasingly rich (harder to predict) representations during warmup
+- **GPU memory**: 6.7 GB at batch_size=32 on T4 16GB, with room to scale to batch_size=64
+
+The train_loss appearing higher than val_loss in epoch 2 is expected: train_loss is a running average computed while the model is changing (EMA target evolving), while val_loss is evaluated once at epoch end with the final model snapshot.
+
+Full training run in progress with batch_size=64 (256 effective), LR=0.001, 50 epochs with early stopping.
 
 ## Dataset
 
