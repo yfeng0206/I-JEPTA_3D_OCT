@@ -310,8 +310,12 @@ def main(args):
 
             data_ms = (time.time() - t_data) * 1000.0
 
+            accum_steps = opt_cfg.get('accum_steps', 1)
+
             def _forward_backward():
-                optimizer.zero_grad(set_to_none=True)
+                # Only zero gradients at the start of an accumulation window
+                if itr % accum_steps == 0:
+                    optimizer.zero_grad(set_to_none=True)
 
                 # Target path (no gradient)
                 with torch.no_grad():
@@ -328,21 +332,26 @@ def main(args):
                     with autocast():
                         z = encoder(imgs, masks_enc)  # masked context tokens
                         z = predictor(z, masks_enc, masks_pred)  # predict targets
-                        loss = F.smooth_l1_loss(z, h)
+                        loss = F.smooth_l1_loss(z, h) / accum_steps
                 else:
                     z = encoder(imgs, masks_enc)
                     z = predictor(z, masks_enc, masks_pred)
-                    loss = F.smooth_l1_loss(z, h)
+                    loss = F.smooth_l1_loss(z, h) / accum_steps
 
                 if use_amp:
                     scaler.scale(loss).backward()
-                    scaler.step(optimizer)
-                    scaler.update()
                 else:
                     loss.backward()
-                    optimizer.step()
 
-                return loss.item()
+                # Step optimizer only at the end of accumulation window
+                if (itr + 1) % accum_steps == 0 or (itr + 1) == len(train_loader):
+                    if use_amp:
+                        scaler.step(optimizer)
+                        scaler.update()
+                    else:
+                        optimizer.step()
+
+                return loss.item() * accum_steps  # report unscaled loss
 
             (loss_val, fwd_bwd_ms) = gpu_timer(_forward_backward)
 

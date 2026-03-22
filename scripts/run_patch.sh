@@ -22,6 +22,7 @@ PRED_DEPTH=${PRED_DEPTH:-6}
 PRED_EMB_DIM=${PRED_EMB_DIM:-384}
 NUM_WORKERS=${NUM_WORKERS:-4}
 NPROC=${NPROC:-4}
+ACCUM_STEPS=${ACCUM_STEPS:-1}
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_TAG="patch_${MODEL_NAME}_ps${PATCH_SIZE}_ep${EPOCHS}_bs${BATCH_SIZE}_lr${LR}"
@@ -133,6 +134,7 @@ optimization:
   final_weight_decay: ${FINAL_WEIGHT_DECAY}
   ema: [${EMA_START}, ${EMA_END}]
   ipe_scale: 1.0
+  accum_steps: ${ACCUM_STEPS}
 logging:
   folder: ${OUTPUT_DIR}
   write_tag: jepa_patch
