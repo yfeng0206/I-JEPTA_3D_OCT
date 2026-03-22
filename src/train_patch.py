@@ -211,9 +211,10 @@ def main(args):
             collate_fn=mask_collator,
         )
 
-    iterations_per_epoch = len(train_loader)
-    log('  Batches per epoch: %d' % iterations_per_epoch)
-    log('  Effective batch size: %d' % (data_cfg['batch_size'] * world_size))
+    accum_steps = opt_cfg.get('accum_steps', 1)
+    iterations_per_epoch = len(train_loader) // accum_steps
+    log('  Batches per epoch: %d (%d iters x %d accum)' % (len(train_loader), iterations_per_epoch, accum_steps))
+    log('  Effective batch size: %d' % (data_cfg['batch_size'] * world_size * accum_steps))
 
     # ---- Optimizer ---------------------------------------------------------
     optimizer, scaler, lr_scheduler, wd_scheduler = init_opt(
@@ -292,6 +293,12 @@ def main(args):
         % (start_epoch + 1, opt_cfg['epochs'], patience))
     log('-' * 70)
 
+    # Track last valid scheduler/EMA values for logging
+    lr_val = opt_cfg.get('start_lr', 0.0001)
+    wd_val = opt_cfg.get('weight_decay', 0.04)
+    m = ema_start
+    num_micro_batches = len(train_loader)
+
     for epoch in range(start_epoch, opt_cfg['epochs']):
         train_sampler.set_epoch(epoch)
         loss_meter = AverageMeter()
@@ -303,14 +310,12 @@ def main(args):
 
             # Move to device
             imgs = imgs.to(device, non_blocking=True)
-            masks_enc = [m.to(device, non_blocking=True) for m in masks_enc]
-            masks_pred = [m.to(device, non_blocking=True) for m in masks_pred]
+            masks_enc = [m_t.to(device, non_blocking=True) for m_t in masks_enc]
+            masks_pred = [m_t.to(device, non_blocking=True) for m_t in masks_pred]
 
             B = imgs.size(0)
 
             data_ms = (time.time() - t_data) * 1000.0
-
-            accum_steps = opt_cfg.get('accum_steps', 1)
 
             def _forward_backward():
                 # Only zero gradients at the start of an accumulation window
@@ -355,17 +360,17 @@ def main(args):
 
             (loss_val, fwd_bwd_ms) = gpu_timer(_forward_backward)
 
-            # Scheduler steps
-            lr_val = lr_scheduler.step()
-            wd_val = wd_scheduler.step()
-
-            # EMA update
-            m = next(mom_schedule)
-            enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
-            with torch.no_grad():
-                for p_online, p_target in zip(enc_unwrap.parameters(),
-                                              target_encoder.parameters()):
-                    p_target.data.mul_(m).add_((1.0 - m) * p_online.detach().data)
+            # Scheduler + EMA only on optimizer step iterations
+            is_step = (itr + 1) % accum_steps == 0 or (itr + 1) == num_micro_batches
+            if is_step:
+                lr_val = lr_scheduler.step()
+                wd_val = wd_scheduler.step()
+                m = next(mom_schedule)
+                enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
+                with torch.no_grad():
+                    for p_online, p_target in zip(enc_unwrap.parameters(),
+                                                  target_encoder.parameters()):
+                        p_target.data.mul_(m).add_((1.0 - m) * p_online.detach().data)
 
             loss_meter.update(loss_val)
 
@@ -378,7 +383,7 @@ def main(args):
             if is_main and (itr + 1) % 50 == 0:
                 log('  [Epoch %d/%d | Iter %d/%d] loss=%.4f  lr=%.2e  wd=%.4f  '
                     'ema=%.5f  gpu=%.0fMB'
-                    % (epoch + 1, opt_cfg['epochs'], itr + 1, iterations_per_epoch,
+                    % (epoch + 1, opt_cfg['epochs'], itr + 1, num_micro_batches,
                        loss_val, lr_val, wd_val, m, gpu_mem_mb))
 
             # CSV log
