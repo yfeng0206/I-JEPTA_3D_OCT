@@ -6,10 +6,10 @@ set -e
 
 EPOCHS=${EPOCHS:-100}
 BATCH_SIZE=${BATCH_SIZE:-32}
-LR=${LR:-0.0005}
+LR=${LR:-0.00025}
 START_LR=${START_LR:-0.0001}
 FINAL_LR=${FINAL_LR:-0.000001}
-WARMUP=${WARMUP:-15}
+WARMUP=${WARMUP:-5}
 WEIGHT_DECAY=${WEIGHT_DECAY:-0.04}
 FINAL_WEIGHT_DECAY=${FINAL_WEIGHT_DECAY:-0.4}
 EMA_START=${EMA_START:-0.996}
@@ -23,6 +23,7 @@ PRED_EMB_DIM=${PRED_EMB_DIM:-384}
 NUM_WORKERS=${NUM_WORKERS:-4}
 NPROC=${NPROC:-4}
 ACCUM_STEPS=${ACCUM_STEPS:-1}
+PATIENCE=${PATIENCE:-15}
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_TAG="patch_${MODEL_NAME}_ps${PATCH_SIZE}_ep${EPOCHS}_bs${BATCH_SIZE}_lr${LR}"
@@ -62,9 +63,9 @@ from azure.identity import DefaultAzureCredential
 from azure.storage.blob import ContainerClient
 import os
 
-account = 'YOUR_STORAGE_ACCOUNT'
-container_name = 'YOUR_CONTAINER_NAME'
-prefix = 'YOUR_DATA_PREFIX'
+account = 'STORAGE_ACCOUNT_REDACTED'
+container_name = 'CONTAINER_REDACTED'
+prefix = 'fhl-test-data'
 local_dir = '${DATA_DIR}/data'
 os.makedirs(local_dir, exist_ok=True)
 
@@ -135,6 +136,7 @@ optimization:
   ema: [${EMA_START}, ${EMA_END}]
   ipe_scale: 1.0
   accum_steps: ${ACCUM_STEPS}
+  patience: ${PATIENCE}
 logging:
   folder: ${OUTPUT_DIR}
   write_tag: jepa_patch
@@ -174,8 +176,8 @@ try:
     from azure.storage.blob import ContainerClient
     cred = ManagedIdentityCredential()
     container = ContainerClient(
-        account_url='https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net',
-        container_name='YOUR_CONTAINER_NAME',
+        account_url='https://STORAGE_ACCOUNT_REDACTED.blob.core.windows.net',
+        container_name='CONTAINER_REDACTED',
         credential=cred,
     )
     for fpath in files:

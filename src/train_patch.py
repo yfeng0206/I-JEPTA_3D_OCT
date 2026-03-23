@@ -44,6 +44,37 @@ from src.utils.tensors import repeat_interleave_batch
 
 
 # ---------------------------------------------------------------------------
+# Blob upload helper (best-effort, non-fatal)
+# ---------------------------------------------------------------------------
+
+def upload_to_blob(local_path, blob_prefix, log_fn=print):
+    """Upload a file to Azure Blob Storage.  Silently skips on failure."""
+    try:
+        from azure.identity import ManagedIdentityCredential
+        from azure.storage.blob import ContainerClient
+        account = os.environ.get('BLOB_ACCOUNT', 'STORAGE_ACCOUNT_REDACTED')
+        container_name = os.environ.get(
+            'BLOB_CONTAINER',
+            'CONTAINER_REDACTED',
+        )
+        cred = ManagedIdentityCredential()
+        container = ContainerClient(
+            account_url='https://%s.blob.core.windows.net' % account,
+            container_name=container_name,
+            credential=cred,
+        )
+        fname = os.path.basename(local_path)
+        blob_name = '%s/%s' % (blob_prefix, fname)
+        size = os.path.getsize(local_path)
+        log_fn('  Uploading %s (%s bytes) -> %s' % (fname, format(size, ','), blob_name))
+        with open(local_path, 'rb') as f:
+            container.upload_blob(blob_name, f, overwrite=True)
+        log_fn('  Upload OK')
+    except Exception as e:
+        log_fn('  Upload skipped: %s' % e)
+
+
+# ---------------------------------------------------------------------------
 # Momentum scheduler for EMA
 # ---------------------------------------------------------------------------
 
@@ -86,6 +117,8 @@ def main(args):
     # ---- Output directory --------------------------------------------------
     output_dir = log_cfg['folder']
     write_tag = log_cfg['write_tag']
+    # Blob prefix for periodic uploads (derive from output_dir basename)
+    blob_prefix = 'ijepa-results/%s' % os.path.basename(output_dir)
     if is_main:
         os.makedirs(output_dir, exist_ok=True)
 
@@ -284,7 +317,7 @@ def main(args):
         return val_loss_meter.avg
 
     # ---- Training loop -----------------------------------------------------
-    patience = opt_cfg.get('patience', 15)
+    patience = opt_cfg.get('patience', 8)
     best_val_loss = float('inf')
     epochs_no_improve = 0
 
@@ -488,6 +521,8 @@ def main(args):
                         scaler, epoch + 1, val_loss, data_cfg['batch_size'],
                         world_size, lr_val,
                     )
+                    # Upload best checkpoint to blob immediately
+                    upload_to_blob(best_path, blob_prefix, log)
             else:
                 epochs_no_improve += 1
 
@@ -510,6 +545,11 @@ def main(args):
                     scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
                     world_size, lr_val,
                 )
+            # Upload log CSV every 5 epochs
+            if (epoch + 1) % 5 == 0:
+                csv_file = os.path.join(output_dir, '%s-log.csv' % write_tag)
+                if os.path.exists(csv_file):
+                    upload_to_blob(csv_file, blob_prefix, log)
 
         # Early stopping
         if val_loss is not None and epochs_no_improve >= patience:
@@ -519,6 +559,19 @@ def main(args):
     log('=' * 70)
     log('Training complete. Best val loss: %.4f' % best_val_loss)
     log('=' * 70)
+
+    # Upload final log + config
+    if is_main:
+        for fname in ['%s-log.csv' % write_tag, 'config.yaml']:
+            fpath = os.path.join(output_dir, fname)
+            if os.path.exists(fpath):
+                upload_to_blob(fpath, blob_prefix, log)
+
+    # Clean DDP shutdown so torchrun exits cleanly
+    import torch.distributed as dist
+    if dist.is_initialized():
+        dist.barrier()
+        dist.destroy_process_group()
 
 
 # ---------------------------------------------------------------------------

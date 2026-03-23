@@ -68,13 +68,13 @@ The feature extractor is fine-tuned with a very low learning rate (1e-6) rather 
 | Masking | 2D block, 4 targets | 2D block, 4 targets | 1D contiguous, 4 targets |
 | Target scale | [0.15, 0.2] | [0.15, 0.2] | [0.1, 0.2] |
 | Context scale | [0.85, 1.0] | [0.85, 1.0] | [0.75, 0.9] |
-| Batch (per GPU) | 128 | 32 | 8 |
-| LR | 0.001 | 0.0005 | 0.0003 |
-| Warmup | 40 / 300 epochs | 15 / 100 epochs | 10 / 100 epochs |
+| Batch (per GPU) | 128 | 64 | 8 |
+| LR | 0.001 | 0.00025 | 0.0003 |
+| Warmup | 40 / 300 epochs | 5 / 50 epochs | 10 / 100 epochs |
 | EMA momentum | [0.996, 1.0] | [0.996, 1.0] | [0.996, 1.0] |
 | Hardware | 16x A100 80GB | 4x T4 16GB | 4x T4 16GB |
 
-We use ViT-B instead of ViT-H because our dataset is 6-160x smaller than ImageNet. The predictor is 6 layers (not 12) to maintain the 2:1 encoder:predictor ratio. Learning rate is scaled down proportionally to the smaller effective batch size. fp16 is used instead of bfloat16 (T4 limitation). Slice-level masking is 1D contiguous since adjacent OCT slices contain similar structures.
+We use ViT-B instead of ViT-H because our dataset is 6-160x smaller than ImageNet. The predictor is 6 layers (not 12) to maintain the 2:1 encoder:predictor ratio. Learning rate was initially scaled via sqrt(batch_ratio) from the paper's 0.001 at batch=2048 to 0.0005 at effective batch=512, but empirically this was too high for OCT data (see Run 1 below): OCT images are less diverse than ImageNet so gradients are more correlated, requiring a lower peak LR. fp16 is used instead of bfloat16 (T4 limitation). Slice-level masking is 1D contiguous since adjacent OCT slices contain similar structures.
 
 ## Adapting I-JEPA for 1D Slice Sequences
 
@@ -119,13 +119,13 @@ Slice-level memory is dominated by the model weights, not activations (only 32 t
 
 | Phase | Dataset | Batch | Time/epoch | Epochs | Total |
 |-------|---------|-------|-----------|--------|-------|
-| Patch pretraining | 600K slices | 256 eff | ~50 min | 50 | ~42 hrs |
+| Patch pretraining | 600K slices | 512 eff | ~71 min | 50 | ~59 hrs |
 | Slice pretraining | 6K volumes | 32 eff | ~3.5 min | 100 | ~6 hrs |
 | Downstream (patch) | 6K labeled | 32 eff | ~2 min | 20-50 | ~1-2 hrs |
 | Downstream (slice) | 6K labeled | 64 eff | ~1 min | 20-100 | ~0.5-2 hrs |
 | SLIViT baseline | 6K labeled | 16 eff | ~5 min | 10-25 | ~3 hrs |
 
-Both pretraining approaches include validation loss tracking and early stopping (patience=15) to prevent overfitting.
+Both pretraining approaches include validation loss tracking and early stopping (configurable patience, default=8) to prevent overfitting.
 
 ## Training Details
 
@@ -149,7 +149,7 @@ Slice-level uses 1D contiguous masking: 4 contiguous segments of 3-6 slices as t
 
 ### Early stopping
 
-Both pretraining scripts evaluate reconstruction loss on the validation set each epoch. Training stops if validation loss does not improve for 15 epochs. Best model (by val loss) is saved separately from the latest checkpoint.
+Both pretraining scripts evaluate reconstruction loss on the validation set each epoch. Training stops if validation loss does not improve for `patience` epochs (configurable, default=8). Best model (by val loss) is saved separately from the latest checkpoint.
 
 ## Preliminary Results
 
@@ -165,26 +165,30 @@ Slice-level I-JEPA training on 6K volumes (32 slice tokens each) collapsed withi
 
 The encoder converged to producing near-identical representations for all 32 slice positions (pairwise cosine similarity 0.999), making prediction trivial. This occurred regardless of masking strategy (full complement vs sampled block context, per-block vs joint predictor). The root cause is insufficient token diversity: adjacent OCT slices produce highly correlated ConvNeXt features, and 32 tokens is too few for I-JEPA's prediction task to remain challenging.
 
-### Patch-level: meaningful learning
+### Patch-level Run 1: LR=0.0005 (too high)
 
-Patch-level I-JEPA on 600K individual slices (100 per volume, 256 patches per slice) showed healthy training dynamics in a 3-epoch validation run:
+Full training run on 600K slices (100 per volume), ViT-B/16, batch=64/GPU, accum=2, effective batch=512, LR=0.0005, 15 warmup epochs, early stopping patience=15. Stopped at epoch 26.
 
-| Epoch | train_loss | val_loss | cos_sim | rep_diversity | train_eval_loss |
-|-------|-----------|---------|---------|---------------|-----------------|
-| 1 | 0.2194 | 0.2932 | 0.5518 | 0.5471 | 0.2990 |
-| 2 | 0.2716 | 0.2502 | 0.6169 | 0.7949 | 0.2495 |
-| 3 | 0.2418 | 0.2390 | 0.5900 | 0.4583 | 0.2400 |
+| Epoch | train_loss | val_loss | cos_sim | rep_diversity | LR |
+|-------|-----------|---------|---------|---------------|-----|
+| 1 | 0.1298 | 0.2152 | 0.6971 | 0.81 | ~0.0001 (warmup) |
+| 7 | 0.2159 | 0.2136 | 0.6972 | 0.68 | ~0.0003 |
+| 8 | 0.2117 | 0.2113 | 0.7193 | 0.66 | ~0.0003 |
+| 10 | 0.2086 | 0.2084 | 0.7424 | 0.73 | ~0.0004 |
+| **11** | **0.2073** | **0.2081** | **0.72** | **0.69** | **~0.0004** |
+| 15 | 0.2153 | 0.2187 | 0.68 | 0.68 | 0.0005 (peak) |
+| 20 | 0.2646 | 0.2720 | 0.66 | 0.51 | ~0.0005 |
+| 25 | 0.3047 | 0.3059 | 0.58 | 0.50 | ~0.0004 |
 
-Key observations:
-- **No collapse**: loss stays in the 0.22-0.30 range, cosine similarity between predicted and actual representations is ~0.55-0.62 (far from trivial)
-- **Representations are diverse**: pairwise cosine similarity across patches decreases from 0.55 to 0.46 (lower = more diverse, opposite of slice-level)
-- **Val loss consistently improves**: 0.2932 → 0.2502 → 0.2390, indicating genuine learning
-- **Train loss rises during warmup then decreases**: expected behavior as the EMA target encoder produces increasingly rich (harder to predict) representations during warmup
-- **GPU memory**: 6.7 GB at batch_size=32 on T4 16GB, with room to scale to batch_size=64
+The model learned well during warmup (LR 0.0001 to 0.0004, epochs 1-11), but destabilized once LR reached the peak of 0.0005. Both train and val loss increased monotonically from epoch 12 onward, cos_sim dropped, and rep_diversity degraded toward 0.5. Early stopping triggered at epoch 26 (15 epochs without improvement from best at epoch 11).
 
-The train_loss appearing higher than val_loss in epoch 2 is expected: train_loss is a running average computed while the model is changing (EMA target evolving), while val_loss is evaluated once at epoch end with the final model snapshot.
+Diagnosis: LR=0.0005 is too aggressive for OCT data. OCT images are less diverse than ImageNet (all retinal scans), producing more correlated gradients, so the effective learning rate is higher than the sqrt scaling formula predicted.
 
-Full training run in progress with batch_size=64 (256 effective), LR=0.001, 50 epochs with early stopping.
+Best checkpoint (epoch 11, val_loss=0.2081) was saved. GPU memory: 12 GB at batch=64 on T4 16GB.
+
+### Patch-level Run 2: LR=0.00025 (in progress)
+
+Based on Run 1 findings, reduced peak LR to 0.00025 (half), shortened warmup to 5 epochs, and reduced patience to 8. Same architecture and batch config. The model learned best around LR=0.0003-0.0004 in Run 1, so a peak of 0.00025 with cosine decay should keep the LR in the productive range throughout training.
 
 ## Dataset
 
