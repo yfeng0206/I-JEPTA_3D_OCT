@@ -23,7 +23,9 @@ PRED_EMB_DIM=${PRED_EMB_DIM:-384}
 NUM_WORKERS=${NUM_WORKERS:-4}
 NPROC=${NPROC:-4}
 ACCUM_STEPS=${ACCUM_STEPS:-1}
-PATIENCE=${PATIENCE:-15}
+PATIENCE=${PATIENCE:-8}
+LOAD_CHECKPOINT=${LOAD_CHECKPOINT:-false}
+READ_CHECKPOINT=${READ_CHECKPOINT:-null}
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_TAG="patch_${MODEL_NAME}_ps${PATCH_SIZE}_ep${EPOCHS}_bs${BATCH_SIZE}_lr${LR}"
@@ -94,6 +96,33 @@ print('Downloaded %d new files' % downloaded)
 "
 cd "$PROJECT_ROOT"
 
+# Download resume checkpoint from blob if requested
+RESUME_BLOB=${RESUME_BLOB:-}
+if [ -n "$RESUME_BLOB" ] && [ "$LOAD_CHECKPOINT" = "true" ]; then
+    echo "=== Downloading resume checkpoint ==="
+    python -c "
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobClient
+import os
+blob_name = '${RESUME_BLOB}'
+local_path = '${READ_CHECKPOINT}'
+account = 'STORAGE_ACCOUNT_REDACTED'
+container = 'CONTAINER_REDACTED'
+print('Downloading %s ...' % blob_name)
+cred = DefaultAzureCredential()
+blob = BlobClient(
+    account_url='https://%s.blob.core.windows.net' % account,
+    container_name=container,
+    blob_name=blob_name,
+    credential=cred,
+)
+os.makedirs(os.path.dirname(local_path) or '.', exist_ok=True)
+with open(local_path, 'wb') as f:
+    f.write(blob.download_blob().readall())
+print('Saved to %s (%d bytes)' % (local_path, os.path.getsize(local_path)))
+"
+fi
+
 echo "=== Generating config ==="
 CONFIG_PATH="${OUTPUT_DIR}/config.yaml"
 cat > "${CONFIG_PATH}" << YAMLEOF
@@ -123,8 +152,8 @@ meta:
   pred_depth: ${PRED_DEPTH}
   pred_emb_dim: ${PRED_EMB_DIM}
   use_bfloat16: false
-  load_checkpoint: false
-  read_checkpoint: null
+  load_checkpoint: ${LOAD_CHECKPOINT}
+  read_checkpoint: ${READ_CHECKPOINT}
 optimization:
   epochs: ${EPOCHS}
   lr: ${LR}

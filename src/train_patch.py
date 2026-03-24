@@ -318,12 +318,13 @@ def main(args):
 
     # ---- Training loop -----------------------------------------------------
     patience = opt_cfg.get('patience', 8)
+    warmup_epochs = opt_cfg.get('warmup', 5)
     best_val_loss = float('inf')
     epochs_no_improve = 0
 
     log('-' * 70)
-    log('Starting training from epoch %d to %d (patience=%d)'
-        % (start_epoch + 1, opt_cfg['epochs'], patience))
+    log('Starting training from epoch %d to %d (patience=%d, early-stop after epoch %d)'
+        % (start_epoch + 1, opt_cfg['epochs'], patience, warmup_epochs))
     log('-' * 70)
 
     # Track last valid scheduler/EMA values for logging
@@ -510,9 +511,13 @@ def main(args):
         improved = ''
 
         if val_loss is not None:
+            # Only track best / early-stop after warmup to avoid the
+            # artificially-low epoch-1 loss (EMA target hasn't diverged yet)
+            past_warmup = (epoch + 1) > warmup_epochs
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                epochs_no_improve = 0
+                if past_warmup:
+                    epochs_no_improve = 0
                 improved = ' *'
                 if is_main:
                     best_path = os.path.join(output_dir, '%s-best.pth.tar' % write_tag)
@@ -524,7 +529,8 @@ def main(args):
                     # Upload best checkpoint to blob immediately
                     upload_to_blob(best_path, blob_prefix, log)
             else:
-                epochs_no_improve += 1
+                if past_warmup:
+                    epochs_no_improve += 1
 
         log('Epoch %d/%d  (%.0fs)  train_loss=%.4f%s%s'
             % (epoch + 1, opt_cfg['epochs'], epoch_time, loss_meter.avg,
@@ -551,9 +557,10 @@ def main(args):
                 if os.path.exists(csv_file):
                     upload_to_blob(csv_file, blob_prefix, log)
 
-        # Early stopping
-        if val_loss is not None and epochs_no_improve >= patience:
-            log('Early stopping: val loss has not improved for %d epochs' % patience)
+        # Early stopping (only active after warmup)
+        if val_loss is not None and past_warmup and epochs_no_improve >= patience:
+            log('Early stopping: val loss has not improved for %d epochs (best=%.4f)'
+                % (patience, best_val_loss))
             break
 
     log('=' * 70)
