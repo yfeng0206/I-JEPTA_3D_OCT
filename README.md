@@ -186,9 +186,35 @@ Diagnosis: LR=0.0005 is too aggressive for OCT data. OCT images are less diverse
 
 Best checkpoint (epoch 11, val_loss=0.2081) was saved. GPU memory: 12 GB at batch=64 on T4 16GB.
 
-### Patch-level Run 2: LR=0.00025 (in progress)
+### Patch-level Run 2: LR=0.00025, warmup=5 (early stopping bug)
 
-Based on Run 1 findings, reduced peak LR to 0.00025 (half), shortened warmup to 5 epochs, and reduced patience to 8. Same architecture and batch config. The model learned best around LR=0.0003-0.0004 in Run 1, so a peak of 0.00025 with cosine decay should keep the LR in the productive range throughout training.
+Reduced peak LR to 0.00025, shortened warmup to 5 epochs, patience=8. Resumed from fresh init. Training showed steady improvement but was cut short by an early stopping bug: epoch 1 (pre-warmup) recorded artificially low val_loss=0.1197 because the EMA target hadn't diverged yet, making it impossible to beat. The model improved from 0.2114 to 0.1636 (epochs 3-9) but early stopping triggered at epoch 9 since it could never beat epoch 1. Fix applied: early stopping now only counts after warmup.
+
+### Patch-level Run 3: LR=0.00025, resume from epoch 9 (converged)
+
+Resumed from Run 2's epoch 9 checkpoint with the early stopping fix. Training converged at epoch 11 (val_loss=0.1586) and plateaued through epoch 18 when the job crashed due to an NCCL timeout from blocking blob uploads. The best checkpoint was already saved.
+
+| Epoch | train_loss | val_loss | cos_sim | rep_diversity | Notes |
+|-------|-----------|---------|---------|---------------|-------|
+| 10 | 0.1596 | 0.1586* | 0.81 | 0.80 | new best |
+| 11 | 0.1574 | 0.1586* | 0.82 | 0.73 | tied best |
+| 12 | 0.1589 | 0.1590 | 0.81 | 0.73 | patience 1 |
+| 13 | 0.1589 | 0.1593 | 0.82 | 0.80 | patience 2 |
+| 14 | 0.1595 | 0.1595 | 0.81 | 0.74 | patience 3 |
+| 15 | 0.1591 | 0.1598 | 0.83 | 0.72 | patience 4 |
+| 16 | 0.1595 | 0.1599 | 0.80 | 0.72 | patience 5 |
+| 17 | 0.1603 | 0.1606 | 0.83 | 0.73 | patience 6 |
+| 18 | 0.1618 | 0.1616 | 0.79 | 0.70 | patience 7 (crashed) |
+
+Diagnostics remained healthy throughout: cos_sim ~0.80 (good prediction quality), rep_diversity 0.70-0.80 (no collapse). The val_loss plateau at ~0.159 is expected for I-JEPA — loss is not strongly correlated with downstream representation quality (confirmed by community reports and [Rethinking JEPA](https://openreview.net/forum?id=2r3GUcMIFe)).
+
+Best checkpoint: `checkpoints/jepa_patch-run3-ep11.pth.tar` (epoch 11, val_loss=0.1586, ViT-B/16 encoder).
+
+**Key lessons learned:**
+- LR=0.0005 too aggressive for OCT → 0.00025 works well
+- Early stopping must ignore pre-warmup epochs (EMA target hasn't diverged)
+- Blob uploads must be non-blocking to avoid DDP NCCL timeouts
+- I-JEPA loss plateaus are normal; use downstream probes or RankMe to evaluate representation quality
 
 ## Dataset
 

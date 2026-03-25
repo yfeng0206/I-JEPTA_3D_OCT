@@ -47,8 +47,13 @@ from src.utils.tensors import repeat_interleave_batch
 # Blob upload helper (best-effort, non-fatal)
 # ---------------------------------------------------------------------------
 
-def upload_to_blob(local_path, blob_prefix, log_fn=print):
-    """Upload a file to Azure Blob Storage.  Silently skips on failure."""
+import threading
+
+_upload_threads = []  # Track background upload threads
+
+
+def _upload_worker(local_path, blob_prefix, log_fn):
+    """Background worker for blob upload."""
     try:
         from azure.identity import ManagedIdentityCredential
         from azure.storage.blob import ContainerClient
@@ -69,9 +74,28 @@ def upload_to_blob(local_path, blob_prefix, log_fn=print):
         log_fn('  Uploading %s (%s bytes) -> %s' % (fname, format(size, ','), blob_name))
         with open(local_path, 'rb') as f:
             container.upload_blob(blob_name, f, overwrite=True)
-        log_fn('  Upload OK')
+        log_fn('  Upload OK: %s' % fname)
     except Exception as e:
         log_fn('  Upload skipped: %s' % e)
+
+
+def upload_to_blob(local_path, blob_prefix, log_fn=print, blocking=False):
+    """Upload a file to Azure Blob Storage in a background thread.
+
+    Non-blocking by default so DDP rank 0 is not held up while other
+    ranks wait at the next collective.  Use blocking=True for final
+    uploads where we need to ensure completion before exit.
+    """
+    if blocking:
+        _upload_worker(local_path, blob_prefix, log_fn)
+    else:
+        t = threading.Thread(
+            target=_upload_worker,
+            args=(local_path, blob_prefix, log_fn),
+            daemon=True,
+        )
+        t.start()
+        _upload_threads.append(t)
 
 
 # ---------------------------------------------------------------------------
@@ -567,12 +591,14 @@ def main(args):
     log('Training complete. Best val loss: %.4f' % best_val_loss)
     log('=' * 70)
 
-    # Upload final log + config
+    # Wait for any background uploads to finish, then do final uploads
     if is_main:
+        for t in _upload_threads:
+            t.join(timeout=300)  # Wait up to 5 min per thread
         for fname in ['%s-log.csv' % write_tag, 'config.yaml']:
             fpath = os.path.join(output_dir, fname)
             if os.path.exists(fpath):
-                upload_to_blob(fpath, blob_prefix, log)
+                upload_to_blob(fpath, blob_prefix, log, blocking=True)
 
     # Clean DDP shutdown so torchrun exits cleanly
     import torch.distributed as dist
