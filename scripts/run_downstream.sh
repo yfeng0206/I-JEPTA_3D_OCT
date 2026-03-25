@@ -1,20 +1,25 @@
 #!/bin/bash
 # AML entry point for downstream glaucoma classification.
 # Downloads data + pretrained I-JEPA checkpoint, runs eval_downstream.py.
+#
+# Architecture: Frozen ViT-B/16 -> AttentiveProbe (2 blocks) -> LinearHead
+# Adapted from I-JEPA attentive probe (Assran et al., 2023) with 2 blocks
+# for inter-slice relationship learning (slices are independently encoded).
 
 set -e
 
 MODE=${MODE:-patch}
 EPOCHS=${EPOCHS:-50}
-BATCH_SIZE=${BATCH_SIZE:-8}
-PATIENCE=${PATIENCE:-10}
+BATCH_SIZE=${BATCH_SIZE:-64}
+PATIENCE=${PATIENCE:-5}
 SEED=${SEED:-42}
-NUM_SLICES=${NUM_SLICES:-32}
+NUM_SLICES=${NUM_SLICES:-100}
 NUM_WORKERS=${NUM_WORKERS:-4}
+ENCODE_CHUNK_SIZE=${ENCODE_CHUNK_SIZE:-50}
 
 # Blob path to pretrained I-JEPA checkpoint
-IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:-"ijepa-results/patch_vit_base_ps16_ep100_bs32_lr0.0005_latest"}
-IJEPA_CHECKPOINT_NAME=${IJEPA_CHECKPOINT_NAME:-"jepa_patch-latest.pth.tar"}
+IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:-"ijepa-results/patch_vit_base_ps16_ep50_bs64_lr0.00025_20260323_222905"}
+IJEPA_CHECKPOINT_NAME=${IJEPA_CHECKPOINT_NAME:-"jepa_patch-best.pth.tar"}
 
 # For slice mode: additional parameters
 FE_BLOB_NAME=${FE_BLOB_NAME:-"checkpoints/feature_extractor.pth"}
@@ -26,14 +31,21 @@ ENC_HEADS=${ENC_HEADS:-12}
 ENCODER_NAME=${ENCODER_NAME:-vit_base}
 PATCH_SIZE=${PATCH_SIZE:-16}
 CROP_SIZE=${CROP_SIZE:-256}
-INTEGRATOR_DEPTH=${INTEGRATOR_DEPTH:-5}
-LR_INTEGRATOR=${LR_INTEGRATOR:-0.0001}
+PROBE_NUM_HEADS=${PROBE_NUM_HEADS:-12}
+PROBE_DEPTH=${PROBE_DEPTH:-2}
+HEAD_TYPE=${HEAD_TYPE:-linear}
+LR_PROBE=${LR_PROBE:-0.0001}
 LR_ENCODER=${LR_ENCODER:-0.000001}
 LR_HEAD=${LR_HEAD:-0.001}
 WEIGHT_DECAY=${WEIGHT_DECAY:-0.01}
+DROPOUT=${DROPOUT:-0.1}
+
+# Azure blob storage
+BLOB_ACCOUNT=${BLOB_ACCOUNT:-STORAGE_ACCOUNT_REDACTED}
+BLOB_CONTAINER=${BLOB_CONTAINER:-CONTAINER_REDACTED}
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RUN_TAG="downstream_${MODE}_ep${EPOCHS}_bs${BATCH_SIZE}"
+RUN_TAG="downstream_${MODE}_s${NUM_SLICES}_ep${EPOCHS}_bs${BATCH_SIZE}_${HEAD_TYPE}"
 OUTPUT_DIR="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"
 BLOB_PREFIX="ijepa-downstream/${RUN_TAG}_${TIMESTAMP}"
 DATA_DIR="/tmp/fairvision_data"
@@ -53,21 +65,21 @@ pip install transformers scikit-learn pillow pyyaml azure-storage-blob azure-ide
 
 echo "=== Downloading data ==="
 python -c "
-from azure.identity import DefaultAzureCredential
-from azure.storage.blob import ContainerClient, BlobClient
+from azure.identity import ManagedIdentityCredential
+from azure.storage.blob import ContainerClient
 import os
 
-account = 'YOUR_STORAGE_ACCOUNT'
-container_name = 'YOUR_CONTAINER_NAME'
-prefix = 'YOUR_DATA_PREFIX'
+account = '${BLOB_ACCOUNT}'
+container_name = '${BLOB_CONTAINER}'
+prefix = 'fhl-test-data'
 local_dir = '${DATA_DIR}/data'
 os.makedirs(local_dir, exist_ok=True)
 
-credential = DefaultAzureCredential()
+cred = ManagedIdentityCredential()
 container = ContainerClient(
     account_url='https://%s.blob.core.windows.net' % account,
     container_name=container_name,
-    credential=credential,
+    credential=cred,
 )
 
 if not os.path.exists(os.path.join(local_dir, 'Training')):
@@ -113,8 +125,8 @@ else:
     print('Downloading: %s' % blob_name)
     cred = ManagedIdentityCredential()
     blob = BlobClient(
-        account_url='https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net',
-        container_name='YOUR_CONTAINER_NAME',
+        account_url='https://${BLOB_ACCOUNT}.blob.core.windows.net',
+        container_name='${BLOB_CONTAINER}',
         blob_name=blob_name,
         credential=cred,
     )
@@ -140,8 +152,8 @@ else:
     print('Downloading feature_extractor.pth...')
     cred = ManagedIdentityCredential()
     blob = BlobClient(
-        account_url='https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net',
-        container_name='YOUR_CONTAINER_NAME',
+        account_url='https://${BLOB_ACCOUNT}.blob.core.windows.net',
+        container_name='${BLOB_CONTAINER}',
         blob_name='${FE_BLOB_NAME}',
         credential=cred,
     )
@@ -164,20 +176,22 @@ data:
   slice_size: ${CROP_SIZE}
   batch_size: ${BATCH_SIZE}
   num_workers: ${NUM_WORKERS}
+  encode_chunk_size: ${ENCODE_CHUNK_SIZE}
 model:
   encoder_checkpoint: ${IJEPA_CKPT_PATH}
   encoder_name: ${ENCODER_NAME}
   patch_size: ${PATCH_SIZE}
   crop_size: ${CROP_SIZE}
   freeze_encoder: true
-  integrator_depth: ${INTEGRATOR_DEPTH}
-  integrator_heads: 12
-  integrator_dim: 768
+  probe_num_heads: ${PROBE_NUM_HEADS}
+  probe_depth: ${PROBE_DEPTH}
+  head_type: ${HEAD_TYPE}
 training:
-  lr_integrator: ${LR_INTEGRATOR}
+  lr_probe: ${LR_PROBE}
   lr_encoder: ${LR_ENCODER}
   lr_head: ${LR_HEAD}
   weight_decay: ${WEIGHT_DECAY}
+  dropout: ${DROPOUT}
   epochs: ${EPOCHS}
   patience: ${PATIENCE}
   warmup_epochs: 3
@@ -220,8 +234,10 @@ cat "${CONFIG_PATH}"
 
 echo "=== Running downstream evaluation ==="
 echo "  Mode: ${MODE}"
+echo "  Num slices: ${NUM_SLICES}"
 echo "  Epochs: ${EPOCHS}"
 echo "  Batch size: ${BATCH_SIZE}"
+echo "  Head type: ${HEAD_TYPE}"
 echo "  Output: ${OUTPUT_DIR}"
 
 EVAL_EXIT=0
@@ -253,8 +269,8 @@ try:
     from azure.storage.blob import ContainerClient
     cred = ManagedIdentityCredential()
     container = ContainerClient(
-        account_url='https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net',
-        container_name='YOUR_CONTAINER_NAME',
+        account_url='https://${BLOB_ACCOUNT}.blob.core.windows.net',
+        container_name='${BLOB_CONTAINER}',
         credential=cred,
     )
     for fpath in files:

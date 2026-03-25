@@ -16,7 +16,7 @@ Standard I-JEPA applied to individual 256x256 OCT slices. Each slice is patchifi
 
 Training data: 6,000 volumes x 100 slices = 600,000 slice images (self-supervised, no labels needed). Using 100 uniformly sampled slices from the 200 available per volume provides dense coverage while reducing redundancy from near-identical adjacent slices. The pretrained encoder replaces ConvNeXt as the feature extractor for downstream classification.
 
-For downstream, each of the 32 slices is encoded independently, producing 32 feature vectors. A lightweight 2-layer cross-slice attention module (trained from scratch on 6K labeled volumes) learns cross-slice relationships and feeds a classification head. Only 2 layers are needed because the input features are already high-quality from the 12-layer pretrained encoder, consistent with the video transformer literature (ViViT, TimeSformer) which uses 2-4 temporal layers on top of spatial features.
+For downstream, each of the 100 slices is encoded independently by the frozen ViT, mean-pooled over patches to produce one 768-d token per slice, giving 100 slice tokens per volume. An attentive probe (adapted from the I-JEPA evaluation protocol) with 2 self-attention layers aggregates these into a volume-level representation via a learnable [CLS] token, followed by a linear classifier. Two layers are needed (vs the paper's 1) because our slice tokens are independently encoded with no inter-slice context — unlike the paper's patch tokens which already carry global context from 12 encoder layers. Features are pre-computed once with the frozen encoder and cached to disk, making probe training very fast (~30s/epoch on cached tensors).
 
 ### Slice-level I-JEPA (experimental)
 
@@ -50,12 +50,26 @@ Encoder:predictor depth ratio is 2:1 (12:6), matching the original I-JEPA design
 
 The feature extractor is fine-tuned with a very low learning rate (1e-6) rather than frozen. This allows gradual adaptation from Kermany OCT features to glaucoma-specific patterns, which was the single biggest improvement in our SLIViT experiments.
 
-### Downstream classifiers
+### Downstream classifier (patch-level)
 
-| Approach | What is trained | Params trained | Method |
-|----------|----------------|---------------|--------|
-| Patch-level | Cross-slice attention (2 layers, 768-d) + MLP | ~9.5M | 32 slice features from frozen encoder, CLS token, BCEWithLogitsLoss |
-| Slice-level | MLP head only | ~1.5K | Average pool over 32 encoded slice features, BCEWithLogitsLoss |
+Follows the I-JEPA attentive probe protocol, adapted for 3D volumes:
+
+| Component | Architecture | Params | Trained? |
+|-----------|-------------|--------|----------|
+| Frozen encoder | ViT-B/16 (I-JEPA target encoder, epoch 11) | 86M | No |
+| Slice pooling | Mean-pool 256 patch tokens → 1 per slice | 0 | No |
+| Attentive probe | 2 transformer blocks (768-d, 12 heads) + [CLS] + 1D pos embed | ~14.3M | Yes |
+| Linear head | LayerNorm(768) → Linear(768→1) | 769 | Yes |
+| **Total trainable** | | **~14.3M** | |
+
+Training protocol (matched to SLIViT for fair comparison):
+- Optimizer: AdamW, weight_decay=0.01
+- LR: probe=1e-4, head=1e-3, cosine schedule with 3-epoch warmup
+- Batch size: 64 (on cached features)
+- Early stopping: patience=5 on val AUC
+- Loss: BCEWithLogitsLoss
+- AUC: sklearn.metrics.roc_auc_score
+- No data augmentation (same as SLIViT)
 
 ## Comparison with Original I-JEPA
 
@@ -121,8 +135,9 @@ Slice-level memory is dominated by the model weights, not activations (only 32 t
 |-------|---------|-------|-----------|--------|-------|
 | Patch pretraining | 600K slices | 512 eff | ~71 min | 50 | ~59 hrs |
 | Slice pretraining | 6K volumes | 32 eff | ~3.5 min | 100 | ~6 hrs |
-| Downstream (patch) | 6K labeled | 32 eff | ~2 min | 20-50 | ~1-2 hrs |
-| Downstream (slice) | 6K labeled | 64 eff | ~1 min | 20-100 | ~0.5-2 hrs |
+| Downstream feature extraction | 10K volumes × 100 slices | 1 vol | N/A | 1 pass | ~50 min |
+| Downstream probe training | cached features | 64 | ~30 sec | 50 max | ~25 min |
+| **Downstream total** | | | | | **~1.5 hrs** |
 | SLIViT baseline | 6K labeled | 16 eff | ~5 min | 10-25 | ~3 hrs |
 
 Both pretraining approaches include validation loss tracking and early stopping (configurable patience, default=8) to prevent overfitting.
@@ -216,6 +231,29 @@ Best checkpoint: `checkpoints/jepa_patch-run3-ep11.pth.tar` (epoch 11, val_loss=
 - Blob uploads must be non-blocking to avoid DDP NCCL timeouts
 - I-JEPA loss plateaus are normal; use downstream probes or RankMe to evaluate representation quality
 
+### Downstream: Attentive Probe (in progress)
+
+Using the best pretrained encoder (Run 3, epoch 11, val_loss=0.1586) for downstream glaucoma classification with frozen encoder + attentive probe (2 blocks) + linear head.
+
+**Architecture:**
+```
+OCT Volume (200 B-scans)
+  → Sample 100 slices (uniform)
+  → Frozen ViT-B/16 per slice → mean-pool patches → (B, 100, 768)
+  → AttentiveProbe: [CLS] + pos embed + 2 transformer blocks → (B, 768)
+  → LinearHead: LayerNorm → Linear(768→1)
+  → BCEWithLogitsLoss → P(glaucoma)
+```
+
+**Configuration:**
+- 100 slices per volume (3x more than SLIViT's 32)
+- Features pre-computed and cached to disk (~3 GB)
+- Probe: 2 blocks, 12 heads, 768-d (~14.3M trainable params)
+- SLIViT comparison: 50M trainable params (Phase 1) → we use 3.5x fewer
+- Batch size: 64, patience: 5, LR probe=1e-4, LR head=1e-3
+
+Results pending — job `amusing_pepper_q1k9l7vmb0` running.
+
 ## Dataset
 
 Harvard FairVision Glaucoma subset:
@@ -253,8 +291,9 @@ src/
 configs/
   patch_vitb16_ep100.yaml    Patch pretraining config
   slice_ep100.yaml           Slice pretraining config
-  downstream_patch.yaml      Downstream with patch encoder
+  downstream_patch.yaml      Downstream probe config (100 slices, attentive probe)
   downstream_slice.yaml      Downstream with slice encoder
+  aml_downstream.yml         AzureML job config for downstream probe
 
 scripts/
   run_patch.sh               Entry point for patch pretraining jobs
