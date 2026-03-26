@@ -18,7 +18,7 @@ NUM_WORKERS=${NUM_WORKERS:-4}
 ENCODE_CHUNK_SIZE=${ENCODE_CHUNK_SIZE:-50}
 
 # Blob path to pretrained I-JEPA checkpoint
-IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:-"ijepa-results/patch_vit_base_ps16_ep50_bs64_lr0.00025_20260323_222905"}
+IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:-"ijepa-results/patch_vit_base_ps16_ep50_bs64_lr0.00025_20260324_205416"}
 IJEPA_CHECKPOINT_NAME=${IJEPA_CHECKPOINT_NAME:-"jepa_patch-best.pth.tar"}
 
 # For slice mode: additional parameters

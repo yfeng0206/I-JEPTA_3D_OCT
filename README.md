@@ -231,9 +231,9 @@ Best checkpoint: `checkpoints/jepa_patch-run3-ep11.pth.tar` (epoch 11, val_loss=
 - Blob uploads must be non-blocking to avoid DDP NCCL timeouts
 - I-JEPA loss plateaus are normal; use downstream probes or RankMe to evaluate representation quality
 
-### Downstream: Attentive Probe (in progress)
+### Downstream: Frozen Encoder + Attentive Probe (test AUC: 0.733)
 
-Using the best pretrained encoder (Run 3, epoch 11, val_loss=0.1586) for downstream glaucoma classification with frozen encoder + attentive probe (2 blocks) + linear head.
+Using the best pretrained encoder (Run 3, epoch 11, val_loss=0.1586) for downstream glaucoma classification with frozen encoder + attentive probe (2 blocks) + linear head. Training protocol matched to SLIViT for fair comparison.
 
 **Architecture:**
 ```
@@ -246,13 +246,48 @@ OCT Volume (200 B-scans)
 ```
 
 **Configuration:**
-- 100 slices per volume (3x more than SLIViT's 32)
-- Features pre-computed and cached to disk (~3 GB)
+- 100 slices per volume, features pre-computed and cached to disk (~2.9 GB)
 - Probe: 2 blocks, 12 heads, 768-d (~14.3M trainable params)
-- SLIViT comparison: 50M trainable params (Phase 1) → we use 3.5x fewer
 - Batch size: 64, patience: 5, LR probe=1e-4, LR head=1e-3
+- AdamW, weight_decay=0.01, cosine schedule with 3-epoch warmup
+- No data augmentation (same as SLIViT)
 
-Results pending — job `amusing_pepper_q1k9l7vmb0` running.
+**Results:**
+
+| Epoch | Train Loss | Val Loss | Val AUC | LR |
+|-------|-----------|---------|---------|-----|
+| 1 | 0.7033 | 0.6847 | 0.5854 | 3.3e-5 (warmup) |
+| 10 | 0.6420 | 0.6439 | 0.7026 | 9.5e-5 |
+| 20 | 0.6040 | 0.6122 | 0.7319 | 7.1e-5 |
+| **28** | **0.5743** | **0.6025** | **0.7435** | **4.5e-5** |
+| 33 | 0.5631 | 0.6018 | 0.7406 | 2.9e-5 (early stop) |
+
+Best epoch 28, early stopped at 33. **Test AUC: 0.7327** (vs SLIViT baseline: 0.869).
+
+Feature extraction: 6,000 train + 1,000 val + 3,000 test volumes in ~78 min (2.1 vol/s on T4). Training on cached features: ~5 min for 33 epochs.
+
+**Comparison with SLIViT baseline:**
+
+| | I-JEPA Frozen Probe | SLIViT (best) |
+|--|-------------------|---------------|
+| Test AUC | 0.733 | **0.869** |
+| Encoder training | Self-supervised (no labels) | Fine-tuned **with glaucoma labels** |
+| Encoder pretrained on | OCT patches (from scratch) | Kermany OCT (medical classification) |
+| Encoder adaptation | Frozen (no task adaptation) | Full fine-tune with low LR |
+| Pretraining epochs | 18 (crashed) | N/A (used pretrained ConvNeXt) |
+| Trainable params | 14.3M (probe only) | 50-77M (everything) |
+
+**Why the gap is large (0.73 vs 0.87):**
+
+1. **Undertrained encoder.** The I-JEPA paper trains ViT-H for 300-600 epochs on 1.2M ImageNet images. We trained ViT-B for only 18 epochs on 600K OCT slices before the job crashed. The representations haven't fully converged.
+
+2. **Frozen encoder = no task adaptation.** Glaucoma diagnosis requires detecting subtle structural changes (RNFL thinning, optic cup enlargement). SLIViT fine-tunes its encoder to amplify these glaucoma-specific signals. Our frozen encoder only learned generic "predict masked patches" features — it doesn't know what glaucoma looks like. Even on ImageNet, the I-JEPA paper shows a ~4% gap between frozen probe and fine-tuned; for medical imaging where diagnostic features are subtle, the gap is expected to be much larger.
+
+3. **Mean-pooling discards spatial info.** We collapse 256 patch tokens → 1 vector per slice, throwing away *where* in the slice the features are. SLIViT preserves the full spatial feature map (768×8×8 = 49K-d per slice). Glaucoma is about *where* the RNFL is thin — spatial information matters.
+
+4. **No medical pretraining.** SLIViT's ConvNeXt was pretrained on Kermany OCT (a medical classification task), giving it domain-relevant features before fine-tuning. Our ViT was trained entirely from scratch on OCT patches with no prior medical knowledge.
+
+The 0.73 AUC for a frozen probe is consistent with the medical SSL literature, where frozen probe AUC typically ranges 0.70-0.80 and fine-tuning reaches 0.85-0.90. The next step is to unfreeze the encoder with a low learning rate (Phase 2 fine-tuning) to close the gap.
 
 ## Dataset
 
