@@ -269,14 +269,24 @@ OCT Volume (200 B-scans)
 
 **Fine-tuning results:**
 
-| Config | Slices | Depth | Trainable | Best Val AUC | Test AUC | Status |
-|--------|--------|-------|-----------|-------------|----------|--------|
-| Unfrozen, 32 slices | 32 | 2 | ~100M | **0.819** | N/A (NCCL crash) | Fixed |
-| Unfrozen, 64 slices | 64 | 3 | ~107M | in progress | pending | Running |
+| Config | Slices | Depth | Trainable | Best Val AUC | Test AUC | Notes |
+|--------|--------|-------|-----------|-------------|----------|-------|
+| Unfrozen, 32 slices | 32 | 2 | ~100M | 0.819 | pending | NCCL crash on test eval (fixed) |
+| Unfrozen, 64 slices | 64 | 3 | ~107M | **0.815** | pending | NCCL crash on test eval (fixed) |
 
-The 32-slice unfrozen run (val AUC 0.819) already showed a massive jump from frozen probe (0.734 → 0.819, +8.5% absolute). The 64-slice run with 3 probe layers is expected to improve further with better spatial coverage.
+Both unfrozen runs show a massive jump from frozen probe (0.734 → 0.82, +8.6% absolute), confirming that encoder fine-tuning is the key lever. The 64-slice/depth-3 run tracked slightly behind the 32-slice/depth-2 run, suggesting 32 slices may already capture sufficient spatial information for this task with the current encoder.
 
-**Training details:** batch_size=1 per GPU, gradient accumulation=4, effective batch=16 (matching SLIViT). ~30 min/epoch on 4× T4. 100 slices OOM'd (15 GB activations on 16 GB T4); 64 slices fits (~11 GB).
+**Epoch-by-epoch (unfrozen, 64 slices, depth=3):**
+
+| Epoch | Train Loss | Val AUC | LR enc |
+|-------|-----------|---------|--------|
+| 1 | 0.710 | 0.596 | 1.7e-6 (warmup) |
+| 5 | 0.605 | 0.792 | 4.9e-6 |
+| 9 | 0.510 | 0.809 | 4.1e-6 |
+| **15** | **0.465** | **0.815** | **2.1e-6** |
+| 20 | 0.403 | 0.793 | 6.1e-7 (early stop) |
+
+**Training details:** batch_size=1 per GPU, gradient accumulation=4, effective batch=16 (matching SLIViT). ~30 min/epoch on 4× T4. 100 slices OOM'd (15 GB activations on 16 GB T4); 64 slices fits (~11 GB). Test evaluation pending — requires running inference on saved checkpoint (NCCL early-stop sync bug now fixed).
 
 ### Why frozen probe underperforms (0.73 vs 0.87)
 

@@ -960,6 +960,7 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         lr_enc = optimizer.param_groups[0]['lr']
         lr_probe = optimizer.param_groups[1]['lr']
 
+        should_stop = False
         if is_main:
             improved = val_auc > best_auc
             marker = ' *' if improved else ''
@@ -986,14 +987,16 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
                 patience_counter += 1
                 if patience_counter >= patience:
                     print('Early stopping at epoch %d (patience=%d)' % (epoch, patience))
-                    break
+                    should_stop = True
 
-        # Broadcast early stop decision from rank 0
+        # Broadcast early stop decision — ALL ranks must reach this
         if world_size > 1:
-            stop_tensor = torch.tensor([patience_counter >= patience], device=device)
+            stop_tensor = torch.tensor([should_stop], device=device)
             dist.broadcast(stop_tensor, src=0)
             if stop_tensor.item():
                 break
+        elif should_stop:
+            break
 
     if csv_file:
         csv_file.close()
