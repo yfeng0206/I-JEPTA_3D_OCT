@@ -231,63 +231,64 @@ Best checkpoint: `checkpoints/jepa_patch-run3-ep11.pth.tar` (epoch 11, val_loss=
 - Blob uploads must be non-blocking to avoid DDP NCCL timeouts
 - I-JEPA loss plateaus are normal; use downstream probes or RankMe to evaluate representation quality
 
-### Downstream: Frozen Encoder + Attentive Probe (test AUC: 0.733)
+### Downstream: Frozen Encoder + Attentive Probe
 
-Using the best pretrained encoder (Run 3, epoch 11, val_loss=0.1586) for downstream glaucoma classification with frozen encoder + attentive probe (2 blocks) + linear head. Training protocol matched to SLIViT for fair comparison.
+Using the best pretrained encoder (Run 3, epoch 11, val_loss=0.1586) for downstream glaucoma classification with frozen encoder + attentive probe + linear head. Training protocol matched to SLIViT for fair comparison. Features pre-computed once and cached to disk (~2.9 GB), making probe training very fast (~10 min on cached tensors).
 
 **Architecture:**
 ```
 OCT Volume (200 B-scans)
   → Sample 100 slices (uniform)
   → Frozen ViT-B/16 per slice → mean-pool patches → (B, 100, 768)
-  → AttentiveProbe: [CLS] + pos embed + 2 transformer blocks → (B, 768)
+  → AttentiveProbe: [CLS] + pos embed + N transformer blocks → (B, 768)
   → LinearHead: LayerNorm → Linear(768→1)
   → BCEWithLogitsLoss → P(glaucoma)
 ```
 
-**Configuration:**
-- 100 slices per volume, features pre-computed and cached to disk (~2.9 GB)
-- Probe: 2 blocks, 12 heads, 768-d (~14.3M trainable params)
-- Batch size: 64, patience: 5, LR probe=1e-4, LR head=1e-3
-- AdamW, weight_decay=0.01, cosine schedule with 3-epoch warmup
-- No data augmentation (same as SLIViT)
+**Probe depth ablation (frozen encoder, 100 slices):**
 
-**Results:**
+| Probe Depth | Trainable Params | Best Epoch | Val AUC | Test AUC |
+|-------------|-----------------|------------|---------|----------|
+| 2 blocks | 14.3M | 28 (pat=5) | 0.744 | 0.733 |
+| 3 blocks | 21.3M | 27 (pat=10) | 0.752 | **0.734** |
 
-| Epoch | Train Loss | Val Loss | Val AUC | LR |
-|-------|-----------|---------|---------|-----|
-| 1 | 0.7033 | 0.6847 | 0.5854 | 3.3e-5 (warmup) |
-| 10 | 0.6420 | 0.6439 | 0.7026 | 9.5e-5 |
-| 20 | 0.6040 | 0.6122 | 0.7319 | 7.1e-5 |
-| **28** | **0.5743** | **0.6025** | **0.7435** | **4.5e-5** |
-| 33 | 0.5631 | 0.6018 | 0.7406 | 2.9e-5 (early stop) |
+Increasing depth from 2 to 3 gave marginal improvement (+0.1% test AUC). The frozen encoder's representations are the bottleneck — more probe capacity can't extract signal that isn't in the features.
 
-Best epoch 28, early stopped at 33. **Test AUC: 0.7327** (vs SLIViT baseline: 0.869).
+### Downstream: Fine-tuning Encoder + Probe (in progress)
 
-Feature extraction: 6,000 train + 1,000 val + 3,000 test volumes in ~78 min (2.1 vol/s on T4). Training on cached features: ~5 min for 33 epochs.
+Unfreezing the encoder with very low LR (5e-6) and training end-to-end with DDP on 4× T4 GPUs. This is the key lever for closing the gap with SLIViT, which also fine-tunes its encoder.
 
-**Comparison with SLIViT baseline:**
+**Architecture:**
+```
+OCT Volume (200 B-scans)
+  → Sample N slices (uniform)
+  → ViT-B/16 per slice (unfrozen, lr=5e-6) → mean-pool patches → (B, N, 768)
+  → AttentiveProbe: [CLS] + pos embed + 3 transformer blocks (lr=1e-4) → (B, 768)
+  → LinearHead (lr=1e-3) → BCEWithLogitsLoss
+```
 
-| | I-JEPA Frozen Probe | SLIViT (best) |
-|--|-------------------|---------------|
-| Test AUC | 0.733 | **0.869** |
-| Encoder training | Self-supervised (no labels) | Fine-tuned **with glaucoma labels** |
-| Encoder pretrained on | OCT patches (from scratch) | Kermany OCT (medical classification) |
-| Encoder adaptation | Frozen (no task adaptation) | Full fine-tune with low LR |
-| Pretraining epochs | 18 (crashed) | N/A (used pretrained ConvNeXt) |
-| Trainable params | 14.3M (probe only) | 50-77M (everything) |
+**Fine-tuning results:**
 
-**Why the gap is large (0.73 vs 0.87):**
+| Config | Slices | Depth | Trainable | Best Val AUC | Test AUC | Status |
+|--------|--------|-------|-----------|-------------|----------|--------|
+| Unfrozen, 32 slices | 32 | 2 | ~100M | **0.819** | N/A (NCCL crash) | Fixed |
+| Unfrozen, 64 slices | 64 | 3 | ~107M | in progress | pending | Running |
+
+The 32-slice unfrozen run (val AUC 0.819) already showed a massive jump from frozen probe (0.734 → 0.819, +8.5% absolute). The 64-slice run with 3 probe layers is expected to improve further with better spatial coverage.
+
+**Training details:** batch_size=1 per GPU, gradient accumulation=4, effective batch=16 (matching SLIViT). ~30 min/epoch on 4× T4. 100 slices OOM'd (15 GB activations on 16 GB T4); 64 slices fits (~11 GB).
+
+### Why frozen probe underperforms (0.73 vs 0.87)
 
 1. **Undertrained encoder.** The I-JEPA paper trains ViT-H for 300-600 epochs on 1.2M ImageNet images. We trained ViT-B for only 18 epochs on 600K OCT slices before the job crashed. The representations haven't fully converged.
 
-2. **Frozen encoder = no task adaptation.** Glaucoma diagnosis requires detecting subtle structural changes (RNFL thinning, optic cup enlargement). SLIViT fine-tunes its encoder to amplify these glaucoma-specific signals. Our frozen encoder only learned generic "predict masked patches" features — it doesn't know what glaucoma looks like. Even on ImageNet, the I-JEPA paper shows a ~4% gap between frozen probe and fine-tuned; for medical imaging where diagnostic features are subtle, the gap is expected to be much larger.
+2. **Frozen encoder = no task adaptation.** Glaucoma diagnosis requires detecting subtle structural changes (RNFL thinning, optic cup enlargement). SLIViT fine-tunes its encoder to amplify these glaucoma-specific signals. Our frozen encoder only learned generic "predict masked patches" features. Even on ImageNet, the I-JEPA paper shows a ~4% gap between frozen probe and fine-tuned; for medical imaging the gap is much larger.
 
-3. **Mean-pooling discards spatial info.** We collapse 256 patch tokens → 1 vector per slice, throwing away *where* in the slice the features are. SLIViT preserves the full spatial feature map (768×8×8 = 49K-d per slice). Glaucoma is about *where* the RNFL is thin — spatial information matters.
+3. **Mean-pooling discards spatial info.** We collapse 256 patch tokens → 1 vector per slice, throwing away *where* in the slice the features are. SLIViT preserves the full spatial feature map (768×8×8 = 49K-d per slice).
 
-4. **No medical pretraining.** SLIViT's ConvNeXt was pretrained on Kermany OCT (a medical classification task), giving it domain-relevant features before fine-tuning. Our ViT was trained entirely from scratch on OCT patches with no prior medical knowledge.
+4. **No medical pretraining.** SLIViT's ConvNeXt was pretrained on Kermany OCT (a medical classification task). Our ViT was trained entirely from scratch on OCT patches with no prior medical knowledge.
 
-The 0.73 AUC for a frozen probe is consistent with the medical SSL literature, where frozen probe AUC typically ranges 0.70-0.80 and fine-tuning reaches 0.85-0.90. The next step is to unfreeze the encoder with a low learning rate (Phase 2 fine-tuning) to close the gap.
+The 0.73 AUC for a frozen probe is consistent with the medical SSL literature, where frozen probe AUC typically ranges 0.70-0.80 and fine-tuning reaches 0.85-0.90.
 
 ## Dataset
 

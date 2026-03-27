@@ -42,12 +42,17 @@ _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+import torch.distributed as dist
+
 from src.models.vision_transformer import (
     VisionTransformer, SliceEncoder, Block, VIT_EMBED_DIMS,
 )
 from src.models.feature_extractor import FrozenFeatureExtractor
 from src.datasets.oct_volumes import OCTVolumeDataset
 from src.helper import _VIT_CONFIGS
+from src.utils.distributed import init_distributed
 
 
 # ---------------------------------------------------------------------------
@@ -700,11 +705,355 @@ def run_slice_downstream(config, device):
 
 
 # ---------------------------------------------------------------------------
+# Combined model for DDP fine-tuning
+# ---------------------------------------------------------------------------
+
+class DownstreamModel(nn.Module):
+    """End-to-end model: ViT encoder + AttentiveProbe + head.
+
+    Wraps the full pipeline so DDP can sync gradients correctly.
+    Encodes slices in chunks to fit memory while preserving gradients.
+    """
+
+    def __init__(self, encoder, probe, head, chunk_size=25):
+        super(DownstreamModel, self).__init__()
+        self.encoder = encoder
+        self.probe = probe
+        self.head = head
+        self.chunk_size = chunk_size
+
+    def forward(self, volumes):
+        B, S, C, H, W = volumes.shape
+        flat = volumes.reshape(B * S, C, H, W)
+        parts = []
+        for i in range(0, flat.size(0), self.chunk_size):
+            chunk = flat[i:i + self.chunk_size]
+            out = self.encoder(chunk)          # (chunk, patches, D)
+            parts.append(out.mean(dim=1))      # (chunk, D)
+        features = torch.cat(parts, dim=0)     # (B*S, D)
+        features = features.reshape(B, S, -1)  # (B, S, D)
+        pooled = self.probe(features)          # (B, D)
+        return self.head(pooled).squeeze(-1)   # (B,)
+
+
+# ---------------------------------------------------------------------------
+# Patch-level fine-tuning (encoder unfrozen, DDP)
+# ---------------------------------------------------------------------------
+
+@torch.no_grad()
+def evaluate_finetune(model, loader, criterion, device):
+    """Evaluate fine-tune model on a data loader."""
+    model.eval()
+    total_loss = 0.0
+    n_samples = 0
+    all_labels = []
+    all_probs = []
+
+    for volumes, labels in loader:
+        volumes = volumes.to(device, non_blocking=True)
+        labels = labels.to(device, non_blocking=True).float()
+        with autocast():
+            logits = model(volumes)
+        loss = criterion(logits, labels)
+        probs = torch.sigmoid(logits)
+        total_loss += loss.item() * labels.size(0)
+        n_samples += labels.size(0)
+        all_labels.append(labels.cpu())
+        all_probs.append(probs.cpu())
+
+    all_labels = torch.cat(all_labels).numpy()
+    all_probs = torch.cat(all_probs).numpy()
+
+    # Gather across ranks for full AUC
+    if dist.is_initialized() and dist.get_world_size() > 1:
+        gathered_labels = [None] * dist.get_world_size()
+        gathered_probs = [None] * dist.get_world_size()
+        dist.all_gather_object(gathered_labels, all_labels)
+        dist.all_gather_object(gathered_probs, all_probs)
+        all_labels = np.concatenate(gathered_labels)
+        all_probs = np.concatenate(gathered_probs)
+
+        # Gather loss across ranks
+        loss_tensor = torch.tensor([total_loss, float(n_samples)], device=device)
+        dist.all_reduce(loss_tensor, op=dist.ReduceOp.SUM)
+        total_loss = loss_tensor[0].item()
+        n_samples = int(loss_tensor[1].item())
+
+    avg_loss = total_loss / max(n_samples, 1)
+    auc = roc_auc_score(all_labels, all_probs) if len(np.unique(all_labels)) >= 2 else 0.5
+    return avg_loss, auc
+
+
+def run_patch_finetune(config, device, rank=0, world_size=1):
+    """Fine-tune encoder + probe + head end-to-end with DDP.
+
+    Protocol:
+      - Encoder: very low LR (5e-6), unfrozen
+      - Probe + head: normal LR
+      - batch_size=1 per GPU, gradient accumulation, DDP
+      - Early stop on val AUC, patience=5
+    """
+    data_cfg = config['data']
+    model_cfg = config['model']
+    train_cfg = config['training']
+    log_cfg = config['logging']
+
+    output_dir = log_cfg['output_dir']
+    if rank == 0:
+        os.makedirs(output_dir, exist_ok=True)
+
+    is_main = (rank == 0)
+
+    if is_main:
+        print('=' * 70)
+        print('Downstream Fine-tuning — Encoder + Probe + Head (DDP)')
+        print('  World size: %d' % world_size)
+        print('=' * 70)
+
+    # ---- Build model -------------------------------------------------------
+    vit_cfg = _VIT_CONFIGS[model_cfg['encoder_name']]
+    encoder = VisionTransformer(
+        img_size=model_cfg['crop_size'],
+        patch_size=model_cfg['patch_size'],
+        embed_dim=vit_cfg['embed_dim'],
+        depth=vit_cfg['depth'],
+        num_heads=vit_cfg['num_heads'],
+    )
+
+    ckpt_path = model_cfg['encoder_checkpoint']
+    if is_main:
+        print('Loading encoder from %s ...' % ckpt_path)
+    ckpt = torch.load(ckpt_path, map_location='cpu')
+    encoder.load_state_dict(ckpt['target_encoder'])
+    if is_main:
+        print('  Loaded target_encoder weights (epoch %d)' % ckpt.get('epoch', -1))
+
+    embed_dim = vit_cfg['embed_dim']
+    num_slices = data_cfg['num_slices']
+
+    probe = AttentiveProbe(
+        num_slices=num_slices,
+        embed_dim=embed_dim,
+        num_heads=model_cfg.get('probe_num_heads', 12),
+        depth=model_cfg.get('probe_depth', 2),
+    )
+
+    head_type = model_cfg.get('head_type', 'linear')
+    if head_type == 'mlp':
+        head = MLPHead(in_dim=embed_dim, dropout=train_cfg.get('dropout', 0.1))
+    else:
+        head = LinearHead(in_dim=embed_dim)
+
+    chunk_size = data_cfg.get('encode_chunk_size', 25)
+    model = DownstreamModel(encoder, probe, head, chunk_size).to(device)
+
+    if world_size > 1:
+        model = DDP(model, device_ids=[rank], find_unused_parameters=False)
+
+    raw = model.module if hasattr(model, 'module') else model
+
+    enc_params = sum(p.numel() for p in raw.encoder.parameters())
+    probe_params = sum(p.numel() for p in raw.probe.parameters())
+    head_params = sum(p.numel() for p in raw.head.parameters())
+    if is_main:
+        print('  Encoder:  %s params (trainable, lr=%.1e)'
+              % (format(enc_params, ','), train_cfg.get('lr_encoder', 5e-6)))
+        print('  Probe:    %s params (trainable, lr=%.1e)'
+              % (format(probe_params, ','), train_cfg.get('lr_probe', 1e-4)))
+        print('  Head:     %s params (trainable, lr=%.1e)'
+              % (format(head_params, ','), train_cfg.get('lr_head', 1e-3)))
+
+    # ---- Datasets ----------------------------------------------------------
+    slice_size = data_cfg.get('slice_size', 256)
+    batch_size = data_cfg.get('batch_size', 1)
+    accum_steps = train_cfg.get('accum_steps', 4)
+
+    train_dataset = OCTVolumeDataset(
+        os.path.join(data_cfg['data_dir'], 'Training'),
+        num_slices=num_slices, slice_size=slice_size, return_label=True,
+    )
+    val_dataset = OCTVolumeDataset(
+        os.path.join(data_cfg['data_dir'], 'Validation'),
+        num_slices=num_slices, slice_size=slice_size, return_label=True,
+    )
+
+    train_sampler = DistributedSampler(train_dataset, shuffle=True) if world_size > 1 else None
+    val_sampler = DistributedSampler(val_dataset, shuffle=False) if world_size > 1 else None
+
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size,
+        shuffle=(train_sampler is None), sampler=train_sampler,
+        num_workers=data_cfg.get('num_workers', 2), pin_memory=True, drop_last=True)
+    val_loader = DataLoader(
+        val_dataset, batch_size=batch_size,
+        shuffle=False, sampler=val_sampler,
+        num_workers=data_cfg.get('num_workers', 2), pin_memory=True)
+
+    eff_batch = batch_size * world_size * accum_steps
+    if is_main:
+        print('  Train: %d volumes  (bs=%d × %d GPUs × %d accum = %d eff)'
+              % (len(train_dataset), batch_size, world_size, accum_steps, eff_batch))
+        print('  Val:   %d volumes' % len(val_dataset))
+
+    # ---- Optimizer ---------------------------------------------------------
+    param_groups = [
+        {'params': raw.encoder.parameters(), 'lr': train_cfg.get('lr_encoder', 5e-6)},
+        {'params': raw.probe.parameters(), 'lr': train_cfg.get('lr_probe', 1e-4)},
+        {'params': raw.head.parameters(), 'lr': train_cfg.get('lr_head', 1e-3)},
+    ]
+    optimizer = torch.optim.AdamW(param_groups, weight_decay=train_cfg.get('weight_decay', 0.01))
+    steps_per_epoch = len(train_loader) // accum_steps
+    scheduler = cosine_schedule_with_warmup(
+        optimizer, train_cfg.get('warmup_epochs', 3),
+        train_cfg['epochs'], max(steps_per_epoch, 1),
+    )
+    criterion = nn.BCEWithLogitsLoss()
+    scaler = GradScaler()
+
+    # ---- CSV logger --------------------------------------------------------
+    csv_file = None
+    if is_main:
+        csv_path = os.path.join(output_dir, 'train_log.csv')
+        csv_file = open(csv_path, 'w')
+        csv_file.write('epoch,train_loss,val_loss,val_auc,lr_enc,lr_probe,elapsed_s\n')
+        csv_file.flush()
+
+    # ---- Training loop -----------------------------------------------------
+    if is_main:
+        print('\n--- Training ---')
+    best_auc = 0.0
+    patience_counter = 0
+    patience = train_cfg.get('patience', 5)
+    epochs = train_cfg['epochs']
+
+    for epoch in range(1, epochs + 1):
+        if train_sampler is not None:
+            train_sampler.set_epoch(epoch)
+        model.train()
+        total_loss = 0.0
+        n_samples = 0
+        optimizer.zero_grad(set_to_none=True)
+
+        t0 = time.time()
+        for step, (volumes, labels) in enumerate(train_loader):
+            volumes = volumes.to(device, non_blocking=True)
+            labels = labels.to(device, non_blocking=True).float()
+
+            with autocast():
+                logits = model(volumes)
+                loss = criterion(logits, labels) / accum_steps
+
+            scaler.scale(loss).backward()
+
+            if (step + 1) % accum_steps == 0 or (step + 1) == len(train_loader):
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
+                scheduler.step()
+
+            total_loss += loss.item() * accum_steps * labels.size(0)
+            n_samples += labels.size(0)
+
+        elapsed = time.time() - t0
+        train_loss = total_loss / max(n_samples, 1)
+        val_loss, val_auc = evaluate_finetune(model, val_loader, criterion, device)
+        lr_enc = optimizer.param_groups[0]['lr']
+        lr_probe = optimizer.param_groups[1]['lr']
+
+        if is_main:
+            improved = val_auc > best_auc
+            marker = ' *' if improved else ''
+            print('Epoch %2d/%d (%5.0fs) | Train: %.4f | Val: %.4f | AUC: %.4f | LR: %.1e/%.1e%s'
+                  % (epoch, epochs, elapsed, train_loss, val_loss, val_auc,
+                     lr_enc, lr_probe, marker))
+
+            if csv_file:
+                csv_file.write('%d,%.6f,%.6f,%.6f,%.8f,%.8f,%.1f\n'
+                               % (epoch, train_loss, val_loss, val_auc, lr_enc, lr_probe, elapsed))
+                csv_file.flush()
+
+            if improved:
+                best_auc = val_auc
+                patience_counter = 0
+                torch.save({
+                    'epoch': epoch,
+                    'encoder': raw.encoder.state_dict(),
+                    'probe': raw.probe.state_dict(),
+                    'head': raw.head.state_dict(),
+                    'val_auc': val_auc,
+                }, os.path.join(output_dir, 'best_model.pt'))
+            else:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    print('Early stopping at epoch %d (patience=%d)' % (epoch, patience))
+                    break
+
+        # Broadcast early stop decision from rank 0
+        if world_size > 1:
+            stop_tensor = torch.tensor([patience_counter >= patience], device=device)
+            dist.broadcast(stop_tensor, src=0)
+            if stop_tensor.item():
+                break
+
+    if csv_file:
+        csv_file.close()
+
+    # ---- Tear down DDP before test eval (prevents NCCL timeout) ------------
+    if world_size > 1:
+        dist.barrier()
+        dist.destroy_process_group()
+
+    # ---- Test evaluation (rank 0 only, no DDP) -----------------------------
+    if is_main:
+        print('\n--- Test Evaluation ---')
+        best_path = os.path.join(output_dir, 'best_model.pt')
+        if os.path.exists(best_path):
+            best_ckpt = torch.load(best_path, map_location=device)
+            raw.encoder.load_state_dict(best_ckpt['encoder'])
+            raw.probe.load_state_dict(best_ckpt['probe'])
+            raw.head.load_state_dict(best_ckpt['head'])
+            best_epoch = best_ckpt['epoch']
+        else:
+            best_epoch = 0
+
+        test_dataset = OCTVolumeDataset(
+            os.path.join(data_cfg['data_dir'], 'Test'),
+            num_slices=num_slices, slice_size=slice_size, return_label=True,
+        )
+        test_loader = DataLoader(test_dataset, batch_size=batch_size,
+                                 shuffle=False, num_workers=2, pin_memory=True)
+        test_model = raw.to(device)
+        test_loss, test_auc = evaluate_finetune(test_model, test_loader, criterion, device)
+        print('Best epoch: %d  |  Val AUC: %.4f  |  TEST AUC: %.4f'
+              % (best_epoch, best_auc, test_auc))
+
+        results = {
+            'mode': 'patch_finetune',
+            'head_type': head_type,
+            'num_slices': num_slices,
+            'probe_depth': model_cfg.get('probe_depth', 2),
+            'best_epoch': best_epoch,
+            'best_val_auc': best_auc,
+            'test_auc': test_auc,
+            'test_loss': test_loss,
+            'lr_encoder': train_cfg.get('lr_encoder', 5e-6),
+            'accum_steps': accum_steps,
+            'effective_batch': eff_batch,
+            'config': config,
+        }
+        with open(os.path.join(output_dir, 'results.json'), 'w') as f:
+            json.dump(results, f, indent=2)
+        print('\nResults saved to %s' % output_dir)
+        print('  best_val_auc = %.4f' % best_auc)
+        print('  test_auc     = %.4f' % test_auc)
+        print('  (SLIViT baseline: 0.869, frozen probe: 0.733)')
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main(args):
-    # Seed
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
 
@@ -714,17 +1063,27 @@ def main(args):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    if torch.cuda.is_available():
-        print('GPU: %s' % torch.cuda.get_device_name(0))
+    freeze_encoder = config.get('model', {}).get('freeze_encoder', True)
 
-    mode = config.get('mode', 'patch')
-    if mode == 'patch':
-        run_patch_downstream(config, device)
-    elif mode == 'slice':
-        run_slice_downstream(config, device)
+    if not freeze_encoder:
+        # DDP mode for fine-tuning
+        world_size, rank = init_distributed()
+        device = torch.device('cuda', int(os.environ.get('LOCAL_RANK', 0)))
+        if rank == 0:
+            print('GPU: %s' % torch.cuda.get_device_name(0))
+        run_patch_finetune(config, device, rank, world_size)
     else:
-        raise ValueError("Unknown mode: %s (expected 'patch' or 'slice')" % mode)
+        # Single GPU for frozen probe
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        if torch.cuda.is_available():
+            print('GPU: %s' % torch.cuda.get_device_name(0))
+        mode = config.get('mode', 'patch')
+        if mode == 'patch':
+            run_patch_downstream(config, device)
+        elif mode == 'slice':
+            run_slice_downstream(config, device)
+        else:
+            raise ValueError("Unknown mode: %s" % mode)
 
 
 if __name__ == '__main__':

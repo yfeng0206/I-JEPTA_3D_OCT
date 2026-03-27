@@ -16,6 +16,9 @@ SEED=${SEED:-42}
 NUM_SLICES=${NUM_SLICES:-100}
 NUM_WORKERS=${NUM_WORKERS:-4}
 ENCODE_CHUNK_SIZE=${ENCODE_CHUNK_SIZE:-50}
+FREEZE_ENCODER=${FREEZE_ENCODER:-true}
+NPROC=${NPROC:-4}
+ACCUM_STEPS=${ACCUM_STEPS:-4}
 
 # Blob path to pretrained I-JEPA checkpoint
 IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:-"ijepa-results/patch_vit_base_ps16_ep50_bs64_lr0.00025_20260324_205416"}
@@ -182,7 +185,7 @@ model:
   encoder_name: ${ENCODER_NAME}
   patch_size: ${PATCH_SIZE}
   crop_size: ${CROP_SIZE}
-  freeze_encoder: true
+  freeze_encoder: ${FREEZE_ENCODER}
   probe_num_heads: ${PROBE_NUM_HEADS}
   probe_depth: ${PROBE_DEPTH}
   head_type: ${HEAD_TYPE}
@@ -195,6 +198,7 @@ training:
   epochs: ${EPOCHS}
   patience: ${PATIENCE}
   warmup_epochs: 3
+  accum_steps: ${ACCUM_STEPS}
   seed: ${SEED}
 logging:
   output_dir: ${OUTPUT_DIR}
@@ -242,7 +246,13 @@ echo "  Output: ${OUTPUT_DIR}"
 
 EVAL_EXIT=0
 cd "$(dirname "$0")/.."
-python src/eval_downstream.py --config "${CONFIG_PATH}" 2>&1 | tee "${OUTPUT_DIR}/eval_stdout.log" || EVAL_EXIT=$?
+if [ "$FREEZE_ENCODER" = "false" ]; then
+    echo "  Launching with torchrun (${NPROC} GPUs, encoder unfrozen)"
+    torchrun --nproc_per_node=${NPROC} src/eval_downstream.py --config "${CONFIG_PATH}" 2>&1 | tee "${OUTPUT_DIR}/eval_stdout.log" || EVAL_EXIT=$?
+else
+    echo "  Launching single GPU (encoder frozen, cached features)"
+    python src/eval_downstream.py --config "${CONFIG_PATH}" 2>&1 | tee "${OUTPUT_DIR}/eval_stdout.log" || EVAL_EXIT=$?
+fi
 
 echo "=== Eval exit code: ${EVAL_EXIT} ==="
 echo "=== Output files ==="
