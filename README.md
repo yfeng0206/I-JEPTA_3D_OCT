@@ -254,51 +254,66 @@ OCT Volume (200 B-scans)
 
 Increasing depth from 2 to 3 gave marginal improvement (+0.1% test AUC). The frozen encoder's representations are the bottleneck — more probe capacity can't extract signal that isn't in the features.
 
-### Downstream: Fine-tuning Encoder + Probe (in progress)
+### Downstream: Fine-tuning Encoder + Probe
 
-Unfreezing the encoder with very low LR (5e-6) and training end-to-end with DDP on 4× T4 GPUs. This is the key lever for closing the gap with SLIViT, which also fine-tunes its encoder.
+Unfreezing the encoder with very low LR (5e-6) and training end-to-end with DDP on 4× T4 GPUs. batch_size=1 per GPU, gradient accumulation=4, effective batch=16 (matching SLIViT). ~30 min/epoch. 100 slices OOM'd (15 GB activations on 16 GB T4); 64 slices fits (~11 GB).
 
-**Architecture:**
-```
-OCT Volume (200 B-scans)
-  → Sample N slices (uniform)
-  → ViT-B/16 per slice (unfrozen, lr=5e-6) → mean-pool patches → (B, N, 768)
-  → AttentiveProbe: [CLS] + pos embed + 3 transformer blocks (lr=1e-4) → (B, 768)
-  → LinearHead (lr=1e-3) → BCEWithLogitsLoss
-```
+**Fine-tuning results summary:**
 
-**Fine-tuning results:**
+| Config | Slices | Probe Depth | Trainable | Best Val AUC | Test AUC |
+|--------|--------|-------------|-----------|-------------|----------|
+| Unfrozen d=2 | 32 | 2 | ~100M | 0.819 | pending |
+| Unfrozen d=3 | 64 | 3 | ~107M | **0.815** | pending |
 
-| Config | Slices | Depth | Trainable | Best Val AUC | Test AUC | Notes |
-|--------|--------|-------|-----------|-------------|----------|-------|
-| Unfrozen, 32 slices | 32 | 2 | ~100M | 0.819 | pending | NCCL crash on test eval (fixed) |
-| Unfrozen, 64 slices | 64 | 3 | ~107M | **0.815** | pending | NCCL crash on test eval (fixed) |
+Both unfrozen runs show a massive jump from frozen probe (0.734 → 0.82, +8.5% absolute), confirming that encoder fine-tuning is the key lever.
 
-Both unfrozen runs show a massive jump from frozen probe (0.734 → 0.82, +8.6% absolute), confirming that encoder fine-tuning is the key lever. The 64-slice/depth-3 run tracked slightly behind the 32-slice/depth-2 run, suggesting 32 slices may already capture sufficient spatial information for this task with the current encoder.
+**Epoch-by-epoch (unfrozen d=2, 32 slices):**
 
-**Epoch-by-epoch (unfrozen, 64 slices, depth=3):**
+| Epoch | Train Loss | Val AUC | LR enc/probe |
+|-------|-----------|---------|-------------|
+| 1 | 0.707 | 0.597 | 1.7e-6 / 3.3e-5 |
+| 5 | 0.605 | 0.785 | 4.9e-6 / 9.8e-5 |
+| 9 | 0.515 | 0.810 | 4.1e-6 / 8.3e-5 |
+| **12** | **0.491** | **0.819** | **3.2e-6 / 6.4e-5** |
+| 17 | 0.439 | 0.814 | 1.5e-6 / 2.9e-5 (early stop) |
 
-| Epoch | Train Loss | Val AUC | LR enc |
-|-------|-----------|---------|--------|
-| 1 | 0.710 | 0.596 | 1.7e-6 (warmup) |
-| 5 | 0.605 | 0.792 | 4.9e-6 |
-| 9 | 0.510 | 0.809 | 4.1e-6 |
-| **15** | **0.465** | **0.815** | **2.1e-6** |
-| 20 | 0.403 | 0.793 | 6.1e-7 (early stop) |
+**Epoch-by-epoch (unfrozen d=3, 64 slices):**
 
-**Training details:** batch_size=1 per GPU, gradient accumulation=4, effective batch=16 (matching SLIViT). ~30 min/epoch on 4× T4. 100 slices OOM'd (15 GB activations on 16 GB T4); 64 slices fits (~11 GB). Test evaluation pending — requires running inference on saved checkpoint (NCCL early-stop sync bug now fixed).
+| Epoch | Train Loss | Val AUC | LR enc/probe |
+|-------|-----------|---------|-------------|
+| 1 | 0.710 | 0.596 | 1.7e-6 / 3.3e-5 |
+| 5 | 0.605 | 0.792 | 4.9e-6 / 9.8e-5 |
+| 9 | 0.510 | 0.809 | 4.1e-6 / 8.3e-5 |
+| 11 | 0.495 | 0.813 | 3.5e-6 / 7.1e-5 |
+| **15** | **0.465** | **0.815** | **2.1e-6 / 4.3e-5** |
+| 20 | 0.403 | 0.793 | 6.1e-7 / 1.2e-5 (early stop) |
 
-### Why frozen probe underperforms (0.73 vs 0.87)
+### Full Results Comparison
 
-1. **Undertrained encoder.** The I-JEPA paper trains ViT-H for 300-600 epochs on 1.2M ImageNet images. We trained ViT-B for only 18 epochs on 600K OCT slices before the job crashed. The representations haven't fully converged.
+| Method | Encoder | Init | Slices | Probe | Val AUC | Test AUC |
+|--------|---------|------|--------|-------|---------|----------|
+| SLIViT baseline | ConvNeXt+ViT | Kermany OCT | 32 | 5-layer ViT | ~0.87 | **0.869** |
+| I-JEPA frozen d=2 | ViT-B/16 frozen | Random→SSL | 100 | 2 blocks | 0.744 | 0.733 |
+| I-JEPA frozen d=3 | ViT-B/16 frozen | Random→SSL | 100 | 3 blocks | 0.752 | 0.734 |
+| I-JEPA unfrozen d=2 | ViT-B/16 fine-tune | Random→SSL | 32 | 2 blocks | **0.819** | pending |
+| I-JEPA unfrozen d=3 | ViT-B/16 fine-tune | Random→SSL | 64 | 3 blocks | 0.815 | pending |
+| I-JEPA ImageNet init | ViT-B/16 | **ImageNet→SSL** | 100 | TBD | running | pending |
 
-2. **Frozen encoder = no task adaptation.** Glaucoma diagnosis requires detecting subtle structural changes (RNFL thinning, optic cup enlargement). SLIViT fine-tunes its encoder to amplify these glaucoma-specific signals. Our frozen encoder only learned generic "predict masked patches" features. Even on ImageNet, the I-JEPA paper shows a ~4% gap between frozen probe and fine-tuned; for medical imaging the gap is much larger.
+### Analysis: Why frozen probe underperforms (0.73 vs 0.87)
 
-3. **Mean-pooling discards spatial info.** We collapse 256 patch tokens → 1 vector per slice, throwing away *where* in the slice the features are. SLIViT preserves the full spatial feature map (768×8×8 = 49K-d per slice).
+1. **Undertrained encoder.** The I-JEPA paper trains ViT-H for 300-600 epochs on 1.2M images. We trained ViT-B for only 18 epochs on 600K slices. RETFound (Nature 2023) trained MAE for 800 epochs on 736K OCT images. Our encoder barely converged.
 
-4. **No medical pretraining.** SLIViT's ConvNeXt was pretrained on Kermany OCT (a medical classification task). Our ViT was trained entirely from scratch on OCT patches with no prior medical knowledge.
+2. **Frozen encoder = no task adaptation.** SLIViT fine-tunes its encoder with glaucoma labels. Our frozen encoder only learned generic self-supervised features. Unfreezing closes the gap significantly (0.73 → 0.82).
 
-The 0.73 AUC for a frozen probe is consistent with the medical SSL literature, where frozen probe AUC typically ranges 0.70-0.80 and fine-tuning reaches 0.85-0.90.
+3. **Mean-pooling discards spatial info.** We collapse 256 patch tokens → 1 vector per slice. SLIViT preserves full spatial feature maps.
+
+4. **No ImageNet pretraining.** Azizi et al. (ICCV 2021) showed ImageNet SSL → medical SSL consistently outperforms medical-only SSL. Our encoder started from random init. ImageNet init experiment now running.
+
+### Next Steps
+
+1. **ImageNet pretrained init** (running): Initialize ViT-B/16 from supervised ImageNet weights, then I-JEPA pretrain on OCT. Based on Azizi et al. and ViT-2SPN, this should improve both frozen probe and fine-tuned downstream. EMA schedule adjusted to 0.999→1.0 (slower updates since encoder starts from good features).
+
+2. **Multi-view pretraining** (planned): Reconstruct OCT volumes along 3 axes (B-scan, en-face, C-scan) for 3× more training images (1.8M). Add cross-view fusion attention for downstream. Novel contribution — no existing work applies multi-view I-JEPA to OCT.
 
 ## Dataset
 
