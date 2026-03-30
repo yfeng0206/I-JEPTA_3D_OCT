@@ -26,6 +26,7 @@ ACCUM_STEPS=${ACCUM_STEPS:-1}
 PATIENCE=${PATIENCE:-8}
 LOAD_CHECKPOINT=${LOAD_CHECKPOINT:-false}
 READ_CHECKPOINT=${READ_CHECKPOINT:-null}
+PRETRAINED_ENCODER=${PRETRAINED_ENCODER:-null}
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_TAG="patch_${MODEL_NAME}_ps${PATCH_SIZE}_ep${EPOCHS}_bs${BATCH_SIZE}_lr${LR}"
@@ -154,6 +155,7 @@ meta:
   use_bfloat16: false
   load_checkpoint: ${LOAD_CHECKPOINT}
   read_checkpoint: ${READ_CHECKPOINT}
+  pretrained_encoder: ${PRETRAINED_ENCODER}
 optimization:
   epochs: ${EPOCHS}
   lr: ${LR}

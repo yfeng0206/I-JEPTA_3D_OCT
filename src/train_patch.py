@@ -181,7 +181,25 @@ def main(args):
         pred_emb_dim=meta_cfg['pred_emb_dim'],
     )
 
-    # Target encoder (EMA copy)
+    # Optionally load ImageNet pretrained weights into encoder
+    pretrained_path = meta_cfg.get('pretrained_encoder', None)
+    if pretrained_path and os.path.exists(pretrained_path):
+        log('  Loading pretrained encoder from %s ...' % pretrained_path)
+        pretrained = torch.load(pretrained_path, map_location=device)
+        pretrained_sd = pretrained.get('encoder', pretrained)
+        # Load matching keys, skip mismatched (pos_embed size differs)
+        encoder_sd = encoder.state_dict()
+        loaded, skipped = 0, 0
+        for key, value in pretrained_sd.items():
+            if key in encoder_sd and encoder_sd[key].shape == value.shape:
+                encoder_sd[key] = value
+                loaded += 1
+            else:
+                skipped += 1
+        encoder.load_state_dict(encoder_sd)
+        log('  Loaded %d keys, skipped %d (shape mismatch or missing)' % (loaded, skipped))
+
+    # Target encoder (EMA copy — also gets pretrained weights if loaded)
     target_encoder = copy.deepcopy(encoder)
     for p in target_encoder.parameters():
         p.requires_grad = False
@@ -190,6 +208,10 @@ def main(args):
     pred_params = sum(p.numel() for p in predictor.parameters())
     log('  Encoder params:   %s' % format(enc_params, ','))
     log('  Predictor params: %s' % format(pred_params, ','))
+    if pretrained_path:
+        log('  Encoder init:     ImageNet pretrained (%s)' % pretrained_path)
+    else:
+        log('  Encoder init:     random')
 
     # ---- Mask collator -----------------------------------------------------
     crop_size = data_cfg['crop_size']
