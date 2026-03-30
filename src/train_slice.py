@@ -26,6 +26,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.utils.data.distributed import DistributedSampler
 
+import threading
 import yaml
 
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,6 +60,50 @@ def momentum_schedule(base_value, final_value, num_steps):
 
 
 # ---------------------------------------------------------------------------
+# Blob upload helper (non-blocking, best-effort)
+# ---------------------------------------------------------------------------
+
+_upload_threads = []
+
+
+def _upload_worker(local_path, blob_prefix, log_fn):
+    try:
+        from azure.identity import ManagedIdentityCredential
+        from azure.storage.blob import ContainerClient
+        account = os.environ.get('BLOB_ACCOUNT', 'STORAGE_ACCOUNT_REDACTED')
+        container_name = os.environ.get(
+            'BLOB_CONTAINER',
+            'CONTAINER_REDACTED',
+        )
+        cred = ManagedIdentityCredential()
+        container = ContainerClient(
+            account_url='https://%s.blob.core.windows.net' % account,
+            container_name=container_name, credential=cred,
+        )
+        fname = os.path.basename(local_path)
+        blob_name = '%s/%s' % (blob_prefix, fname)
+        size = os.path.getsize(local_path)
+        log_fn('  Uploading %s (%s bytes)' % (fname, format(size, ',')))
+        with open(local_path, 'rb') as f:
+            container.upload_blob(blob_name, f, overwrite=True)
+        log_fn('  Upload OK: %s' % fname)
+    except Exception as e:
+        log_fn('  Upload skipped: %s' % e)
+
+
+def upload_to_blob(local_path, blob_prefix, log_fn=print, blocking=False):
+    if blocking:
+        _upload_worker(local_path, blob_prefix, log_fn)
+    else:
+        t = threading.Thread(
+            target=_upload_worker, args=(local_path, blob_prefix, log_fn),
+            daemon=True,
+        )
+        t.start()
+        _upload_threads.append(t)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -87,6 +132,7 @@ def main(args):
     # ---- Output directory --------------------------------------------------
     output_dir = log_cfg['folder']
     write_tag = log_cfg['write_tag']
+    blob_prefix = 'ijepa-results/%s' % os.path.basename(output_dir)
     if is_main:
         os.makedirs(output_dir, exist_ok=True)
 
@@ -210,9 +256,10 @@ def main(args):
             collate_fn=mask_collator,
         )
 
-    iterations_per_epoch = len(train_loader)
-    log('  Batches per epoch: %d' % iterations_per_epoch)
-    log('  Effective batch size: %d' % (data_cfg['batch_size'] * world_size))
+    num_micro_batches = len(train_loader)
+    iterations_per_epoch = num_micro_batches // accum_steps
+    log('  Batches per epoch: %d (%d iters x %d accum)' % (num_micro_batches, iterations_per_epoch, accum_steps))
+    log('  Effective batch size: %d' % (data_cfg['batch_size'] * world_size * accum_steps))
 
     # ---- Optimizer ---------------------------------------------------------
     optimizer, scaler, lr_scheduler, wd_scheduler = init_opt(
@@ -289,13 +336,15 @@ def main(args):
         return val_loss_meter.avg
 
     # ---- Training loop -----------------------------------------------------
-    patience = opt_cfg.get('patience', 15)
+    patience = opt_cfg.get('patience', 8)
+    warmup_epochs = opt_cfg.get('warmup', 10)
+    accum_steps = opt_cfg.get('accum_steps', 1)
     best_val_loss = float('inf')
     epochs_no_improve = 0
 
     log('-' * 70)
-    log('Starting training from epoch %d to %d (patience=%d)'
-        % (start_epoch + 1, opt_cfg['epochs'], patience))
+    log('Starting training from epoch %d to %d (patience=%d, early-stop after epoch %d)'
+        % (start_epoch + 1, opt_cfg['epochs'], patience, warmup_epochs))
     log('-' * 70)
 
     for epoch in range(start_epoch, opt_cfg['epochs']):
@@ -332,29 +381,22 @@ def main(args):
             data_ms = (time.time() - t_data) * 1000.0
 
             def _forward_backward():
-                optimizer.zero_grad(set_to_none=True)
+                # Only zero grads at start of accumulation window
+                if itr % accum_steps == 0:
+                    optimizer.zero_grad(set_to_none=True)
 
-                # Diagnostic: log shapes and mask content on first iter
+                # Diagnostic: log shapes on first iter
                 if epoch == start_epoch and itr == 0 and is_main:
                     log('  [DIAG] slice_features: %s' % str(slice_features.shape))
                     log('  [DIAG] masks_enc: %s' % str([m.shape for m in masks_enc]))
                     log('  [DIAG] masks_pred: %s' % str([m.shape for m in masks_pred]))
-                    log('  [DIAG] masks_enc[0][0]: %s' % str(masks_enc[0][0].tolist()))
-                    log('  [DIAG] masks_pred[0][0]: %s' % str(masks_pred[0][0].tolist()))
-                    log('  [DIAG] masks_pred[1][0]: %s' % str(masks_pred[1][0].tolist()))
-                    log('  [DIAG] slice_features stats: mean=%.4f std=%.4f min=%.4f max=%.4f'
-                        % (slice_features.mean().item(), slice_features.std().item(),
-                           slice_features.min().item(), slice_features.max().item()))
 
                 # Target path (no gradient)
                 with torch.no_grad():
-                    h = target_encoder(slice_features)  # (B, S, D)
+                    h = target_encoder(slice_features)
                     h = F.layer_norm(h, (h.size(-1),))
                     h = apply_masks(h, masks_pred)
                     h = repeat_interleave_batch(h, B, repeat=len(masks_enc))
-
-                if epoch == start_epoch and itr == 0 and is_main:
-                    log('  [DIAG] h (target): %s mean=%.4f std=%.4f' % (str(h.shape), h.mean().item(), h.std().item()))
 
                 # Context path (with gradient)
                 use_amp = (scaler is not None)
@@ -363,38 +405,37 @@ def main(args):
                         z = encoder(slice_features, masks_enc)
                         z = predictor(z, masks_enc, masks_pred)
                         loss = F.smooth_l1_loss(z, h)
+                    scaler.scale(loss / accum_steps).backward()
                 else:
                     z = encoder(slice_features, masks_enc)
                     z = predictor(z, masks_enc, masks_pred)
                     loss = F.smooth_l1_loss(z, h)
+                    (loss / accum_steps).backward()
 
-                if epoch == start_epoch and itr == 0 and is_main:
-                    log('  [DIAG] z (pred): %s mean=%.4f std=%.4f' % (str(z.shape), z.mean().item(), z.std().item()))
-                    log('  [DIAG] loss=%.6f' % loss.item())
-
-                if use_amp:
-                    scaler.scale(loss).backward()
-                    scaler.step(optimizer)
-                    scaler.update()
-                else:
-                    loss.backward()
-                    optimizer.step()
+                # Step optimizer at end of accumulation window
+                is_step = (itr + 1) % accum_steps == 0 or (itr + 1) == len(train_loader)
+                if is_step:
+                    if use_amp:
+                        scaler.step(optimizer)
+                        scaler.update()
+                    else:
+                        optimizer.step()
 
                 return loss.item()
 
             (loss_val, fwd_bwd_ms) = gpu_timer(_forward_backward)
 
-            # Scheduler steps
-            lr_val = lr_scheduler.step()
-            wd_val = wd_scheduler.step()
-
-            # EMA update
-            m = next(mom_schedule)
-            enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
-            with torch.no_grad():
-                for p_online, p_target in zip(enc_unwrap.parameters(),
-                                              target_encoder.parameters()):
-                    p_target.data.mul_(m).add_((1.0 - m) * p_online.detach().data)
+            # Scheduler/EMA only step on optimizer updates
+            is_step = (itr + 1) % accum_steps == 0 or (itr + 1) == len(train_loader)
+            if is_step:
+                lr_val = lr_scheduler.step()
+                wd_val = wd_scheduler.step()
+                m = next(mom_schedule)
+                enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
+                with torch.no_grad():
+                    for p_online, p_target in zip(enc_unwrap.parameters(),
+                                                  target_encoder.parameters()):
+                        p_target.data.mul_(m).add_((1.0 - m) * p_online.detach().data)
 
             loss_meter.update(loss_val)
 
@@ -520,12 +561,13 @@ def main(args):
         val_str = '  val_loss=%.4f' % val_loss if val_loss is not None else ''
         improved = ''
 
+        past_warmup = (epoch + 1) > warmup_epochs
         if val_loss is not None:
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                epochs_no_improve = 0
+                if past_warmup:
+                    epochs_no_improve = 0
                 improved = ' *'
-                # Save best model
                 if is_main:
                     best_path = os.path.join(output_dir, '%s-best.pth.tar' % write_tag)
                     save_checkpoint(
@@ -533,8 +575,10 @@ def main(args):
                         scaler, epoch + 1, val_loss, data_cfg['batch_size'],
                         world_size, lr_val,
                     )
+                    upload_to_blob(best_path, blob_prefix, log)
             else:
-                epochs_no_improve += 1
+                if past_warmup:
+                    epochs_no_improve += 1
 
         log('Epoch %d/%d  (%.0fs)  train_loss=%.4f%s%s'
             % (epoch + 1, opt_cfg['epochs'], epoch_time, loss_meter.avg,
@@ -555,15 +599,36 @@ def main(args):
                     scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
                     world_size, lr_val,
                 )
+            # Upload log CSV every 5 epochs
+            if (epoch + 1) % 5 == 0:
+                csv_file = os.path.join(output_dir, '%s-log.csv' % write_tag)
+                if os.path.exists(csv_file):
+                    upload_to_blob(csv_file, blob_prefix, log)
 
-        # Early stopping
-        if val_loss is not None and epochs_no_improve >= patience:
-            log('Early stopping: val loss has not improved for %d epochs' % patience)
+        # Early stopping (only active after warmup)
+        if val_loss is not None and past_warmup and epochs_no_improve >= patience:
+            log('Early stopping: val loss has not improved for %d epochs (best=%.4f)'
+                % (patience, best_val_loss))
             break
 
     log('=' * 70)
     log('Training complete. Best val loss: %.4f' % best_val_loss)
     log('=' * 70)
+
+    # Upload final log + config
+    if is_main:
+        for t in _upload_threads:
+            t.join(timeout=300)
+        for fname in ['%s-log.csv' % write_tag, 'config.yaml']:
+            fpath = os.path.join(output_dir, fname)
+            if os.path.exists(fpath):
+                upload_to_blob(fpath, blob_prefix, log, blocking=True)
+
+    # Clean DDP shutdown
+    import torch.distributed as dist
+    if dist.is_initialized():
+        dist.barrier()
+        dist.destroy_process_group()
 
 
 # ---------------------------------------------------------------------------
