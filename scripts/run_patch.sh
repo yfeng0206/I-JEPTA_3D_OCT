@@ -124,6 +124,33 @@ print('Saved to %s (%d bytes)' % (local_path, os.path.getsize(local_path)))
 "
 fi
 
+# Download pretrained encoder from blob if specified
+PRETRAINED_BLOB=${PRETRAINED_BLOB:-}
+if [ -n "$PRETRAINED_BLOB" ] && [ "$PRETRAINED_ENCODER" != "null" ]; then
+    echo "=== Downloading pretrained encoder ==="
+    python -c "
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobClient
+import os
+blob_name = '${PRETRAINED_BLOB}'
+local_path = '${PRETRAINED_ENCODER}'
+account = 'STORAGE_ACCOUNT_REDACTED'
+container = 'CONTAINER_REDACTED'
+print('Downloading %s ...' % blob_name)
+cred = DefaultAzureCredential()
+blob = BlobClient(
+    account_url='https://%s.blob.core.windows.net' % account,
+    container_name=container,
+    blob_name=blob_name,
+    credential=cred,
+)
+os.makedirs(os.path.dirname(local_path) or '.', exist_ok=True)
+with open(local_path, 'wb') as f:
+    f.write(blob.download_blob().readall())
+print('Saved to %s (%d bytes)' % (local_path, os.path.getsize(local_path)))
+"
+fi
+
 echo "=== Generating config ==="
 CONFIG_PATH="${OUTPUT_DIR}/config.yaml"
 cat > "${CONFIG_PATH}" << YAMLEOF
