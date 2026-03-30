@@ -158,8 +158,12 @@ def cosine_schedule_with_warmup(optimizer, warmup_epochs, total_epochs, steps_pe
 # ---------------------------------------------------------------------------
 
 @torch.no_grad()
-def evaluate(probe, head, loader, criterion, device):
-    """Run evaluation on cached features and return (loss, AUC)."""
+def evaluate(probe, head, loader, criterion, device, return_predictions=False):
+    """Run evaluation on cached features.
+
+    Returns:
+        (loss, auc) or (loss, auc, labels, probs) if return_predictions=True.
+    """
     probe.eval()
     head.eval()
 
@@ -188,6 +192,8 @@ def evaluate(probe, head, loader, criterion, device):
 
     avg_loss = total_loss / max(n_samples, 1)
     auc = roc_auc_score(all_labels, all_probs) if len(np.unique(all_labels)) >= 2 else 0.5
+    if return_predictions:
+        return avg_loss, auc, all_labels, all_probs
     return avg_loss, auc
 
 
@@ -256,6 +262,79 @@ def precompute_features(encoder, data_dir, split, num_slices, slice_size,
         print('  Cached to %s (%.1f MB)' % (cache_path, size_mb))
 
     return features, labels
+
+
+# ---------------------------------------------------------------------------
+# Diagnostic plots (generated at end of training)
+# ---------------------------------------------------------------------------
+
+def _save_diagnostic_plots(output_dir, test_labels, test_probs, test_auc,
+                           val_labels, val_probs):
+    """Generate ROC curve, confusion matrix, and prediction histogram."""
+    try:
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+        from sklearn.metrics import roc_curve, confusion_matrix
+    except ImportError:
+        print('  Skipping plots (matplotlib not available)')
+        return
+
+    if test_labels is None:
+        return
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    # 1. ROC curve
+    ax = axes[0]
+    fpr, tpr, thresholds = roc_curve(test_labels, test_probs)
+    ax.plot(fpr, tpr, 'b-', linewidth=2, label='Test AUC = %.3f' % (test_auc or 0))
+    if val_labels is not None:
+        fpr_v, tpr_v, _ = roc_curve(val_labels, val_probs)
+        val_auc = roc_auc_score(val_labels, val_probs)
+        ax.plot(fpr_v, tpr_v, 'g--', linewidth=1.5, label='Val AUC = %.3f' % val_auc)
+    ax.plot([0, 1], [0, 1], 'k--', alpha=0.3, label='Random (0.5)')
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('ROC Curve')
+    ax.legend(loc='lower right')
+    ax.set_xlim(-0.01, 1.01)
+    ax.set_ylim(-0.01, 1.01)
+
+    # 2. Confusion matrix at threshold=0.5
+    ax = axes[1]
+    preds = (test_probs >= 0.5).astype(int)
+    cm = confusion_matrix(test_labels, preds)
+    im = ax.imshow(cm, interpolation='nearest', cmap='Blues')
+    ax.set_title('Confusion Matrix (threshold=0.5)')
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(['Non-Glaucoma', 'Glaucoma'])
+    ax.set_yticklabels(['Non-Glaucoma', 'Glaucoma'])
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, str(cm[i, j]), ha='center', va='center',
+                    color='white' if cm[i, j] > cm.max() / 2 else 'black', fontsize=16)
+
+    # 3. Prediction histogram
+    ax = axes[2]
+    ax.hist(test_probs[test_labels == 0], bins=30, alpha=0.6, color='blue',
+            label='Non-Glaucoma (n=%d)' % (test_labels == 0).sum(), density=True)
+    ax.hist(test_probs[test_labels == 1], bins=30, alpha=0.6, color='red',
+            label='Glaucoma (n=%d)' % (test_labels == 1).sum(), density=True)
+    ax.axvline(x=0.5, color='black', linestyle='--', alpha=0.5, label='Threshold=0.5')
+    ax.set_xlabel('P(Glaucoma)')
+    ax.set_ylabel('Density')
+    ax.set_title('Prediction Distribution')
+    ax.legend()
+
+    fig.tight_layout()
+    plot_path = os.path.join(output_dir, 'diagnostic_plots.png')
+    fig.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print('  Saved diagnostic_plots.png')
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +465,7 @@ def run_patch_downstream(config, device):
     # ---- CSV logger --------------------------------------------------------
     csv_path = os.path.join(output_dir, 'train_log.csv')
     csv_file = open(csv_path, 'w')
-    csv_file.write('epoch,train_loss,val_loss,val_auc,lr,elapsed_s\n')
+    csv_file.write('epoch,train_loss,train_auc,val_loss,val_auc,lr,elapsed_s\n')
     csv_file.flush()
 
     # ---- Training loop -----------------------------------------------------
@@ -401,6 +480,8 @@ def run_patch_downstream(config, device):
         head.train()
         total_loss = 0.0
         n_samples = 0
+        train_labels_epoch = []
+        train_probs_epoch = []
 
         t0 = time.time()
         for features, labels in train_loader:
@@ -420,20 +501,27 @@ def run_patch_downstream(config, device):
 
             total_loss += loss.item() * labels.size(0)
             n_samples += labels.size(0)
+            with torch.no_grad():
+                train_labels_epoch.append(labels.cpu())
+                train_probs_epoch.append(torch.sigmoid(logits).cpu())
 
         elapsed = time.time() - t0
         train_loss = total_loss / max(n_samples, 1)
+        train_labels_np = torch.cat(train_labels_epoch).numpy()
+        train_probs_np = torch.cat(train_probs_epoch).numpy()
+        train_auc = roc_auc_score(train_labels_np, train_probs_np) if len(np.unique(train_labels_np)) >= 2 else 0.5
+
         val_loss, val_auc = evaluate(probe, head, val_loader, criterion, device)
         current_lr = optimizer.param_groups[0]['lr']
 
         improved = val_auc > best_auc
         marker = ' *' if improved else ''
-        print('Epoch %2d/%d (%4.1fs) | Train: %.4f | Val: %.4f | AUC: %.4f | LR: %.2e%s'
-              % (epoch, epochs, elapsed, train_loss, val_loss, val_auc,
+        print('Epoch %2d/%d (%4.1fs) | Train: %.4f (AUC %.3f) | Val: %.4f | AUC: %.4f | LR: %.2e%s'
+              % (epoch, epochs, elapsed, train_loss, train_auc, val_loss, val_auc,
                  current_lr, marker))
 
-        csv_file.write('%d,%.6f,%.6f,%.6f,%.8f,%.1f\n'
-                       % (epoch, train_loss, val_loss, val_auc, current_lr, elapsed))
+        csv_file.write('%d,%.6f,%.6f,%.6f,%.6f,%.8f,%.1f\n'
+                       % (epoch, train_loss, train_auc, val_loss, val_auc, current_lr, elapsed))
         csv_file.flush()
 
         if improved:
@@ -457,18 +545,54 @@ def run_patch_downstream(config, device):
     # ---- Test evaluation (with best model) ---------------------------------
     print('\n--- Test Evaluation ---')
     best_path = os.path.join(output_dir, 'best_model.pt')
+    test_loss = test_auc = best_epoch = None
+    test_labels = test_probs = None
+    val_labels_final = val_probs_final = None
+
     if not os.path.exists(best_path):
         print('ERROR: best_model.pt not found — no epoch improved over AUC=0')
-        test_loss, test_auc, best_epoch = None, None, 0
+        best_epoch = 0
     else:
         best_ckpt = torch.load(best_path, map_location=device)
         probe.load_state_dict(best_ckpt['probe'])
         head.load_state_dict(best_ckpt['head'])
         best_epoch = best_ckpt['epoch']
 
-        test_loss, test_auc = evaluate(probe, head, test_loader, criterion, device)
+        # Val predictions (for ROC curve)
+        val_loss_f, val_auc_f, val_labels_final, val_probs_final = evaluate(
+            probe, head, val_loader, criterion, device, return_predictions=True)
+
+        # Test predictions
+        test_loss, test_auc, test_labels, test_probs = evaluate(
+            probe, head, test_loader, criterion, device, return_predictions=True)
+
         print('Best epoch: %d  |  Val AUC: %.4f  |  TEST AUC: %.4f'
               % (best_epoch, best_auc, test_auc))
+
+        # Sensitivity / specificity at threshold=0.5
+        if test_labels is not None:
+            test_preds = (test_probs >= 0.5).astype(int)
+            tp = ((test_preds == 1) & (test_labels == 1)).sum()
+            tn = ((test_preds == 0) & (test_labels == 0)).sum()
+            fp = ((test_preds == 1) & (test_labels == 0)).sum()
+            fn = ((test_preds == 0) & (test_labels == 1)).sum()
+            sensitivity = tp / max(tp + fn, 1)
+            specificity = tn / max(tn + fp, 1)
+            print('  Sensitivity: %.4f  |  Specificity: %.4f  (threshold=0.5)' % (sensitivity, specificity))
+
+    # ---- Save predictions --------------------------------------------------
+    if test_labels is not None:
+        np.savez(os.path.join(output_dir, 'test_predictions.npz'),
+                 labels=test_labels, probs=test_probs)
+        print('  Saved test_predictions.npz (%d samples)' % len(test_labels))
+    if val_labels_final is not None:
+        np.savez(os.path.join(output_dir, 'val_predictions.npz'),
+                 labels=val_labels_final, probs=val_probs_final)
+        print('  Saved val_predictions.npz (%d samples)' % len(val_labels_final))
+
+    # ---- Generate diagnostic plots -----------------------------------------
+    _save_diagnostic_plots(output_dir, test_labels, test_probs, test_auc,
+                           val_labels_final, val_probs_final)
 
     # ---- Save results ------------------------------------------------------
     results = {
@@ -480,6 +604,8 @@ def run_patch_downstream(config, device):
         'best_val_auc': best_auc,
         'test_auc': test_auc,
         'test_loss': test_loss,
+        'sensitivity': float(sensitivity) if test_labels is not None else None,
+        'specificity': float(specificity) if test_labels is not None else None,
         'probe_params': probe_params,
         'head_params': head_params,
         'config': config,
@@ -488,7 +614,7 @@ def run_patch_downstream(config, device):
         json.dump(results, f, indent=2)
     print('\nResults saved to %s' % output_dir)
     print('  best_val_auc = %.4f' % best_auc)
-    print('  test_auc     = %.4f' % test_auc)
+    print('  test_auc     = %.4f' % (test_auc if test_auc else 0))
     print('  (SLIViT baseline: 0.869 test AUC)')
 
     return results

@@ -10,7 +10,9 @@ Requires: matplotlib, pandas (pip install matplotlib pandas)
 
 import os
 import sys
+import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
@@ -234,6 +236,79 @@ def plot_frozen_vs_unfrozen():
     plt.close()
 
 
+def plot_train_vs_val_auc():
+    """Plot train AUC vs val AUC to check overfitting (for runs with train_auc)."""
+    for folder, title, color in [
+        ('downstream_frozen_d2', 'Frozen d=2', '#3498db'),
+        ('downstream_frozen_d3', 'Frozen d=3', '#2ecc71'),
+    ]:
+        csv_path = os.path.join(LOGS_DIR, folder, 'train_log.csv')
+        if not os.path.exists(csv_path):
+            continue
+        df = pd.read_csv(csv_path)
+        if 'train_auc' not in df.columns:
+            continue
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(df['epoch'], df['train_auc'], '-', color=color, label='Train AUC')
+        ax.plot(df['epoch'], df['val_auc'], '--', color=color, alpha=0.7, label='Val AUC')
+        ax.fill_between(df['epoch'], df['train_auc'], df['val_auc'],
+                         alpha=0.1, color=color, label='Generalization gap')
+        ax.set_xlabel('Epoch')
+        ax.set_ylabel('AUC')
+        ax.set_title('%s: Train vs Val AUC (overfitting check)' % title)
+        ax.legend()
+        ax.set_ylim(0.5, 1.0)
+
+        fig.tight_layout()
+        fname = 'overfit_check_%s.png' % folder
+        fig.savefig(os.path.join(PLOTS_DIR, fname), dpi=150, bbox_inches='tight')
+        print('Saved %s' % fname)
+        plt.close()
+
+
+def plot_predictions_from_npz():
+    """Plot ROC curve and histograms from saved prediction files."""
+    from sklearn.metrics import roc_curve
+
+    for folder in os.listdir(LOGS_DIR):
+        npz_path = os.path.join(LOGS_DIR, folder, 'test_predictions.npz')
+        if not os.path.exists(npz_path):
+            continue
+
+        data = np.load(npz_path)
+        labels, probs = data['labels'], data['probs']
+        auc = roc_auc_score(labels, probs)
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+        # ROC
+        fpr, tpr, _ = roc_curve(labels, probs)
+        ax1.plot(fpr, tpr, 'b-', linewidth=2, label='AUC = %.3f' % auc)
+        ax1.plot([0, 1], [0, 1], 'k--', alpha=0.3)
+        ax1.set_xlabel('False Positive Rate')
+        ax1.set_ylabel('True Positive Rate')
+        ax1.set_title('ROC Curve — %s' % folder)
+        ax1.legend()
+
+        # Histogram
+        ax2.hist(probs[labels == 0], bins=30, alpha=0.6, color='blue',
+                 label='Non-Glaucoma', density=True)
+        ax2.hist(probs[labels == 1], bins=30, alpha=0.6, color='red',
+                 label='Glaucoma', density=True)
+        ax2.axvline(x=0.5, color='black', linestyle='--', alpha=0.5)
+        ax2.set_xlabel('P(Glaucoma)')
+        ax2.set_ylabel('Density')
+        ax2.set_title('Prediction Distribution')
+        ax2.legend()
+
+        fig.tight_layout()
+        fname = 'roc_%s.png' % folder
+        fig.savefig(os.path.join(PLOTS_DIR, fname), dpi=150, bbox_inches='tight')
+        print('Saved %s' % fname)
+        plt.close()
+
+
 if __name__ == '__main__':
     print('Generating plots from logs in %s' % LOGS_DIR)
     print('Output: %s\n' % PLOTS_DIR)
@@ -244,5 +319,7 @@ if __name__ == '__main__':
     plot_downstream_loss()
     plot_summary_bar()
     plot_frozen_vs_unfrozen()
+    plot_train_vs_val_auc()
+    plot_predictions_from_npz()
 
     print('\nAll plots saved to %s/' % PLOTS_DIR)
