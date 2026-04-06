@@ -299,9 +299,11 @@ def main(args):
     total_steps = opt_cfg['epochs'] * iterations_per_epoch
     mom_schedule = momentum_schedule(ema_start, ema_end, total_steps)
 
-    # Fast-forward momentum schedule if resuming
+    # Fast-forward all schedules if resuming
     for _ in range(start_epoch * iterations_per_epoch):
         next(mom_schedule)
+        lr_scheduler.step()
+        wd_scheduler.step()
 
     # ---- Val loss evaluation function --------------------------------------
     @torch.no_grad()
@@ -469,8 +471,8 @@ def main(args):
                 for diag_batch in val_loader:
                     diag_vol, diag_menc, diag_mpred = diag_batch
                     diag_vol = diag_vol.to(device)
-                    diag_menc = [m.to(device) for m in diag_menc]
-                    diag_mpred = [m.to(device) for m in diag_mpred]
+                    diag_menc = [mk.to(device) for mk in diag_menc]
+                    diag_mpred = [mk.to(device) for mk in diag_mpred]
                     B_d, S_d, C_d, H_d, W_d = diag_vol.shape
                     flat_d = diag_vol.reshape(B_d * S_d, C_d, H_d, W_d)
                     fc_d = []
@@ -531,8 +533,8 @@ def main(args):
                     if t_idx >= 20:  # sample 20 batches
                         break
                     t_vol = t_vol.to(device)
-                    t_menc = [m.to(device) for m in t_menc]
-                    t_mpred = [m.to(device) for m in t_mpred]
+                    t_menc = [mk.to(device) for mk in t_menc]
+                    t_mpred = [mk.to(device) for mk in t_mpred]
                     B_t, S_t, C_t, H_t, W_t = t_vol.shape
                     flat_t = t_vol.reshape(B_t * S_t, C_t, H_t, W_t)
                     fc_t = []

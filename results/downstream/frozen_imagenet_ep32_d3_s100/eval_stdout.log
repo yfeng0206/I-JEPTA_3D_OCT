@@ -1,0 +1,97 @@
+GPU: Tesla T4
+======================================================================
+Downstream Classification — I-JEPA Attentive Probe
+======================================================================
+Loading encoder from /tmp/ijepa_checkpoints/jepa_patch-best.pth.tar ...
+  Loaded target_encoder weights (epoch 32)
+
+--- Pre-computing features with frozen encoder ---
+    Training: 1000/6000 volumes (2223s)
+    Training: 2000/6000 volumes (4442s)
+    Training: 3000/6000 volumes (6635s)
+    Training: 4000/6000 volumes (8848s)
+    Training: 5000/6000 volumes (11071s)
+    Training: 6000/6000 volumes (13266s)
+  Training: 6000 volumes encoded in 13561s (0.4 vol/s)
+  Cached to /tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044648/feature_cache/Training_s100.pt (1757.9 MB)
+    Validation: 1000/1000 volumes (2206s)
+  Validation: 1000 volumes encoded in 2246s (0.4 vol/s)
+  Cached to /tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044648/feature_cache/Validation_s100.pt (293.0 MB)
+    Test: 1000/3000 volumes (2218s)
+    Test: 2000/3000 volumes (4438s)
+    Test: 3000/3000 volumes (6311s)
+  Test: 3000 volumes encoded in 6471s (0.5 vol/s)
+  Cached to /tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044648/feature_cache/Test_s100.pt (878.9 MB)
+  Train: 6000 volumes (2911 pos, 3089 neg, 48.5% prevalence)
+  Val:   1000 volumes
+  Test:  3000 volumes
+
+--- Model ---
+  Frozen encoder:  85,843,200 params
+  Attentive probe: 21,343,488 params (trainable, depth=3)
+  Head (mlp):     198,657 params (trainable)
+  Total trainable: 21,542,145
+
+--- Training ---
+Epoch  1/50 (306.3s) | Train: 0.6845 (AUC 0.576) | Val: 0.6749 | AUC: 0.6645 | LR: 3.33e-05 *
+Epoch  2/50 (302.1s) | Train: 0.6659 (AUC 0.637) | Val: 0.6447 | AUC: 0.6758 | LR: 6.67e-05 *
+Epoch  3/50 (300.2s) | Train: 0.6549 (AUC 0.659) | Val: 0.6647 | AUC: 0.6788 | LR: 1.00e-04 *
+Epoch  4/50 (301.4s) | Train: 0.6518 (AUC 0.662) | Val: 0.6449 | AUC: 0.6819 | LR: 9.99e-05 *
+Epoch  5/50 (304.9s) | Train: 0.6470 (AUC 0.671) | Val: 0.6613 | AUC: 0.6843 | LR: 9.96e-05 *
+Epoch  6/50 (297.7s) | Train: 0.6387 (AUC 0.684) | Val: 0.6355 | AUC: 0.6899 | LR: 9.90e-05 *
+Epoch  7/50 (299.1s) | Train: 0.6386 (AUC 0.686) | Val: 0.6340 | AUC: 0.6953 | LR: 9.82e-05 *
+Epoch  8/50 (300.5s) | Train: 0.6350 (AUC 0.692) | Val: 0.6330 | AUC: 0.7045 | LR: 9.72e-05 *
+Epoch  9/50 (296.2s) | Train: 0.6333 (AUC 0.694) | Val: 0.6334 | AUC: 0.7129 | LR: 9.60e-05 *
+Epoch 10/50 (295.9s) | Train: 0.6306 (AUC 0.696) | Val: 0.6154 | AUC: 0.7227 | LR: 9.46e-05 *
+Epoch 11/50 (301.3s) | Train: 0.6157 (AUC 0.716) | Val: 0.6181 | AUC: 0.7372 | LR: 9.30e-05 *
+Epoch 12/50 (301.8s) | Train: 0.6239 (AUC 0.707) | Val: 0.6036 | AUC: 0.7443 | LR: 9.12e-05 *
+Epoch 13/50 (299.0s) | Train: 0.6239 (AUC 0.710) | Val: 0.6111 | AUC: 0.7449 | LR: 8.92e-05 *
+Epoch 14/50 (306.3s) | Train: 0.6021 (AUC 0.733) | Val: 0.6277 | AUC: 0.7555 | LR: 8.71e-05 *
+Epoch 15/50 (300.2s) | Train: 0.6119 (AUC 0.724) | Val: 0.5887 | AUC: 0.7558 | LR: 8.48e-05 *
+Epoch 16/50 (299.5s) | Train: 0.5909 (AUC 0.748) | Val: 0.5844 | AUC: 0.7636 | LR: 8.23e-05 *
+Epoch 17/50 (301.2s) | Train: 0.5936 (AUC 0.742) | Val: 0.5979 | AUC: 0.7674 | LR: 7.97e-05 *
+Epoch 18/50 (301.2s) | Train: 0.5838 (AUC 0.755) | Val: 0.6158 | AUC: 0.7750 | LR: 7.69e-05 *
+Epoch 19/50 (298.5s) | Train: 0.5939 (AUC 0.743) | Val: 0.5985 | AUC: 0.7744 | LR: 7.40e-05
+Epoch 20/50 (294.6s) | Train: 0.5766 (AUC 0.762) | Val: 0.5833 | AUC: 0.7806 | LR: 7.10e-05 *
+Epoch 21/50 (298.5s) | Train: 0.5773 (AUC 0.761) | Val: 0.6117 | AUC: 0.7788 | LR: 6.80e-05
+Epoch 22/50 (298.5s) | Train: 0.5675 (AUC 0.771) | Val: 0.5612 | AUC: 0.7818 | LR: 6.48e-05 *
+Epoch 23/50 (302.4s) | Train: 0.5639 (AUC 0.774) | Val: 0.5590 | AUC: 0.7880 | LR: 6.16e-05 *
+Epoch 24/50 (300.1s) | Train: 0.5709 (AUC 0.768) | Val: 0.5688 | AUC: 0.7843 | LR: 5.83e-05
+Epoch 25/50 (301.6s) | Train: 0.5573 (AUC 0.780) | Val: 0.5603 | AUC: 0.7842 | LR: 5.50e-05
+Epoch 26/50 (306.1s) | Train: 0.5570 (AUC 0.783) | Val: 0.5757 | AUC: 0.7887 | LR: 5.17e-05 *
+Epoch 27/50 (300.6s) | Train: 0.5524 (AUC 0.786) | Val: 0.5692 | AUC: 0.7935 | LR: 4.83e-05 *
+Epoch 28/50 (296.6s) | Train: 0.5501 (AUC 0.789) | Val: 0.5547 | AUC: 0.7947 | LR: 4.50e-05 *
+Epoch 29/50 (303.2s) | Train: 0.5460 (AUC 0.793) | Val: 0.5580 | AUC: 0.7927 | LR: 4.17e-05
+Epoch 30/50 (300.1s) | Train: 0.5463 (AUC 0.793) | Val: 0.5582 | AUC: 0.7926 | LR: 3.84e-05
+Epoch 31/50 (300.3s) | Train: 0.5397 (AUC 0.798) | Val: 0.5559 | AUC: 0.7954 | LR: 3.52e-05 *
+Epoch 32/50 (298.9s) | Train: 0.5359 (AUC 0.800) | Val: 0.5542 | AUC: 0.7954 | LR: 3.20e-05
+Epoch 33/50 (306.2s) | Train: 0.5373 (AUC 0.799) | Val: 0.5520 | AUC: 0.7952 | LR: 2.90e-05
+Epoch 34/50 (299.4s) | Train: 0.5301 (AUC 0.805) | Val: 0.5557 | AUC: 0.7951 | LR: 2.60e-05
+Epoch 35/50 (306.3s) | Train: 0.5324 (AUC 0.804) | Val: 0.5443 | AUC: 0.7984 | LR: 2.31e-05 *
+Epoch 36/50 (302.5s) | Train: 0.5305 (AUC 0.806) | Val: 0.5474 | AUC: 0.7962 | LR: 2.03e-05
+Epoch 37/50 (304.7s) | Train: 0.5318 (AUC 0.803) | Val: 0.5500 | AUC: 0.7987 | LR: 1.77e-05 *
+Epoch 38/50 (261.6s) | Train: 0.5272 (AUC 0.808) | Val: 0.5459 | AUC: 0.7975 | LR: 1.52e-05
+Epoch 39/50 (218.3s) | Train: 0.5243 (AUC 0.810) | Val: 0.5471 | AUC: 0.7980 | LR: 1.29e-05
+Epoch 40/50 (165.4s) | Train: 0.5234 (AUC 0.811) | Val: 0.5442 | AUC: 0.7981 | LR: 1.08e-05
+Epoch 41/50 (162.3s) | Train: 0.5190 (AUC 0.814) | Val: 0.5450 | AUC: 0.7989 | LR: 8.78e-06 *
+Epoch 42/50 (164.9s) | Train: 0.5191 (AUC 0.814) | Val: 0.5475 | AUC: 0.7989 | LR: 6.98e-06 *
+Epoch 43/50 (166.7s) | Train: 0.5183 (AUC 0.815) | Val: 0.5460 | AUC: 0.7984 | LR: 5.37e-06
+Epoch 44/50 (165.3s) | Train: 0.5173 (AUC 0.816) | Val: 0.5467 | AUC: 0.7985 | LR: 3.97e-06
+Epoch 45/50 (167.2s) | Train: 0.5180 (AUC 0.815) | Val: 0.5449 | AUC: 0.7992 | LR: 2.77e-06 *
+Epoch 46/50 (162.6s) | Train: 0.5165 (AUC 0.816) | Val: 0.5448 | AUC: 0.7986 | LR: 1.78e-06
+Epoch 47/50 (163.5s) | Train: 0.5135 (AUC 0.819) | Val: 0.5446 | AUC: 0.7987 | LR: 1.00e-06
+Epoch 48/50 (167.5s) | Train: 0.5150 (AUC 0.818) | Val: 0.5445 | AUC: 0.7989 | LR: 4.46e-07
+Epoch 49/50 (166.2s) | Train: 0.5151 (AUC 0.816) | Val: 0.5449 | AUC: 0.7987 | LR: 1.12e-07
+Epoch 50/50 (150.5s) | Train: 0.5131 (AUC 0.818) | Val: 0.5448 | AUC: 0.7987 | LR: 0.00e+00
+
+--- Test Evaluation ---
+Best epoch: 45  |  Val AUC: 0.7992  |  TEST AUC: 0.7742
+  Sensitivity: 0.6310  |  Specificity: 0.7816  (threshold=0.5)
+  Saved test_predictions.npz (3000 samples)
+  Saved val_predictions.npz (1000 samples)
+  Saved diagnostic_plots.png
+
+Results saved to /tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044648
+  best_val_auc = 0.7992
+  test_auc     = 0.7742
+  (SLIViT baseline: 0.869 test AUC)

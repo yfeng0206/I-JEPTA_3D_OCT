@@ -1,0 +1,297 @@
+{
+  "ImageNet\u2192SSL ep32 (MLP, d=3)": {
+    "mode": "patch",
+    "head_type": "mlp",
+    "num_slices": 100,
+    "probe_depth": 3,
+    "best_epoch": 45,
+    "best_val_auc": 0.7991727996350233,
+    "test_auc": 0.774249125328391,
+    "test_loss": 0.5741705220540364,
+    "sensitivity": 0.630968622100955,
+    "specificity": 0.7816166883963495,
+    "probe_params": 21343488,
+    "head_params": 198657,
+    "config": {
+      "mode": "patch",
+      "data": {
+        "data_dir": "/tmp/fairvision_data/data",
+        "num_slices": 100,
+        "slice_size": 256,
+        "batch_size": 64,
+        "num_workers": 4,
+        "encode_chunk_size": 50
+      },
+      "model": {
+        "encoder_checkpoint": "/tmp/ijepa_checkpoints/jepa_patch-best.pth.tar",
+        "encoder_name": "vit_base",
+        "patch_size": 16,
+        "crop_size": 256,
+        "freeze_encoder": true,
+        "probe_num_heads": 12,
+        "probe_depth": 3,
+        "head_type": "mlp"
+      },
+      "training": {
+        "lr_probe": 0.0001,
+        "lr_encoder": 1e-06,
+        "lr_head": 0.001,
+        "weight_decay": 0.01,
+        "dropout": 0.1,
+        "epochs": 50,
+        "patience": 10,
+        "warmup_epochs": 3,
+        "accum_steps": 4,
+        "seed": 42
+      },
+      "logging": {
+        "output_dir": "/tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044648"
+      }
+    }
+  },
+  "ImageNet\u2192SSL ep50 (MLP, d=3)": {
+    "mode": "patch",
+    "head_type": "mlp",
+    "num_slices": 100,
+    "probe_depth": 3,
+    "best_epoch": 49,
+    "best_val_auc": 0.6785284077493507,
+    "test_auc": 0.7057772793488566,
+    "test_loss": 0.6272303403218588,
+    "sensitivity": 0.5634379263301501,
+    "specificity": 0.7470664928292047,
+    "probe_params": 21343488,
+    "head_params": 198657,
+    "config": {
+      "mode": "patch",
+      "data": {
+        "data_dir": "/tmp/fairvision_data/data",
+        "num_slices": 100,
+        "slice_size": 256,
+        "batch_size": 64,
+        "num_workers": 4,
+        "encode_chunk_size": 50
+      },
+      "model": {
+        "encoder_checkpoint": "/tmp/ijepa_checkpoints/jepa_patch-ep50.pth.tar",
+        "encoder_name": "vit_base",
+        "patch_size": 16,
+        "crop_size": 256,
+        "freeze_encoder": true,
+        "probe_num_heads": 12,
+        "probe_depth": 3,
+        "head_type": "mlp"
+      },
+      "training": {
+        "lr_probe": 0.0001,
+        "lr_encoder": 1e-06,
+        "lr_head": 0.001,
+        "weight_decay": 0.01,
+        "dropout": 0.1,
+        "epochs": 50,
+        "patience": 10,
+        "warmup_epochs": 3,
+        "accum_steps": 4,
+        "seed": 42
+      },
+      "logging": {
+        "output_dir": "/tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044653"
+      }
+    }
+  },
+  "ImageNet\u2192SSL ep75 (MLP, d=3)": {
+    "mode": "patch",
+    "head_type": "mlp",
+    "num_slices": 100,
+    "probe_depth": 3,
+    "best_epoch": 47,
+    "best_val_auc": 0.6637132372068082,
+    "test_auc": 0.6950370946139439,
+    "test_loss": 0.634009889125824,
+    "sensitivity": 0.596862210095498,
+    "specificity": 0.7059973924380704,
+    "probe_params": 21343488,
+    "head_params": 198657,
+    "config": {
+      "mode": "patch",
+      "data": {
+        "data_dir": "/tmp/fairvision_data/data",
+        "num_slices": 100,
+        "slice_size": 256,
+        "batch_size": 64,
+        "num_workers": 4,
+        "encode_chunk_size": 50
+      },
+      "model": {
+        "encoder_checkpoint": "/tmp/ijepa_checkpoints/jepa_patch-ep75.pth.tar",
+        "encoder_name": "vit_base",
+        "patch_size": 16,
+        "crop_size": 256,
+        "freeze_encoder": true,
+        "probe_num_heads": 12,
+        "probe_depth": 3,
+        "head_type": "mlp"
+      },
+      "training": {
+        "lr_probe": 0.0001,
+        "lr_encoder": 1e-06,
+        "lr_head": 0.001,
+        "weight_decay": 0.01,
+        "dropout": 0.1,
+        "epochs": 50,
+        "patience": 10,
+        "warmup_epochs": 3,
+        "accum_steps": 4,
+        "seed": 42
+      },
+      "logging": {
+        "output_dir": "/tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044707"
+      }
+    }
+  },
+  "ImageNet\u2192SSL ep99 (MLP, d=3)": {
+    "mode": "patch",
+    "head_type": "mlp",
+    "num_slices": 100,
+    "probe_depth": 3,
+    "best_epoch": 47,
+    "best_val_auc": 0.6588208693007416,
+    "test_auc": 0.6847462518520627,
+    "test_loss": 0.6403623161315918,
+    "sensitivity": 0.6030013642564802,
+    "specificity": 0.6760104302477183,
+    "probe_params": 21343488,
+    "head_params": 198657,
+    "config": {
+      "mode": "patch",
+      "data": {
+        "data_dir": "/tmp/fairvision_data/data",
+        "num_slices": 100,
+        "slice_size": 256,
+        "batch_size": 64,
+        "num_workers": 4,
+        "encode_chunk_size": 50
+      },
+      "model": {
+        "encoder_checkpoint": "/tmp/ijepa_checkpoints/jepa_patch-latest.pth.tar",
+        "encoder_name": "vit_base",
+        "patch_size": 16,
+        "crop_size": 256,
+        "freeze_encoder": true,
+        "probe_num_heads": 12,
+        "probe_depth": 3,
+        "head_type": "mlp"
+      },
+      "training": {
+        "lr_probe": 0.0001,
+        "lr_encoder": 1e-06,
+        "lr_head": 0.001,
+        "weight_decay": 0.01,
+        "dropout": 0.1,
+        "epochs": 50,
+        "patience": 10,
+        "warmup_epochs": 3,
+        "accum_steps": 4,
+        "seed": 42
+      },
+      "logging": {
+        "output_dir": "/tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_mlp_20260406_044716"
+      }
+    }
+  },
+  "Random\u2192SSL (Linear, d=2)": {
+    "mode": "patch",
+    "head_type": "linear",
+    "num_slices": 100,
+    "probe_depth": 2,
+    "best_epoch": 28,
+    "best_val_auc": 0.7435138607085829,
+    "test_auc": 0.7326648713739148,
+    "test_loss": 0.6100352139472961,
+    "probe_params": 14255616,
+    "head_params": 2305,
+    "config": {
+      "mode": "patch",
+      "data": {
+        "data_dir": "/tmp/fairvision_data/data",
+        "num_slices": 100,
+        "slice_size": 256,
+        "batch_size": 64,
+        "num_workers": 4,
+        "encode_chunk_size": 50
+      },
+      "model": {
+        "encoder_checkpoint": "/tmp/ijepa_checkpoints/jepa_patch-best.pth.tar",
+        "encoder_name": "vit_base",
+        "patch_size": 16,
+        "crop_size": 256,
+        "freeze_encoder": true,
+        "probe_num_heads": 12,
+        "probe_depth": 2,
+        "head_type": "linear"
+      },
+      "training": {
+        "lr_probe": 0.0001,
+        "lr_encoder": 1e-06,
+        "lr_head": 0.001,
+        "weight_decay": 0.01,
+        "dropout": 0.1,
+        "epochs": 50,
+        "patience": 5,
+        "warmup_epochs": 3,
+        "seed": 42
+      },
+      "logging": {
+        "output_dir": "/tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_linear_20260325_214059"
+      }
+    }
+  },
+  "Random\u2192SSL (Linear, d=3)": {
+    "mode": "patch",
+    "head_type": "linear",
+    "num_slices": 100,
+    "probe_depth": 3,
+    "best_epoch": 27,
+    "best_val_auc": 0.7523421335926589,
+    "test_auc": 0.7340538072004994,
+    "test_loss": 0.6156784429550171,
+    "probe_params": 21343488,
+    "head_params": 2305,
+    "config": {
+      "mode": "patch",
+      "data": {
+        "data_dir": "/tmp/fairvision_data/data",
+        "num_slices": 100,
+        "slice_size": 256,
+        "batch_size": 64,
+        "num_workers": 4,
+        "encode_chunk_size": 50
+      },
+      "model": {
+        "encoder_checkpoint": "/tmp/ijepa_checkpoints/jepa_patch-best.pth.tar",
+        "encoder_name": "vit_base",
+        "patch_size": 16,
+        "crop_size": 256,
+        "freeze_encoder": true,
+        "probe_num_heads": 12,
+        "probe_depth": 3,
+        "head_type": "linear"
+      },
+      "training": {
+        "lr_probe": 0.0001,
+        "lr_encoder": 1e-06,
+        "lr_head": 0.001,
+        "weight_decay": 0.01,
+        "dropout": 0.1,
+        "epochs": 50,
+        "patience": 10,
+        "warmup_epochs": 3,
+        "accum_steps": 4,
+        "seed": 42
+      },
+      "logging": {
+        "output_dir": "/tmp/ijepa_outputs/downstream_patch_s100_ep50_bs64_linear_20260326_183929"
+      }
+    }
+  }
+}

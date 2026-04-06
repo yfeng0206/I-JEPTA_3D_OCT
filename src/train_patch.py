@@ -331,9 +331,11 @@ def main(args):
     total_steps = opt_cfg['epochs'] * iterations_per_epoch
     mom_schedule = momentum_schedule(ema_start, ema_end, total_steps)
 
-    # Fast-forward momentum schedule if resuming
+    # Fast-forward all schedules if resuming
     for _ in range(start_epoch * iterations_per_epoch):
         next(mom_schedule)
+        lr_scheduler.step()
+        wd_scheduler.step()
 
     # ---- Val loss evaluation function --------------------------------------
     @torch.no_grad()
@@ -445,7 +447,10 @@ def main(args):
             if is_step:
                 lr_val = lr_scheduler.step()
                 wd_val = wd_scheduler.step()
-                m = next(mom_schedule)
+                try:
+                    m = next(mom_schedule)
+                except StopIteration:
+                    pass  # keep last momentum value
                 enc_unwrap = encoder.module if hasattr(encoder, 'module') else encoder
                 with torch.no_grad():
                     for p_online, p_target in zip(enc_unwrap.parameters(),
@@ -482,8 +487,8 @@ def main(args):
             with torch.no_grad():
                 for diag_imgs, diag_menc, diag_mpred in val_loader:
                     diag_imgs = diag_imgs.to(device)
-                    diag_menc = [m.to(device) for m in diag_menc]
-                    diag_mpred = [m.to(device) for m in diag_mpred]
+                    diag_menc = [mk.to(device) for mk in diag_menc]
+                    diag_mpred = [mk.to(device) for mk in diag_mpred]
                     B_d = diag_imgs.size(0)
 
                     # Target
@@ -533,8 +538,8 @@ def main(args):
                     if t_idx >= 20:
                         break
                     t_imgs = t_imgs.to(device)
-                    t_menc = [m.to(device) for m in t_menc]
-                    t_mpred = [m.to(device) for m in t_mpred]
+                    t_menc = [mk.to(device) for mk in t_menc]
+                    t_mpred = [mk.to(device) for mk in t_mpred]
                     B_t = t_imgs.size(0)
                     h_t = target_encoder(t_imgs)
                     h_t = F.layer_norm(h_t, (h_t.size(-1),))
@@ -597,7 +602,9 @@ def main(args):
                     scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
                     world_size, lr_val,
                 )
-            # Upload log CSV every 5 epochs
+            # Upload latest checkpoint every 10 epochs, log CSV every 5
+            if (epoch + 1) % 10 == 0:
+                upload_to_blob(latest_path, blob_prefix, log)
             if (epoch + 1) % 5 == 0:
                 csv_file = os.path.join(output_dir, '%s-log.csv' % write_tag)
                 if os.path.exists(csv_file):

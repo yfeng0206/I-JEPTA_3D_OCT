@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 680" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#555"/>
+    </marker>
+    <linearGradient id="frozen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e3f2fd"/>
+      <stop offset="100%" stop-color="#bbdefb"/>
+    </linearGradient>
+    <linearGradient id="trainable" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+    <linearGradient id="data" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f3e5f5"/>
+      <stop offset="100%" stop-color="#e1bee7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="360" y="30" text-anchor="middle" font-size="18" font-weight="bold" fill="#333">Downstream Classification Pipeline</text>
+
+  <!-- Legend -->
+  <rect x="520" y="50" width="16" height="16" rx="3" fill="url(#data)" stroke="#999"/>
+  <text x="542" y="63" font-size="11" fill="#555">Data</text>
+  <rect x="520" y="72" width="16" height="16" rx="3" fill="url(#frozen)" stroke="#999"/>
+  <text x="542" y="85" font-size="11" fill="#555">Frozen / pre-computed</text>
+  <rect x="520" y="94" width="16" height="16" rx="3" fill="url(#trainable)" stroke="#999"/>
+  <text x="542" y="107" font-size="11" fill="#555">Trainable</text>
+
+  <!-- OCT Volume -->
+  <rect x="200" y="50" width="280" height="44" rx="8" fill="url(#data)" stroke="#ab47bc" stroke-width="1.5"/>
+  <text x="340" y="68" text-anchor="middle" font-size="13" font-weight="bold" fill="#6a1b9a">OCT Volume</text>
+  <text x="340" y="84" text-anchor="middle" font-size="11" fill="#888">200 x 200 x 200 B-scans</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="94" x2="340" y2="118" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Sample slices -->
+  <rect x="200" y="120" width="280" height="44" rx="8" fill="url(#data)" stroke="#ab47bc" stroke-width="1.5"/>
+  <text x="340" y="138" text-anchor="middle" font-size="13" font-weight="bold" fill="#6a1b9a">Sample N Slices</text>
+  <text x="340" y="154" text-anchor="middle" font-size="11" fill="#888">100 (frozen) or 32-64 (fine-tune), resize 256x256</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="164" x2="340" y2="188" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ViT Encoder -->
+  <rect x="160" y="190" width="360" height="56" rx="8" fill="url(#frozen)" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="340" y="212" text-anchor="middle" font-size="14" font-weight="bold" fill="#0d47a1">ViT-B/16 Encoder (86M params)</text>
+  <text x="340" y="232" text-anchor="middle" font-size="11" fill="#555">Frozen or fine-tuned (LR=5e-6) | per slice: (256, 768)</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="246" x2="340" y2="270" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Mean pool -->
+  <rect x="220" y="272" width="240" height="40" rx="8" fill="url(#frozen)" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="340" y="290" text-anchor="middle" font-size="13" font-weight="bold" fill="#0d47a1">Mean-Pool Patches</text>
+  <text x="340" y="304" text-anchor="middle" font-size="11" fill="#555">256 tokens → 1 per slice: (N, 768)</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="312" x2="340" y2="336" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stack -->
+  <rect x="220" y="338" width="240" height="36" rx="8" fill="url(#frozen)" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="340" y="361" text-anchor="middle" font-size="13" font-weight="bold" fill="#0d47a1">Stack N Slices → (B, N, 768)</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="374" x2="340" y2="398" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Attentive Probe -->
+  <rect x="140" y="400" width="400" height="70" rx="8" fill="url(#trainable)" stroke="#e65100" stroke-width="1.5"/>
+  <text x="340" y="422" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">AttentiveProbe (d=2 or d=3)</text>
+  <text x="340" y="440" text-anchor="middle" font-size="11" fill="#555">Learnable [CLS] token + positional embedding</text>
+  <text x="340" y="456" text-anchor="middle" font-size="11" fill="#555">d transformer blocks (768-d, 12 heads) → CLS output: (B, 768)</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="470" x2="340" y2="494" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Classification Head -->
+  <rect x="160" y="496" width="360" height="60" rx="8" fill="url(#trainable)" stroke="#e65100" stroke-width="1.5"/>
+  <text x="340" y="518" text-anchor="middle" font-size="14" font-weight="bold" fill="#bf360c">Classification Head</text>
+  <text x="340" y="536" text-anchor="middle" font-size="11" fill="#555">Linear: 768 → 1  |  MLP: LN → 768→256 → GELU → Dropout → 256→1</text>
+  <text x="340" y="550" text-anchor="middle" font-size="10" fill="#888">Linear: 769 params  |  MLP: 198,657 params</text>
+
+  <!-- Arrow -->
+  <line x1="340" y1="556" x2="340" y2="580" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Output -->
+  <rect x="230" y="582" width="220" height="40" rx="20" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+  <text x="340" y="607" text-anchor="middle" font-size="14" font-weight="bold" fill="#1b5e20">P(glaucoma)</text>
+
+  <!-- Side annotations -->
+  <text x="60" y="220" font-size="11" fill="#999" text-anchor="middle" transform="rotate(-90, 60, 220)">Pre-computed (cached to disk)</text>
+  <line x1="130" y1="190" x2="130" y2="374" stroke="#999" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <text x="60" y="470" font-size="11" fill="#999" text-anchor="middle" transform="rotate(-90, 60, 470)">Trained on cached features</text>
+  <line x1="130" y1="400" x2="130" y2="556" stroke="#e65100" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- BCEWithLogitsLoss annotation -->
+  <text x="340" y="650" text-anchor="middle" font-size="12" fill="#666">Loss: BCEWithLogitsLoss | Optimizer: AdamW | Schedule: cosine with warmup</text>
+</svg>

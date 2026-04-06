@@ -80,6 +80,11 @@ class CosineWDSchedule:
         self.final_wd = final_wd
         self.T_max = T_max
         self._step = 0
+        # Only schedule groups that were initialized with non-zero weight decay
+        self._wd_group_indices = [
+            i for i, g in enumerate(optimizer.param_groups)
+            if g.get('weight_decay', 0.0) > 0.0
+        ]
 
     def step(self):
         """Advance the schedule by one step.
@@ -95,9 +100,7 @@ class CosineWDSchedule:
 
         self._step += 1
 
-        for group in self.optimizer.param_groups:
-            # Only update groups that already have weight_decay set
-            if 'weight_decay' in group:
-                group['weight_decay'] = wd
+        for idx in self._wd_group_indices:
+            self.optimizer.param_groups[idx]['weight_decay'] = wd
 
         return wd

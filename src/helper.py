@@ -188,7 +188,7 @@ def init_opt(encoder, predictor, wd, final_wd, start_lr, ref_lr, final_lr,
         if fe_no_wd_params:
             param_groups.append({'params': fe_no_wd_params, 'weight_decay': 0.0, 'lr': fe_lr})
 
-    optimizer = torch.optim.AdamW(param_groups)
+    optimizer = torch.optim.AdamW(param_groups, lr=start_lr)
 
     ipe = int(iterations_per_epoch * ipe_scale)
     T_max = int(num_epochs * ipe)

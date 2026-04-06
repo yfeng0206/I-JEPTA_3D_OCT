@@ -9,3 +9,10 @@ outputs/
 *.log
 .env
 configs/aml_*.yml
+
+# Allow small eval logs in results/
+!results/downstream/**/eval_stdout.log
+
+# Exclude large pretraining logs (per-iteration CSVs, 6-23MB)
+results/pretraining/*/jepa_patch-log.csv
+results/pretraining/*/torchrun_stdout.log
