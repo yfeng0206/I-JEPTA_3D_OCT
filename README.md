@@ -4,23 +4,22 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 ## Results Summary
 
-| Method | Encoder Init | Encoder | Slices | Probe | Head | Val AUC | Test AUC |
-|--------|-------------|---------|--------|-------|------|---------|----------|
-| **SLIViT baseline** | Kermany OCT | ConvNeXt+ViT | 32 | 5-layer ViT | Linear | ~0.87 | **0.869** |
-| I-JEPA frozen d=2 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 2 blocks | Linear | 0.744 | 0.733 |
-| I-JEPA frozen d=3 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 3 blocks | Linear | 0.752 | 0.734 |
-| **I-JEPA frozen d=3** | **ImageNet→SSL ep32** | **ViT-B/16 frozen** | **100** | **3 blocks** | **MLP** | **0.799** | **0.774** |
-| I-JEPA frozen d=3 | ImageNet→SSL ep50 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.679 | 0.706 |
-| I-JEPA frozen d=3 | ImageNet→SSL ep75 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.664 | 0.695 |
-| I-JEPA frozen d=3 | ImageNet→SSL ep99 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.659 | 0.685 |
-| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 | pending |
-| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 | pending |
-| **I-JEPA unfrozen d=2** | **ImageNet→SSL ep32** | **ViT-B/16 fine-tune** | **32** | **2 blocks** | **MLP** | **0.826** | **0.828** |
-| I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | running | pending |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | queued | pending |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | queued | pending |
+| Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
+|--------|-------------|---------|--------|-------|------|----------|
+| **SLIViT baseline** | Kermany OCT | ConvNeXt+ViT | 32 | 5-layer ViT | Linear | **0.869** |
+| **I-JEPA unfrozen d=2** | **ImageNet→SSL ep32** | **ViT-B/16 fine-tune** | **32** | **2 blocks** | **MLP** | **0.828** |
+| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 (val) |
+| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 (val) |
+| I-JEPA frozen d=3 | ImageNet→SSL ep32 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.774 |
+| I-JEPA frozen d=3 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 3 blocks | Linear | 0.734 |
+| I-JEPA frozen d=2 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 2 blocks | Linear | 0.733 |
+| I-JEPA frozen d=3 | ImageNet→SSL ep50 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.706 |
+| I-JEPA frozen d=3 | ImageNet→SSL ep75 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.695 |
+| I-JEPA frozen d=3 | ImageNet→SSL ep99 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.685 |
 
-![Frozen Probe Comparison](results/frozen_probe_comparison.png)
+*Unfrozen d=2 s64, d=3 s32, d=3 s64 (ImageNet→SSL ep32) — running/queued.*
+
+![Test AUC Comparison](results/test_auc_comparison.png)
 
 ## Key Findings
 

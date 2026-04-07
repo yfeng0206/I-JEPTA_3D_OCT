@@ -13,13 +13,6 @@ configs/aml_*.yml
 # Allow small eval logs in results/
 !results/downstream/**/eval_stdout.log
 
-# Allow pretraining stdout logs (small, <500KB)
-!results/pretraining/*/torchrun_stdout.log
-
-# Exclude only the large per-iteration pretraining CSV (23MB)
-results/pretraining/pretrain_random_100ep/jepa_patch-log.csv
-
-# Allow smaller pretraining CSVs (<7MB)
-!results/pretraining/pretrain_first_50ep/jepa_patch-log.csv
-!results/pretraining/pretrain_imagenet_init/jepa_patch-log.csv
-!results/pretraining/pretrain_warmrestart/jepa_patch-log.csv
+# Exclude large pretraining logs (per-iteration CSVs, 6-23MB)
+results/pretraining/*/jepa_patch-log.csv
+results/pretraining/*/torchrun_stdout.log
