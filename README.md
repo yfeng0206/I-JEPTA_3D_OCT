@@ -15,10 +15,10 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 | I-JEPA frozen d=3 | ImageNet→SSL ep99 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.659 | 0.685 |
 | I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 | pending |
 | I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 | pending |
-| I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 2 blocks | MLP | running | pending |
+| **I-JEPA unfrozen d=2** | **ImageNet→SSL ep32** | **ViT-B/16 fine-tune** | **32** | **2 blocks** | **MLP** | **0.826** | **0.828** |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | running | pending |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | running | pending |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | running | pending |
+| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | queued | pending |
+| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | queued | pending |
 
 ![Frozen Probe Comparison](results/frozen_probe_comparison.png)
 
@@ -28,9 +28,13 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 2. **I-JEPA pretraining degrades ImageNet features over time**: Test AUC drops 0.774 → 0.685 from ep32 to ep99. The self-supervised objective overwrites useful ImageNet features with low-level patch prediction features that are less relevant to glaucoma.
 
-3. **Fine-tuning is the key lever**: Unfreezing the encoder gives +8.5% AUC (0.734 → 0.819), confirming that task-specific adaptation matters more than better pretraining.
+3. **Fine-tuning is the key lever**: Unfreezing the encoder gives +8.5% AUC (0.734 → 0.819 for random-init, 0.774 → 0.828 for ImageNet-init), confirming that task-specific adaptation matters more than better pretraining.
 
-4. **Probe depth has minimal effect when frozen**: d=2 (0.733) vs d=3 (0.734). The frozen encoder features are the bottleneck, not probe capacity.
+4. **ImageNet→SSL + fine-tune is our best approach so far**: 0.828 test AUC (d=2, 32 slices), closing the gap to SLIViT (0.869). More slice/depth configs running.
+
+5. **Probe depth has minimal effect when frozen**: d=2 (0.733) vs d=3 (0.734). The frozen encoder features are the bottleneck, not probe capacity.
+
+6. **Frozen probe is capped at ~0.78**: 100-epoch training with WD=0 (matching literature protocol) gave only +0.45% over 50 epochs. More training can't overcome frozen feature limitations.
 
 ![ImageNet Degradation](results/imagenet_degradation.png)
 

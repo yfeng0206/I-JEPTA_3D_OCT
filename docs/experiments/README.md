@@ -35,7 +35,7 @@ Encoder unfrozen with low LR (5e-6), DDP on 4x T4 GPUs, effective batch=16.
 |-----|-------------------|-------|------|--------|---------|----------|---------|
 | U1 | Random→SSL ep11 | d=2 | Linear | 32 | 0.819 | pending | [details](downstream/unfrozen/random_d2_s32.md) |
 | U2 | Random→SSL ep11 | d=3 | Linear | 64 | 0.815 | pending | [details](downstream/unfrozen/random_d3_s64.md) |
-| U3 | ImageNet→SSL ep32 | d=2 | MLP | 32 | running | pending | [details](downstream/unfrozen/imagenet_d2_s32.md) |
-| U4 | ImageNet→SSL ep32 | d=2 | MLP | 64 | running | pending | [details](downstream/unfrozen/imagenet_d2_s64.md) |
-| U5 | ImageNet→SSL ep32 | d=3 | MLP | 32 | running | pending | [details](downstream/unfrozen/imagenet_d3_s32.md) |
-| U6 | ImageNet→SSL ep32 | d=3 | MLP | 64 | running | pending | [details](downstream/unfrozen/imagenet_d3_s64.md) |
+| **U3** | **ImageNet→SSL ep32** | **d=2** | **MLP** | **32** | **0.826** | **0.828** | [details](downstream/unfrozen/README.md#u3-imagenet-init-d2-32-slices-val-auc--0826-test-auc--0828) |
+| U4 | ImageNet→SSL ep32 | d=2 | MLP | 64 | running | pending | [details](downstream/unfrozen/README.md) |
+| U5 | ImageNet→SSL ep32 | d=3 | MLP | 32 | queued | pending | [details](downstream/unfrozen/README.md) |
+| U6 | ImageNet→SSL ep32 | d=3 | MLP | 64 | queued | pending | [details](downstream/unfrozen/README.md) |

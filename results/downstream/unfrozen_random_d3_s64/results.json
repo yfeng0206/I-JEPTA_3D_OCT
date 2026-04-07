@@ -1,0 +1,7 @@
+{
+  "mode": "patch_finetune",
+  "best_epoch": 15,
+  "best_val_auc": 0.8147,
+  "test_auc": null,
+  "note": "Extracted from eval_stdout.log (older code without results.json)"
+}

@@ -12,10 +12,10 @@ Training uses DDP on 4x NVIDIA T4 (16 GB each) with batch_size=1 per GPU and gra
 |-----|-------------|-------|------|--------|---------|----------|--------|
 | U1 | Random->SSL ep11 | d=2 | Linear | 32 | 0.819 | pending | completed |
 | U2 | Random->SSL ep11 | d=3 | Linear | 64 | 0.815 | pending | completed |
-| U3 | ImageNet->SSL ep32 | d=2 | MLP | 32 | pending | pending | running |
-| U4 | ImageNet->SSL ep32 | d=2 | MLP | 64 | pending | pending | running |
-| U5 | ImageNet->SSL ep32 | d=3 | MLP | 32 | pending | pending | running |
-| U6 | ImageNet->SSL ep32 | d=3 | MLP | 64 | pending | pending | running |
+| **U3** | **ImageNet->SSL ep32** | **d=2** | **MLP** | **32** | **0.826** | **0.828** | **completed** |
+| U4 | ImageNet->SSL ep32 | d=2 | MLP | 64 | — | — | running |
+| U5 | ImageNet->SSL ep32 | d=3 | MLP | 32 | — | — | queued |
+| U6 | ImageNet->SSL ep32 | d=3 | MLP | 64 | — | — | queued |
 
 ## Key Finding
 
@@ -116,13 +116,26 @@ Best epoch: 15 (val AUC 0.815). Early stopping triggered at epoch 20. More slice
 - **Both runs show the same convergence pattern**: rapid improvement in epochs 1-9 (warmup + early cosine phase), plateau in epochs 9-15, then mild overfitting.
 - **LR ratio**: The encoder LR is always 20x lower than the probe LR (5e-6 vs 1e-4), ensuring the pretrained encoder is updated gently while the probe adapts quickly.
 
+### U3: ImageNet-Init, d=2, 32 slices (val AUC = 0.826, TEST AUC = 0.828)
+
+| Epoch | Train Loss | Val AUC | LR enc / probe |
+|-------|-----------|---------|----------------|
+| 1 | 0.686 | 0.677 | 1.7e-6 / 3.3e-5 |
+| 5 | 0.593 | 0.790 | 4.9e-6 / 9.8e-5 |
+| 10 | 0.504 | 0.821 | 3.9e-6 / 7.7e-5 |
+| 15 | 0.453 | 0.826 | 2.1e-6 / 4.3e-5 |
+| 20 | 0.399 | 0.809 | 6.1e-7 / 1.2e-5 (early stop) |
+
+Best epoch: 15 (val AUC 0.826). Test AUC **0.828** — our best result so far. ImageNet-init + fine-tuning outperforms random-init fine-tuning (0.828 vs 0.819 val), confirming that better initialization compounds with task adaptation.
+
 ## Comparison with Frozen Probe
 
 | Method | Best Val AUC | Best Test AUC | Encoder |
 |--------|-------------|---------------|---------|
 | Frozen, Random-init, d=3 | 0.752 | 0.734 | Fixed |
 | Frozen, ImageNet-init ep32, d=3 | 0.799 | 0.774 | Fixed |
-| **Unfrozen, Random-init, d=2** | **0.819** | **pending** | **Fine-tuned** |
+| Unfrozen, Random-init, d=2 | 0.819 | pending | Fine-tuned |
 | Unfrozen, Random-init, d=3 | 0.815 | pending | Fine-tuned |
+| **Unfrozen, ImageNet-init, d=2** | **0.826** | **0.828** | **Fine-tuned** |
 
-Fine-tuning the random-init encoder already surpasses the best frozen ImageNet-init result (+2.0% val AUC). The ImageNet-init fine-tune runs (U3-U6) will show whether the better initialization compounds with fine-tuning.
+ImageNet-init + fine-tuning is the clear winner. The gap to SLIViT (0.869) is now **4.1%**. Remaining runs (U4-U6) will test if more slices or deeper probe can close it further.
