@@ -1,0 +1,1592 @@
+WARNING:torch.distributed.run:
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+======================================================================
+Patch-level I-JEPA Pretraining
+  Config:     /tmp/ijepa_outputs/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/config.yaml
+  World size: 4
+  Device:     cuda:0
+  GPU:        Tesla T4
+  GPU memory: 16.7 GB
+======================================================================
+  Loading pretrained encoder from /tmp/pretrained_vit_b16.pth ...
+  Loaded 148 keys, skipped 0 (shape mismatch or missing)
+  Encoder params:   85,843,200
+  Predictor params: 11,337,216
+  Encoder init:     ImageNet pretrained (/tmp/pretrained_vit_b16.pth)
+Loading dataset from /tmp/fairvision_data/data ...
+  Training: 600000 slices (6000 volumes)
+  Validation: 100000 slices (1000 volumes)
+  Batches per epoch: 2343 (1171 iters x 2 accum)
+  Effective batch size: 512
+COMPUTE_REDACTED:220:220 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:220:220 [0] NCCL INFO Bootstrap : Using eth0:10.0.0.4<0>
+COMPUTE_REDACTED:220:220 [0] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin_v6 symbol.
+COMPUTE_REDACTED:220:220 [0] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin symbol (v4 or v5).
+COMPUTE_REDACTED:220:220 [0] NCCL INFO cudaDriverVersion 12020
+NCCL version 2.17.1+cuda11.7
+COMPUTE_REDACTED:223:223 [3] NCCL INFO cudaDriverVersion 12020
+COMPUTE_REDACTED:223:223 [3] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:223:223 [3] NCCL INFO Bootstrap : Using eth0:10.0.0.4<0>
+COMPUTE_REDACTED:222:222 [2] NCCL INFO cudaDriverVersion 12020
+COMPUTE_REDACTED:222:222 [2] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:222:222 [2] NCCL INFO Bootstrap : Using eth0:10.0.0.4<0>
+COMPUTE_REDACTED:221:221 [1] NCCL INFO cudaDriverVersion 12020
+COMPUTE_REDACTED:223:223 [3] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin_v6 symbol.
+COMPUTE_REDACTED:223:223 [3] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin symbol (v4 or v5).
+COMPUTE_REDACTED:221:221 [1] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:221:221 [1] NCCL INFO Bootstrap : Using eth0:10.0.0.4<0>
+COMPUTE_REDACTED:222:222 [2] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin_v6 symbol.
+COMPUTE_REDACTED:222:222 [2] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin symbol (v4 or v5).
+COMPUTE_REDACTED:221:221 [1] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin_v6 symbol.
+COMPUTE_REDACTED:221:221 [1] NCCL INFO NET/Plugin: Failed to find ncclCollNetPlugin symbol (v4 or v5).
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Plugin Path : /opt/nccl-rdma-sharp-plugins/lib/libnccl-net.so
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P plugin IBext
+COMPUTE_REDACTED:220:253 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO NET/IB : No device found.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO NCCL_IB_DISABLE set by environment to 1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO NET/Socket : Using [0]eth0:10.0.0.4<0>
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Using network Socket
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Plugin Path : /opt/nccl-rdma-sharp-plugins/lib/libnccl-net.so
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P plugin IBext
+COMPUTE_REDACTED:223:254 [3] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO NET/IB : No device found.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO NCCL_IB_DISABLE set by environment to 1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO NET/Socket : Using [0]eth0:10.0.0.4<0>
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Using network Socket
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Plugin Path : /opt/nccl-rdma-sharp-plugins/lib/libnccl-net.so
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P plugin IBext
+COMPUTE_REDACTED:221:255 [1] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO NET/IB : No device found.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO NCCL_IB_DISABLE set by environment to 1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO NET/Socket : Using [0]eth0:10.0.0.4<0>
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Using network Socket
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Plugin Path : /opt/nccl-rdma-sharp-plugins/lib/libnccl-net.so
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P plugin IBext
+COMPUTE_REDACTED:222:256 [2] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO NET/IB : No device found.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO NCCL_IB_DISABLE set by environment to 1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO NCCL_SOCKET_IFNAME set by environment to eth0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO NET/Socket : Using [0]eth0:10.0.0.4<0>
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Using network Socket
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Setting affinity for GPU 2 to ffff
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Setting affinity for GPU 1 to ffff
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Setting affinity for GPU 3 to ffff
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 0(=100000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 2(=300000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 1 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Setting affinity for GPU 0 to ffff
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Trees [0] 2/-1/-1->1->0 [1] 2/-1/-1->1->0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Channel 00/02 :    0   1   2   3
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Channel 01/02 :    0   1   2   3
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P Chunksize set to 131072
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P Chunksize set to 131072
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Trees [0] -1/-1/-1->3->2 [1] -1/-1/-1->3->2
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P Chunksize set to 131072
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Trees [0] 3/-1/-1->2->1 [1] 3/-1/-1->2->1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P Chunksize set to 131072
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Rank 0 selecting transport for rank 3
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Rank 3 selecting transport for rank 2
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Rank 3 selecting transport for rank 2
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Rank 0 selecting transport for rank 3
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 2
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Rank 3 selecting transport for rank 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Channel 00 : 1[200000] -> 2[300000] via SHM/direct/direct
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 2
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 3
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Rank 0 selecting transport for rank 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Channel 00 : 3[400000] -> 0[100000] via SHM/direct/direct
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Rank 3 selecting transport for rank 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 0(=100000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Channel 01 : 1[200000] -> 2[300000] via SHM/direct/direct
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Channel 01 : 3[400000] -> 0[100000] via SHM/direct/direct
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Channel 00 : 0[100000] -> 1[200000] via SHM/direct/direct
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Rank 0 selecting transport for rank 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Channel 00 : 2[300000] -> 3[400000] via SHM/direct/direct
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 3
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Channel 01 : 0[100000] -> 1[200000] via SHM/direct/direct
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Channel 01 : 2[300000] -> 3[400000] via SHM/direct/direct
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Connected all rings
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 2
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Connected all rings
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Rank 3 selecting transport for rank 2
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Connected all rings
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 3
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Connected all rings
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Rank 0 selecting transport for rank 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Channel 00 : 3[400000] -> 2[300000] via SHM/direct/direct
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Rank 3 selecting transport for rank 2
+COMPUTE_REDACTED:223:254 [3] NCCL INFO P2P is disabled between connected GPUs 3 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Could not enable P2P between dev 3(=400000) and dev 2(=300000)
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Channel 01 : 3[400000] -> 2[300000] via SHM/direct/direct
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 2
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 2. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 2(=300000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 3
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Rank 0 selecting transport for rank 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 3. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO P2P is disabled between connected GPUs 0 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Could not enable P2P between dev 0(=100000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 3(=400000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Channel 00 : 1[200000] -> 0[100000] via SHM/direct/direct
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Rank 1 selecting transport for rank 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO P2P is disabled between connected GPUs 1 and 0. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Could not enable P2P between dev 1(=200000) and dev 0(=100000)
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Channel 01 : 1[200000] -> 0[100000] via SHM/direct/direct
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Channel 00 : 2[300000] -> 1[200000] via SHM/direct/direct
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Rank 2 selecting transport for rank 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO P2P is disabled between connected GPUs 2 and 1. You can repress this message with NCCL_IGNORE_DISABLED_P2P=1.
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Could not enable P2P between dev 2(=300000) and dev 1(=200000)
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 0 canConnect 0
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Transport 1 canConnect 1
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Channel 01 : 2[300000] -> 1[200000] via SHM/direct/direct
+COMPUTE_REDACTED:220:253 [0] NCCL INFO Connected all trees
+COMPUTE_REDACTED:220:253 [0] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+COMPUTE_REDACTED:220:253 [0] NCCL INFO 2 coll channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+COMPUTE_REDACTED:223:254 [3] NCCL INFO Connected all trees
+COMPUTE_REDACTED:223:254 [3] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+COMPUTE_REDACTED:223:254 [3] NCCL INFO 2 coll channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+COMPUTE_REDACTED:221:255 [1] NCCL INFO Connected all trees
+COMPUTE_REDACTED:221:255 [1] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+COMPUTE_REDACTED:221:255 [1] NCCL INFO 2 coll channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+COMPUTE_REDACTED:222:256 [2] NCCL INFO Connected all trees
+COMPUTE_REDACTED:222:256 [2] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+COMPUTE_REDACTED:222:256 [2] NCCL INFO 2 coll channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+COMPUTE_REDACTED:220:253 [0] NCCL INFO MSCCL: No external scheduler found, using internal implementation
+COMPUTE_REDACTED:223:254 [3] NCCL INFO MSCCL: No external scheduler found, using internal implementation
+COMPUTE_REDACTED:222:256 [2] NCCL INFO MSCCL: No external scheduler found, using internal implementation
+COMPUTE_REDACTED:221:255 [1] NCCL INFO MSCCL: No external scheduler found, using internal implementation
+COMPUTE_REDACTED:220:253 [0] NCCL INFO MSCCL: Initialization finished
+COMPUTE_REDACTED:221:255 [1] NCCL INFO MSCCL: Initialization finished
+COMPUTE_REDACTED:223:254 [3] NCCL INFO MSCCL: Initialization finished
+COMPUTE_REDACTED:222:256 [2] NCCL INFO MSCCL: Initialization finished
+COMPUTE_REDACTED:221:255 [1] NCCL INFO comm 0x6504bce0 rank 1 nranks 4 cudaDev 1 busId 200000 commId 0x9528894a4c5aa673 - Init COMPLETE
+COMPUTE_REDACTED:223:254 [3] NCCL INFO comm 0x4a0e81a0 rank 3 nranks 4 cudaDev 3 busId 400000 commId 0x9528894a4c5aa673 - Init COMPLETE
+COMPUTE_REDACTED:220:253 [0] NCCL INFO comm 0x5d63de90 rank 0 nranks 4 cudaDev 0 busId 100000 commId 0x9528894a4c5aa673 - Init COMPLETE
+COMPUTE_REDACTED:222:256 [2] NCCL INFO comm 0x88132e80 rank 2 nranks 4 cudaDev 2 busId 300000 commId 0x9528894a4c5aa673 - Init COMPLETE
+----------------------------------------------------------------------
+Starting training from epoch 1 to 100 (patience=15, early-stop after epoch 5)
+----------------------------------------------------------------------
+  [Epoch 1/100 | Iter 50/2343] loss=0.1394  lr=1.01e-04  wd=0.0400  ema=0.99600  gpu=9795MB
+  [Epoch 1/100 | Iter 100/2343] loss=0.0936  lr=1.01e-04  wd=0.0400  ema=0.99600  gpu=10416MB
+  [Epoch 1/100 | Iter 150/2343] loss=0.0993  lr=1.02e-04  wd=0.0400  ema=0.99600  gpu=10416MB
+  [Epoch 1/100 | Iter 200/2343] loss=0.0473  lr=1.03e-04  wd=0.0400  ema=0.99600  gpu=10770MB
+  [Epoch 1/100 | Iter 250/2343] loss=0.0272  lr=1.03e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 300/2343] loss=0.0116  lr=1.04e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 350/2343] loss=0.0080  lr=1.04e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 400/2343] loss=0.0077  lr=1.05e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 450/2343] loss=0.0097  lr=1.06e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 500/2343] loss=0.0121  lr=1.06e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 550/2343] loss=0.0197  lr=1.07e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 600/2343] loss=0.0329  lr=1.08e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 650/2343] loss=0.0314  lr=1.08e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 700/2343] loss=0.0307  lr=1.09e-04  wd=0.0400  ema=0.99600  gpu=10987MB
+  [Epoch 1/100 | Iter 750/2343] loss=0.0358  lr=1.10e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 800/2343] loss=0.0421  lr=1.10e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 850/2343] loss=0.0436  lr=1.11e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 900/2343] loss=0.0512  lr=1.12e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 950/2343] loss=0.0573  lr=1.12e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1000/2343] loss=0.0867  lr=1.13e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1050/2343] loss=0.0602  lr=1.13e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1100/2343] loss=0.0844  lr=1.14e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1150/2343] loss=0.0763  lr=1.15e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1200/2343] loss=0.0717  lr=1.15e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1250/2343] loss=0.1107  lr=1.16e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1300/2343] loss=0.1421  lr=1.17e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1350/2343] loss=0.1275  lr=1.17e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1400/2343] loss=0.1290  lr=1.18e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1450/2343] loss=0.0988  lr=1.19e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1500/2343] loss=0.1668  lr=1.19e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1550/2343] loss=0.0907  lr=1.20e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1600/2343] loss=0.1284  lr=1.20e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1650/2343] loss=0.1079  lr=1.21e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1700/2343] loss=0.1482  lr=1.22e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1750/2343] loss=0.1093  lr=1.22e-04  wd=0.0400  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1800/2343] loss=0.1554  lr=1.23e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1850/2343] loss=0.1967  lr=1.24e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1900/2343] loss=0.1423  lr=1.24e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 1950/2343] loss=0.1873  lr=1.25e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2000/2343] loss=0.1243  lr=1.26e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2050/2343] loss=0.1043  lr=1.26e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2100/2343] loss=0.1374  lr=1.27e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2150/2343] loss=0.1259  lr=1.28e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2200/2343] loss=0.1437  lr=1.28e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2250/2343] loss=0.1115  lr=1.29e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 1/100 | Iter 2300/2343] loss=0.1651  lr=1.29e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [DIAG] Epoch 1: cos_sim=0.7817 (min=-0.2336 max=0.9965) l2_dist=14.3649  rep_diversity=0.9798 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.155224
+Epoch 1/100  (4316s)  train_loss=0.0920  val_loss=0.1502 *
+  Uploading jepa_patch-best.pth.tar (1,507,519,602 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/jepa_patch-best.pth.tar
+  Upload OK: jepa_patch-best.pth.tar
+  [Epoch 2/100 | Iter 50/2343] loss=0.1519  lr=1.31e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 100/2343] loss=0.1239  lr=1.31e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 150/2343] loss=0.1553  lr=1.32e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 200/2343] loss=0.1362  lr=1.33e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 250/2343] loss=0.1512  lr=1.33e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 300/2343] loss=0.1382  lr=1.34e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 350/2343] loss=0.1583  lr=1.34e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 400/2343] loss=0.1374  lr=1.35e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 450/2343] loss=0.1397  lr=1.36e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 500/2343] loss=0.1544  lr=1.36e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 550/2343] loss=0.1241  lr=1.37e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 600/2343] loss=0.1570  lr=1.38e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 650/2343] loss=0.1618  lr=1.38e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 700/2343] loss=0.1470  lr=1.39e-04  wd=0.0401  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 750/2343] loss=0.1415  lr=1.40e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 800/2343] loss=0.1425  lr=1.40e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 850/2343] loss=0.1736  lr=1.41e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 900/2343] loss=0.1720  lr=1.42e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 950/2343] loss=0.1827  lr=1.42e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1000/2343] loss=0.1667  lr=1.43e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1050/2343] loss=0.2039  lr=1.43e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1100/2343] loss=0.1975  lr=1.44e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1150/2343] loss=0.2057  lr=1.45e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1200/2343] loss=0.1479  lr=1.45e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1250/2343] loss=0.1525  lr=1.46e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1300/2343] loss=0.1404  lr=1.47e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1350/2343] loss=0.1477  lr=1.47e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1400/2343] loss=0.1740  lr=1.48e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1450/2343] loss=0.1682  lr=1.49e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1500/2343] loss=0.1562  lr=1.49e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1550/2343] loss=0.1610  lr=1.50e-04  wd=0.0402  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1600/2343] loss=0.1789  lr=1.50e-04  wd=0.0403  ema=0.99600  gpu=11393MB
+  [Epoch 2/100 | Iter 1650/2343] loss=0.1429  lr=1.51e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 1700/2343] loss=0.1775  lr=1.52e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 1750/2343] loss=0.2001  lr=1.52e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 1800/2343] loss=0.1837  lr=1.53e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 1850/2343] loss=0.1750  lr=1.54e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 1900/2343] loss=0.1866  lr=1.54e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 1950/2343] loss=0.1456  lr=1.55e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2000/2343] loss=0.1522  lr=1.56e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2050/2343] loss=0.1833  lr=1.56e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2100/2343] loss=0.1333  lr=1.57e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2150/2343] loss=0.1567  lr=1.58e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2200/2343] loss=0.1736  lr=1.58e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2250/2343] loss=0.1726  lr=1.59e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [Epoch 2/100 | Iter 2300/2343] loss=0.1509  lr=1.59e-04  wd=0.0403  ema=0.99600  gpu=11522MB
+  [DIAG] Epoch 2: cos_sim=0.7545 (min=-0.2710 max=0.9934) l2_dist=16.2696  rep_diversity=0.6940 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.162453
+Epoch 2/100  (4340s)  train_loss=0.1601  val_loss=0.1642
+  [Epoch 3/100 | Iter 50/2343] loss=0.1512  lr=1.61e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 100/2343] loss=0.1710  lr=1.61e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 150/2343] loss=0.1592  lr=1.62e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 200/2343] loss=0.1605  lr=1.63e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 250/2343] loss=0.1585  lr=1.63e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 300/2343] loss=0.1414  lr=1.64e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 350/2343] loss=0.1574  lr=1.65e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 400/2343] loss=0.1575  lr=1.65e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 450/2343] loss=0.1777  lr=1.66e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 500/2343] loss=0.1550  lr=1.66e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 550/2343] loss=0.1572  lr=1.67e-04  wd=0.0404  ema=0.99600  gpu=11522MB
+  [Epoch 3/100 | Iter 600/2343] loss=0.1587  lr=1.68e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 650/2343] loss=0.1331  lr=1.68e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 700/2343] loss=0.1528  lr=1.69e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 750/2343] loss=0.1546  lr=1.70e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 800/2343] loss=0.1326  lr=1.70e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 850/2343] loss=0.1438  lr=1.71e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 900/2343] loss=0.1718  lr=1.72e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 950/2343] loss=0.1633  lr=1.72e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1000/2343] loss=0.1389  lr=1.73e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1050/2343] loss=0.1450  lr=1.73e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1100/2343] loss=0.1483  lr=1.74e-04  wd=0.0405  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1150/2343] loss=0.1785  lr=1.75e-04  wd=0.0406  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1200/2343] loss=0.1611  lr=1.75e-04  wd=0.0406  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1250/2343] loss=0.2022  lr=1.76e-04  wd=0.0406  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1300/2343] loss=0.1800  lr=1.77e-04  wd=0.0406  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1350/2343] loss=0.1555  lr=1.77e-04  wd=0.0406  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1400/2343] loss=0.1573  lr=1.78e-04  wd=0.0406  ema=0.99601  gpu=11522MB
+  [Epoch 3/100 | Iter 1450/2343] loss=0.1467  lr=1.79e-04  wd=0.0406  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1500/2343] loss=0.1528  lr=1.79e-04  wd=0.0406  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1550/2343] loss=0.1429  lr=1.80e-04  wd=0.0406  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1600/2343] loss=0.1496  lr=1.81e-04  wd=0.0406  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1650/2343] loss=0.1463  lr=1.81e-04  wd=0.0406  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1700/2343] loss=0.1620  lr=1.82e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1750/2343] loss=0.1600  lr=1.82e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1800/2343] loss=0.1502  lr=1.83e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1850/2343] loss=0.1339  lr=1.84e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1900/2343] loss=0.1467  lr=1.84e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 1950/2343] loss=0.1644  lr=1.85e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2000/2343] loss=0.1718  lr=1.86e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2050/2343] loss=0.1530  lr=1.86e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2100/2343] loss=0.1683  lr=1.87e-04  wd=0.0407  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2150/2343] loss=0.1476  lr=1.88e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2200/2343] loss=0.1477  lr=1.88e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2250/2343] loss=0.1670  lr=1.89e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 3/100 | Iter 2300/2343] loss=0.1715  lr=1.89e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [DIAG] Epoch 3: cos_sim=0.8170 (min=0.2310 max=0.9894) l2_dist=14.8138  rep_diversity=0.6445 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.158443
+Epoch 3/100  (4358s)  train_loss=0.1581  val_loss=0.1569
+  [Epoch 4/100 | Iter 50/2343] loss=0.1536  lr=1.91e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 100/2343] loss=0.1562  lr=1.91e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 150/2343] loss=0.1623  lr=1.92e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 200/2343] loss=0.1412  lr=1.93e-04  wd=0.0408  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 250/2343] loss=0.1697  lr=1.93e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 300/2343] loss=0.2082  lr=1.94e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 350/2343] loss=0.1424  lr=1.95e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 400/2343] loss=0.1448  lr=1.95e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 450/2343] loss=0.1625  lr=1.96e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 500/2343] loss=0.1788  lr=1.96e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 550/2343] loss=0.1573  lr=1.97e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 600/2343] loss=0.1578  lr=1.98e-04  wd=0.0409  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 650/2343] loss=0.1531  lr=1.98e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 700/2343] loss=0.1660  lr=1.99e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 750/2343] loss=0.1593  lr=2.00e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 800/2343] loss=0.1432  lr=2.00e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 850/2343] loss=0.1858  lr=2.01e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 900/2343] loss=0.1446  lr=2.02e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 950/2343] loss=0.1580  lr=2.02e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1000/2343] loss=0.1519  lr=2.03e-04  wd=0.0410  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1050/2343] loss=0.1490  lr=2.04e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1100/2343] loss=0.1685  lr=2.04e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1150/2343] loss=0.1533  lr=2.05e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1200/2343] loss=0.1510  lr=2.05e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1250/2343] loss=0.1603  lr=2.06e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1300/2343] loss=0.1467  lr=2.07e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1350/2343] loss=0.1563  lr=2.07e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1400/2343] loss=0.1710  lr=2.08e-04  wd=0.0411  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1450/2343] loss=0.1603  lr=2.09e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1500/2343] loss=0.1538  lr=2.09e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1550/2343] loss=0.1765  lr=2.10e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1600/2343] loss=0.1512  lr=2.11e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1650/2343] loss=0.1622  lr=2.11e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1700/2343] loss=0.1450  lr=2.12e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1750/2343] loss=0.1558  lr=2.12e-04  wd=0.0412  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1800/2343] loss=0.1650  lr=2.13e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1850/2343] loss=0.1622  lr=2.14e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1900/2343] loss=0.1440  lr=2.14e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 1950/2343] loss=0.1586  lr=2.15e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 2000/2343] loss=0.1549  lr=2.16e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 2050/2343] loss=0.1671  lr=2.16e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 2100/2343] loss=0.1479  lr=2.17e-04  wd=0.0413  ema=0.99601  gpu=11996MB
+  [Epoch 4/100 | Iter 2150/2343] loss=0.1887  lr=2.18e-04  wd=0.0414  ema=0.99602  gpu=11996MB
+  [Epoch 4/100 | Iter 2200/2343] loss=0.1578  lr=2.18e-04  wd=0.0414  ema=0.99602  gpu=11996MB
+  [Epoch 4/100 | Iter 2250/2343] loss=0.1683  lr=2.19e-04  wd=0.0414  ema=0.99602  gpu=11996MB
+  [Epoch 4/100 | Iter 2300/2343] loss=0.1760  lr=2.20e-04  wd=0.0414  ema=0.99602  gpu=11996MB
+  [DIAG] Epoch 4: cos_sim=0.7876 (min=0.0082 max=0.9838) l2_dist=15.8604  rep_diversity=0.8165 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 36, 768]) h shape=torch.Size([256, 36, 768]) num_patches=256
+  train_eval_loss=0.161991
+Epoch 4/100  (4343s)  train_loss=0.1593  val_loss=0.1637
+  [Epoch 5/100 | Iter 50/2343] loss=0.1551  lr=2.21e-04  wd=0.0414  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 100/2343] loss=0.1850  lr=2.21e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 150/2343] loss=0.2036  lr=2.22e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 200/2343] loss=0.1595  lr=2.23e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 250/2343] loss=0.1561  lr=2.23e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 300/2343] loss=0.1575  lr=2.24e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 350/2343] loss=0.1729  lr=2.25e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 400/2343] loss=0.1790  lr=2.25e-04  wd=0.0415  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 450/2343] loss=0.1775  lr=2.26e-04  wd=0.0416  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 500/2343] loss=0.1627  lr=2.26e-04  wd=0.0416  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 550/2343] loss=0.1658  lr=2.27e-04  wd=0.0416  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 600/2343] loss=0.1876  lr=2.28e-04  wd=0.0416  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 650/2343] loss=0.1428  lr=2.28e-04  wd=0.0416  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 700/2343] loss=0.1664  lr=2.29e-04  wd=0.0416  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 750/2343] loss=0.1625  lr=2.30e-04  wd=0.0417  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 800/2343] loss=0.1802  lr=2.30e-04  wd=0.0417  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 850/2343] loss=0.1627  lr=2.31e-04  wd=0.0417  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 900/2343] loss=0.1666  lr=2.32e-04  wd=0.0417  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 950/2343] loss=0.1620  lr=2.32e-04  wd=0.0417  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1000/2343] loss=0.1624  lr=2.33e-04  wd=0.0417  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1050/2343] loss=0.1860  lr=2.34e-04  wd=0.0418  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1100/2343] loss=0.1906  lr=2.34e-04  wd=0.0418  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1150/2343] loss=0.1766  lr=2.35e-04  wd=0.0418  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1200/2343] loss=0.1553  lr=2.35e-04  wd=0.0418  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1250/2343] loss=0.1864  lr=2.36e-04  wd=0.0418  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1300/2343] loss=0.1785  lr=2.37e-04  wd=0.0418  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1350/2343] loss=0.1766  lr=2.37e-04  wd=0.0419  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1400/2343] loss=0.1613  lr=2.38e-04  wd=0.0419  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1450/2343] loss=0.1849  lr=2.39e-04  wd=0.0419  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1500/2343] loss=0.1700  lr=2.39e-04  wd=0.0419  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1550/2343] loss=0.1771  lr=2.40e-04  wd=0.0419  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1600/2343] loss=0.1432  lr=2.41e-04  wd=0.0419  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1650/2343] loss=0.1648  lr=2.41e-04  wd=0.0420  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1700/2343] loss=0.1883  lr=2.42e-04  wd=0.0420  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1750/2343] loss=0.1593  lr=2.42e-04  wd=0.0420  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1800/2343] loss=0.1721  lr=2.43e-04  wd=0.0420  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1850/2343] loss=0.1741  lr=2.44e-04  wd=0.0420  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1900/2343] loss=0.1671  lr=2.44e-04  wd=0.0421  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 1950/2343] loss=0.1592  lr=2.45e-04  wd=0.0421  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2000/2343] loss=0.1465  lr=2.46e-04  wd=0.0421  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2050/2343] loss=0.1800  lr=2.46e-04  wd=0.0421  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2100/2343] loss=0.1780  lr=2.47e-04  wd=0.0421  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2150/2343] loss=0.1588  lr=2.48e-04  wd=0.0421  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2200/2343] loss=0.1720  lr=2.48e-04  wd=0.0422  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2250/2343] loss=0.1692  lr=2.49e-04  wd=0.0422  ema=0.99602  gpu=11996MB
+  [Epoch 5/100 | Iter 2300/2343] loss=0.1864  lr=2.50e-04  wd=0.0422  ema=0.99602  gpu=11996MB
+  [DIAG] Epoch 5: cos_sim=0.7949 (min=0.0673 max=0.9789) l2_dist=15.8156  rep_diversity=0.7702 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 35, 768]) h shape=torch.Size([256, 35, 768]) num_patches=256
+  train_eval_loss=0.185589
+Epoch 5/100  (4348s)  train_loss=0.1732  val_loss=0.1842
+  Uploading jepa_patch-log.csv (1,731,842 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/jepa_patch-log.csv
+  Upload OK: jepa_patch-log.csv
+  [Epoch 6/100 | Iter 50/2343] loss=0.1918  lr=2.50e-04  wd=0.0422  ema=0.99602  gpu=11996MB
+  [Epoch 6/100 | Iter 100/2343] loss=0.1785  lr=2.50e-04  wd=0.0423  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 150/2343] loss=0.1836  lr=2.50e-04  wd=0.0423  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 200/2343] loss=0.1855  lr=2.50e-04  wd=0.0423  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 250/2343] loss=0.2037  lr=2.50e-04  wd=0.0423  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 300/2343] loss=0.1739  lr=2.50e-04  wd=0.0423  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 350/2343] loss=0.1984  lr=2.50e-04  wd=0.0424  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 400/2343] loss=0.1835  lr=2.50e-04  wd=0.0424  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 450/2343] loss=0.1846  lr=2.50e-04  wd=0.0424  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 500/2343] loss=0.1791  lr=2.50e-04  wd=0.0424  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 550/2343] loss=0.1850  lr=2.50e-04  wd=0.0424  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 600/2343] loss=0.1867  lr=2.50e-04  wd=0.0425  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 650/2343] loss=0.2001  lr=2.50e-04  wd=0.0425  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 700/2343] loss=0.1685  lr=2.50e-04  wd=0.0425  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 750/2343] loss=0.1913  lr=2.50e-04  wd=0.0425  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 800/2343] loss=0.1560  lr=2.50e-04  wd=0.0425  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 850/2343] loss=0.2086  lr=2.50e-04  wd=0.0426  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 900/2343] loss=0.1804  lr=2.50e-04  wd=0.0426  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 950/2343] loss=0.1864  lr=2.50e-04  wd=0.0426  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1000/2343] loss=0.1916  lr=2.50e-04  wd=0.0426  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1050/2343] loss=0.1909  lr=2.50e-04  wd=0.0426  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1100/2343] loss=0.2032  lr=2.50e-04  wd=0.0427  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1150/2343] loss=0.1770  lr=2.50e-04  wd=0.0427  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1200/2343] loss=0.1787  lr=2.50e-04  wd=0.0427  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1250/2343] loss=0.1895  lr=2.50e-04  wd=0.0427  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1300/2343] loss=0.1974  lr=2.50e-04  wd=0.0427  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1350/2343] loss=0.1985  lr=2.50e-04  wd=0.0428  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1400/2343] loss=0.1937  lr=2.50e-04  wd=0.0428  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1450/2343] loss=0.2016  lr=2.50e-04  wd=0.0428  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1500/2343] loss=0.1962  lr=2.50e-04  wd=0.0428  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1550/2343] loss=0.2047  lr=2.50e-04  wd=0.0428  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1600/2343] loss=0.1850  lr=2.50e-04  wd=0.0429  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1650/2343] loss=0.2028  lr=2.50e-04  wd=0.0429  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1700/2343] loss=0.2034  lr=2.50e-04  wd=0.0429  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1750/2343] loss=0.2227  lr=2.50e-04  wd=0.0429  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1800/2343] loss=0.1765  lr=2.50e-04  wd=0.0430  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1850/2343] loss=0.2082  lr=2.50e-04  wd=0.0430  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1900/2343] loss=0.1840  lr=2.50e-04  wd=0.0430  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 1950/2343] loss=0.1912  lr=2.50e-04  wd=0.0430  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 2000/2343] loss=0.2134  lr=2.50e-04  wd=0.0430  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 2050/2343] loss=0.1868  lr=2.50e-04  wd=0.0431  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 2100/2343] loss=0.1941  lr=2.50e-04  wd=0.0431  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 2150/2343] loss=0.2058  lr=2.50e-04  wd=0.0431  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 2200/2343] loss=0.1893  lr=2.50e-04  wd=0.0431  ema=0.99603  gpu=11996MB
+  [Epoch 6/100 | Iter 2250/2343] loss=0.2021  lr=2.50e-04  wd=0.0432  ema=0.99604  gpu=11996MB
+  [Epoch 6/100 | Iter 2300/2343] loss=0.1997  lr=2.50e-04  wd=0.0432  ema=0.99604  gpu=11996MB
+  [DIAG] Epoch 6: cos_sim=0.7140 (min=0.0309 max=0.9768) l2_dist=18.7178  rep_diversity=0.7518 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 36, 768]) h shape=torch.Size([256, 36, 768]) num_patches=256
+  train_eval_loss=0.200243
+Epoch 6/100  (4328s)  train_loss=0.1919  val_loss=0.2028
+  [Epoch 7/100 | Iter 50/2343] loss=0.1888  lr=2.50e-04  wd=0.0432  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 100/2343] loss=0.1955  lr=2.50e-04  wd=0.0432  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 150/2343] loss=0.1805  lr=2.50e-04  wd=0.0433  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 200/2343] loss=0.2304  lr=2.50e-04  wd=0.0433  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 250/2343] loss=0.2351  lr=2.50e-04  wd=0.0433  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 300/2343] loss=0.2083  lr=2.50e-04  wd=0.0433  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 350/2343] loss=0.2263  lr=2.50e-04  wd=0.0434  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 400/2343] loss=0.1991  lr=2.50e-04  wd=0.0434  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 450/2343] loss=0.1973  lr=2.50e-04  wd=0.0434  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 500/2343] loss=0.2104  lr=2.50e-04  wd=0.0434  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 550/2343] loss=0.1995  lr=2.50e-04  wd=0.0434  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 600/2343] loss=0.2057  lr=2.50e-04  wd=0.0435  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 650/2343] loss=0.1931  lr=2.50e-04  wd=0.0435  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 700/2343] loss=0.1868  lr=2.50e-04  wd=0.0435  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 750/2343] loss=0.2256  lr=2.50e-04  wd=0.0435  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 800/2343] loss=0.1887  lr=2.50e-04  wd=0.0436  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 850/2343] loss=0.2487  lr=2.50e-04  wd=0.0436  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 900/2343] loss=0.2051  lr=2.50e-04  wd=0.0436  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 950/2343] loss=0.2028  lr=2.50e-04  wd=0.0436  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1000/2343] loss=0.2008  lr=2.50e-04  wd=0.0437  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1050/2343] loss=0.1868  lr=2.50e-04  wd=0.0437  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1100/2343] loss=0.2056  lr=2.50e-04  wd=0.0437  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1150/2343] loss=0.2149  lr=2.50e-04  wd=0.0437  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1200/2343] loss=0.2249  lr=2.50e-04  wd=0.0438  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1250/2343] loss=0.2072  lr=2.50e-04  wd=0.0438  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1300/2343] loss=0.2260  lr=2.50e-04  wd=0.0438  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1350/2343] loss=0.2083  lr=2.50e-04  wd=0.0438  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1400/2343] loss=0.1878  lr=2.50e-04  wd=0.0439  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1450/2343] loss=0.1802  lr=2.50e-04  wd=0.0439  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1500/2343] loss=0.1945  lr=2.50e-04  wd=0.0439  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1550/2343] loss=0.2068  lr=2.50e-04  wd=0.0439  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1600/2343] loss=0.2021  lr=2.50e-04  wd=0.0440  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1650/2343] loss=0.2042  lr=2.50e-04  wd=0.0440  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1700/2343] loss=0.2063  lr=2.50e-04  wd=0.0440  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1750/2343] loss=0.1877  lr=2.50e-04  wd=0.0440  ema=0.99604  gpu=11996MB
+  [Epoch 7/100 | Iter 1800/2343] loss=0.2139  lr=2.50e-04  wd=0.0441  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 1850/2343] loss=0.2180  lr=2.50e-04  wd=0.0441  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 1900/2343] loss=0.2204  lr=2.50e-04  wd=0.0441  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 1950/2343] loss=0.2093  lr=2.50e-04  wd=0.0441  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2000/2343] loss=0.1926  lr=2.50e-04  wd=0.0442  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2050/2343] loss=0.2333  lr=2.50e-04  wd=0.0442  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2100/2343] loss=0.2272  lr=2.50e-04  wd=0.0442  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2150/2343] loss=0.2430  lr=2.50e-04  wd=0.0442  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2200/2343] loss=0.2119  lr=2.50e-04  wd=0.0443  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2250/2343] loss=0.2032  lr=2.50e-04  wd=0.0443  ema=0.99605  gpu=11996MB
+  [Epoch 7/100 | Iter 2300/2343] loss=0.2183  lr=2.50e-04  wd=0.0443  ema=0.99605  gpu=11996MB
+  [DIAG] Epoch 7: cos_sim=0.7239 (min=-0.0122 max=0.9799) l2_dist=18.1790  rep_diversity=0.7458 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 40, 768]) h shape=torch.Size([256, 40, 768]) num_patches=256
+  train_eval_loss=0.210708
+Epoch 7/100  (4308s)  train_loss=0.2084  val_loss=0.2132
+  [Epoch 8/100 | Iter 50/2343] loss=0.2238  lr=2.50e-04  wd=0.0444  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 100/2343] loss=0.2097  lr=2.50e-04  wd=0.0444  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 150/2343] loss=0.2075  lr=2.50e-04  wd=0.0444  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 200/2343] loss=0.2109  lr=2.50e-04  wd=0.0444  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 250/2343] loss=0.2279  lr=2.50e-04  wd=0.0445  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 300/2343] loss=0.2099  lr=2.50e-04  wd=0.0445  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 350/2343] loss=0.2299  lr=2.50e-04  wd=0.0445  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 400/2343] loss=0.2256  lr=2.50e-04  wd=0.0446  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 450/2343] loss=0.1823  lr=2.50e-04  wd=0.0446  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 500/2343] loss=0.2369  lr=2.50e-04  wd=0.0446  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 550/2343] loss=0.2239  lr=2.50e-04  wd=0.0446  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 600/2343] loss=0.2260  lr=2.50e-04  wd=0.0447  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 650/2343] loss=0.2090  lr=2.50e-04  wd=0.0447  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 700/2343] loss=0.2135  lr=2.50e-04  wd=0.0447  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 750/2343] loss=0.2135  lr=2.50e-04  wd=0.0447  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 800/2343] loss=0.2083  lr=2.50e-04  wd=0.0448  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 850/2343] loss=0.2297  lr=2.50e-04  wd=0.0448  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 900/2343] loss=0.1871  lr=2.50e-04  wd=0.0448  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 950/2343] loss=0.2123  lr=2.50e-04  wd=0.0449  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 1000/2343] loss=0.2157  lr=2.50e-04  wd=0.0449  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 1050/2343] loss=0.2018  lr=2.50e-04  wd=0.0449  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 1100/2343] loss=0.2010  lr=2.50e-04  wd=0.0449  ema=0.99605  gpu=11996MB
+  [Epoch 8/100 | Iter 1150/2343] loss=0.2221  lr=2.50e-04  wd=0.0450  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1200/2343] loss=0.2081  lr=2.50e-04  wd=0.0450  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1250/2343] loss=0.1953  lr=2.50e-04  wd=0.0450  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1300/2343] loss=0.2349  lr=2.50e-04  wd=0.0451  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1350/2343] loss=0.2167  lr=2.50e-04  wd=0.0451  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1400/2343] loss=0.2366  lr=2.50e-04  wd=0.0451  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1450/2343] loss=0.2115  lr=2.50e-04  wd=0.0451  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1500/2343] loss=0.2000  lr=2.50e-04  wd=0.0452  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1550/2343] loss=0.2167  lr=2.50e-04  wd=0.0452  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1600/2343] loss=0.1991  lr=2.50e-04  wd=0.0452  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1650/2343] loss=0.2177  lr=2.50e-04  wd=0.0453  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1700/2343] loss=0.2116  lr=2.49e-04  wd=0.0453  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1750/2343] loss=0.2153  lr=2.49e-04  wd=0.0453  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1800/2343] loss=0.2165  lr=2.49e-04  wd=0.0453  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1850/2343] loss=0.2171  lr=2.49e-04  wd=0.0454  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1900/2343] loss=0.2319  lr=2.49e-04  wd=0.0454  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 1950/2343] loss=0.2208  lr=2.49e-04  wd=0.0454  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2000/2343] loss=0.2185  lr=2.49e-04  wd=0.0455  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2050/2343] loss=0.2106  lr=2.49e-04  wd=0.0455  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2100/2343] loss=0.1973  lr=2.49e-04  wd=0.0455  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2150/2343] loss=0.2172  lr=2.49e-04  wd=0.0455  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2200/2343] loss=0.2177  lr=2.49e-04  wd=0.0456  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2250/2343] loss=0.2350  lr=2.49e-04  wd=0.0456  ema=0.99606  gpu=11996MB
+  [Epoch 8/100 | Iter 2300/2343] loss=0.2077  lr=2.49e-04  wd=0.0456  ema=0.99606  gpu=11996MB
+  [DIAG] Epoch 8: cos_sim=0.6897 (min=-0.0437 max=0.9802) l2_dist=19.1025  rep_diversity=0.7002 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 35, 768]) h shape=torch.Size([256, 35, 768]) num_patches=256
+  train_eval_loss=0.221503
+Epoch 8/100  (4330s)  train_loss=0.2154  val_loss=0.2210
+  [Epoch 9/100 | Iter 50/2343] loss=0.2217  lr=2.49e-04  wd=0.0457  ema=0.99606  gpu=11996MB
+  [Epoch 9/100 | Iter 100/2343] loss=0.2256  lr=2.49e-04  wd=0.0457  ema=0.99606  gpu=11996MB
+  [Epoch 9/100 | Iter 150/2343] loss=0.2227  lr=2.49e-04  wd=0.0458  ema=0.99606  gpu=11996MB
+  [Epoch 9/100 | Iter 200/2343] loss=0.2397  lr=2.49e-04  wd=0.0458  ema=0.99606  gpu=11996MB
+  [Epoch 9/100 | Iter 250/2343] loss=0.2275  lr=2.49e-04  wd=0.0458  ema=0.99606  gpu=11996MB
+  [Epoch 9/100 | Iter 300/2343] loss=0.2271  lr=2.49e-04  wd=0.0458  ema=0.99606  gpu=11996MB
+  [Epoch 9/100 | Iter 350/2343] loss=0.2322  lr=2.49e-04  wd=0.0459  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 400/2343] loss=0.2151  lr=2.49e-04  wd=0.0459  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 450/2343] loss=0.2164  lr=2.49e-04  wd=0.0459  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 500/2343] loss=0.2443  lr=2.49e-04  wd=0.0460  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 550/2343] loss=0.2090  lr=2.49e-04  wd=0.0460  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 600/2343] loss=0.2084  lr=2.49e-04  wd=0.0460  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 650/2343] loss=0.1757  lr=2.49e-04  wd=0.0461  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 700/2343] loss=0.2504  lr=2.49e-04  wd=0.0461  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 750/2343] loss=0.2309  lr=2.49e-04  wd=0.0461  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 800/2343] loss=0.2325  lr=2.49e-04  wd=0.0462  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 850/2343] loss=0.2353  lr=2.49e-04  wd=0.0462  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 900/2343] loss=0.2259  lr=2.49e-04  wd=0.0462  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 950/2343] loss=0.2537  lr=2.49e-04  wd=0.0462  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1000/2343] loss=0.2287  lr=2.49e-04  wd=0.0463  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1050/2343] loss=0.2081  lr=2.49e-04  wd=0.0463  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1100/2343] loss=0.2156  lr=2.49e-04  wd=0.0463  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1150/2343] loss=0.2310  lr=2.49e-04  wd=0.0464  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1200/2343] loss=0.2164  lr=2.49e-04  wd=0.0464  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1250/2343] loss=0.2371  lr=2.49e-04  wd=0.0464  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1300/2343] loss=0.2196  lr=2.49e-04  wd=0.0465  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1350/2343] loss=0.2122  lr=2.49e-04  wd=0.0465  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1400/2343] loss=0.2400  lr=2.49e-04  wd=0.0465  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1450/2343] loss=0.2385  lr=2.49e-04  wd=0.0466  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1500/2343] loss=0.2279  lr=2.49e-04  wd=0.0466  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1550/2343] loss=0.2204  lr=2.49e-04  wd=0.0466  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1600/2343] loss=0.2247  lr=2.49e-04  wd=0.0467  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1650/2343] loss=0.2317  lr=2.49e-04  wd=0.0467  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1700/2343] loss=0.2413  lr=2.49e-04  wd=0.0467  ema=0.99607  gpu=11996MB
+  [Epoch 9/100 | Iter 1750/2343] loss=0.2134  lr=2.49e-04  wd=0.0468  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 1800/2343] loss=0.2269  lr=2.49e-04  wd=0.0468  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 1850/2343] loss=0.2364  lr=2.49e-04  wd=0.0468  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 1900/2343] loss=0.2289  lr=2.49e-04  wd=0.0469  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 1950/2343] loss=0.2124  lr=2.49e-04  wd=0.0469  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2000/2343] loss=0.2132  lr=2.49e-04  wd=0.0469  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2050/2343] loss=0.2188  lr=2.49e-04  wd=0.0470  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2100/2343] loss=0.2159  lr=2.49e-04  wd=0.0470  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2150/2343] loss=0.2373  lr=2.49e-04  wd=0.0470  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2200/2343] loss=0.2510  lr=2.49e-04  wd=0.0471  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2250/2343] loss=0.2401  lr=2.49e-04  wd=0.0471  ema=0.99608  gpu=11996MB
+  [Epoch 9/100 | Iter 2300/2343] loss=0.2038  lr=2.49e-04  wd=0.0471  ema=0.99608  gpu=11996MB
+  [DIAG] Epoch 9: cos_sim=0.6766 (min=-0.0045 max=0.9633) l2_dist=19.7791  rep_diversity=0.7405 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 40, 768]) h shape=torch.Size([256, 40, 768]) num_patches=256
+  train_eval_loss=0.233710
+Epoch 9/100  (4339s)  train_loss=0.2254  val_loss=0.2339
+  [Epoch 10/100 | Iter 50/2343] loss=0.2185  lr=2.49e-04  wd=0.0472  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 100/2343] loss=0.1998  lr=2.49e-04  wd=0.0472  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 150/2343] loss=0.2248  lr=2.49e-04  wd=0.0473  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 200/2343] loss=0.2127  lr=2.49e-04  wd=0.0473  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 250/2343] loss=0.2169  lr=2.49e-04  wd=0.0473  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 300/2343] loss=0.2323  lr=2.49e-04  wd=0.0474  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 350/2343] loss=0.2451  lr=2.49e-04  wd=0.0474  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 400/2343] loss=0.2510  lr=2.49e-04  wd=0.0474  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 450/2343] loss=0.2159  lr=2.49e-04  wd=0.0475  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 500/2343] loss=0.2175  lr=2.49e-04  wd=0.0475  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 550/2343] loss=0.2236  lr=2.49e-04  wd=0.0475  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 600/2343] loss=0.2314  lr=2.49e-04  wd=0.0476  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 650/2343] loss=0.2431  lr=2.49e-04  wd=0.0476  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 700/2343] loss=0.2454  lr=2.49e-04  wd=0.0476  ema=0.99608  gpu=11996MB
+  [Epoch 10/100 | Iter 750/2343] loss=0.2495  lr=2.49e-04  wd=0.0477  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 800/2343] loss=0.2307  lr=2.49e-04  wd=0.0477  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 850/2343] loss=0.2650  lr=2.49e-04  wd=0.0477  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 900/2343] loss=0.2362  lr=2.49e-04  wd=0.0478  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 950/2343] loss=0.2425  lr=2.49e-04  wd=0.0478  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1000/2343] loss=0.2315  lr=2.49e-04  wd=0.0478  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1050/2343] loss=0.2341  lr=2.49e-04  wd=0.0479  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1100/2343] loss=0.2400  lr=2.49e-04  wd=0.0479  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1150/2343] loss=0.2526  lr=2.49e-04  wd=0.0480  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1200/2343] loss=0.2421  lr=2.49e-04  wd=0.0480  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1250/2343] loss=0.2355  lr=2.49e-04  wd=0.0480  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1300/2343] loss=0.2246  lr=2.49e-04  wd=0.0481  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1350/2343] loss=0.2172  lr=2.49e-04  wd=0.0481  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1400/2343] loss=0.2460  lr=2.49e-04  wd=0.0481  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1450/2343] loss=0.2545  lr=2.49e-04  wd=0.0482  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1500/2343] loss=0.2497  lr=2.49e-04  wd=0.0482  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1550/2343] loss=0.2252  lr=2.49e-04  wd=0.0482  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1600/2343] loss=0.2408  lr=2.49e-04  wd=0.0483  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1650/2343] loss=0.2526  lr=2.48e-04  wd=0.0483  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1700/2343] loss=0.2482  lr=2.48e-04  wd=0.0483  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1750/2343] loss=0.2537  lr=2.48e-04  wd=0.0484  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1800/2343] loss=0.2377  lr=2.48e-04  wd=0.0484  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1850/2343] loss=0.2253  lr=2.48e-04  wd=0.0485  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1900/2343] loss=0.2579  lr=2.48e-04  wd=0.0485  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 1950/2343] loss=0.2316  lr=2.48e-04  wd=0.0485  ema=0.99609  gpu=11996MB
+  [Epoch 10/100 | Iter 2000/2343] loss=0.2307  lr=2.48e-04  wd=0.0486  ema=0.99610  gpu=11996MB
+  [Epoch 10/100 | Iter 2050/2343] loss=0.2450  lr=2.48e-04  wd=0.0486  ema=0.99610  gpu=11996MB
+  [Epoch 10/100 | Iter 2100/2343] loss=0.2374  lr=2.48e-04  wd=0.0486  ema=0.99610  gpu=11996MB
+  [Epoch 10/100 | Iter 2150/2343] loss=0.2273  lr=2.48e-04  wd=0.0487  ema=0.99610  gpu=11996MB
+  [Epoch 10/100 | Iter 2200/2343] loss=0.2240  lr=2.48e-04  wd=0.0487  ema=0.99610  gpu=11996MB
+  [Epoch 10/100 | Iter 2250/2343] loss=0.2674  lr=2.48e-04  wd=0.0488  ema=0.99610  gpu=11996MB
+  [Epoch 10/100 | Iter 2300/2343] loss=0.2501  lr=2.48e-04  wd=0.0488  ema=0.99610  gpu=11996MB
+  [DIAG] Epoch 10: cos_sim=0.6865 (min=0.0829 max=0.9762) l2_dist=19.3988  rep_diversity=0.6296 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.236142
+Epoch 10/100  (4329s)  train_loss=0.2372  val_loss=0.2364
+  Uploading jepa_patch-log.csv (3,449,511 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/jepa_patch-log.csv
+  Upload OK: jepa_patch-log.csv
+  [Epoch 11/100 | Iter 50/2343] loss=0.2253  lr=2.48e-04  wd=0.0489  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 100/2343] loss=0.2259  lr=2.48e-04  wd=0.0489  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 150/2343] loss=0.2402  lr=2.48e-04  wd=0.0489  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 200/2343] loss=0.2684  lr=2.48e-04  wd=0.0490  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 250/2343] loss=0.2502  lr=2.48e-04  wd=0.0490  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 300/2343] loss=0.2443  lr=2.48e-04  wd=0.0490  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 350/2343] loss=0.2410  lr=2.48e-04  wd=0.0491  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 400/2343] loss=0.2122  lr=2.48e-04  wd=0.0491  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 450/2343] loss=0.2221  lr=2.48e-04  wd=0.0492  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 500/2343] loss=0.2453  lr=2.48e-04  wd=0.0492  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 550/2343] loss=0.2230  lr=2.48e-04  wd=0.0492  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 600/2343] loss=0.2275  lr=2.48e-04  wd=0.0493  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 650/2343] loss=0.2468  lr=2.48e-04  wd=0.0493  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 700/2343] loss=0.2300  lr=2.48e-04  wd=0.0494  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 750/2343] loss=0.2293  lr=2.48e-04  wd=0.0494  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 800/2343] loss=0.2459  lr=2.48e-04  wd=0.0494  ema=0.99610  gpu=11996MB
+  [Epoch 11/100 | Iter 850/2343] loss=0.2515  lr=2.48e-04  wd=0.0495  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 900/2343] loss=0.2430  lr=2.48e-04  wd=0.0495  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 950/2343] loss=0.2199  lr=2.48e-04  wd=0.0495  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1000/2343] loss=0.2464  lr=2.48e-04  wd=0.0496  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1050/2343] loss=0.2364  lr=2.48e-04  wd=0.0496  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1100/2343] loss=0.2464  lr=2.48e-04  wd=0.0497  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1150/2343] loss=0.2665  lr=2.48e-04  wd=0.0497  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1200/2343] loss=0.2476  lr=2.48e-04  wd=0.0497  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1250/2343] loss=0.2343  lr=2.48e-04  wd=0.0498  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1300/2343] loss=0.2209  lr=2.48e-04  wd=0.0498  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1350/2343] loss=0.2242  lr=2.48e-04  wd=0.0499  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1400/2343] loss=0.2441  lr=2.48e-04  wd=0.0499  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1450/2343] loss=0.2311  lr=2.48e-04  wd=0.0499  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1500/2343] loss=0.2319  lr=2.48e-04  wd=0.0500  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1550/2343] loss=0.2382  lr=2.48e-04  wd=0.0500  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1600/2343] loss=0.2510  lr=2.48e-04  wd=0.0501  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1650/2343] loss=0.2276  lr=2.48e-04  wd=0.0501  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1700/2343] loss=0.2446  lr=2.48e-04  wd=0.0501  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1750/2343] loss=0.2531  lr=2.48e-04  wd=0.0502  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1800/2343] loss=0.2187  lr=2.48e-04  wd=0.0502  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1850/2343] loss=0.2397  lr=2.48e-04  wd=0.0503  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1900/2343] loss=0.2208  lr=2.48e-04  wd=0.0503  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 1950/2343] loss=0.2395  lr=2.48e-04  wd=0.0503  ema=0.99611  gpu=11996MB
+  [Epoch 11/100 | Iter 2000/2343] loss=0.2589  lr=2.48e-04  wd=0.0504  ema=0.99612  gpu=11996MB
+  [Epoch 11/100 | Iter 2050/2343] loss=0.2517  lr=2.48e-04  wd=0.0504  ema=0.99612  gpu=11996MB
+  [Epoch 11/100 | Iter 2100/2343] loss=0.2542  lr=2.48e-04  wd=0.0505  ema=0.99612  gpu=11996MB
+  [Epoch 11/100 | Iter 2150/2343] loss=0.2234  lr=2.48e-04  wd=0.0505  ema=0.99612  gpu=11996MB
+  [Epoch 11/100 | Iter 2200/2343] loss=0.2518  lr=2.48e-04  wd=0.0505  ema=0.99612  gpu=11996MB
+  [Epoch 11/100 | Iter 2250/2343] loss=0.2591  lr=2.48e-04  wd=0.0506  ema=0.99612  gpu=11996MB
+  [Epoch 11/100 | Iter 2300/2343] loss=0.2393  lr=2.48e-04  wd=0.0506  ema=0.99612  gpu=11996MB
+  [DIAG] Epoch 11: cos_sim=0.6671 (min=0.0548 max=0.9563) l2_dist=19.9374  rep_diversity=0.6671 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 40, 768]) h shape=torch.Size([256, 40, 768]) num_patches=256
+  train_eval_loss=0.246045
+Epoch 11/100  (4335s)  train_loss=0.2412  val_loss=0.2474
+  [Epoch 12/100 | Iter 50/2343] loss=0.2310  lr=2.48e-04  wd=0.0507  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 100/2343] loss=0.2449  lr=2.48e-04  wd=0.0507  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 150/2343] loss=0.2411  lr=2.47e-04  wd=0.0508  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 200/2343] loss=0.2582  lr=2.47e-04  wd=0.0508  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 250/2343] loss=0.2392  lr=2.47e-04  wd=0.0509  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 300/2343] loss=0.2469  lr=2.47e-04  wd=0.0509  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 350/2343] loss=0.2433  lr=2.47e-04  wd=0.0509  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 400/2343] loss=0.2447  lr=2.47e-04  wd=0.0510  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 450/2343] loss=0.2376  lr=2.47e-04  wd=0.0510  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 500/2343] loss=0.2764  lr=2.47e-04  wd=0.0511  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 550/2343] loss=0.2000  lr=2.47e-04  wd=0.0511  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 600/2343] loss=0.2486  lr=2.47e-04  wd=0.0512  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 650/2343] loss=0.2400  lr=2.47e-04  wd=0.0512  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 700/2343] loss=0.2731  lr=2.47e-04  wd=0.0512  ema=0.99612  gpu=11996MB
+  [Epoch 12/100 | Iter 750/2343] loss=0.2330  lr=2.47e-04  wd=0.0513  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 800/2343] loss=0.2648  lr=2.47e-04  wd=0.0513  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 850/2343] loss=0.2436  lr=2.47e-04  wd=0.0514  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 900/2343] loss=0.2713  lr=2.47e-04  wd=0.0514  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 950/2343] loss=0.2407  lr=2.47e-04  wd=0.0514  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1000/2343] loss=0.2280  lr=2.47e-04  wd=0.0515  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1050/2343] loss=0.2550  lr=2.47e-04  wd=0.0515  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1100/2343] loss=0.2747  lr=2.47e-04  wd=0.0516  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1150/2343] loss=0.2572  lr=2.47e-04  wd=0.0516  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1200/2343] loss=0.2469  lr=2.47e-04  wd=0.0517  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1250/2343] loss=0.2503  lr=2.47e-04  wd=0.0517  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1300/2343] loss=0.2713  lr=2.47e-04  wd=0.0517  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1350/2343] loss=0.2386  lr=2.47e-04  wd=0.0518  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1400/2343] loss=0.2532  lr=2.47e-04  wd=0.0518  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1450/2343] loss=0.2453  lr=2.47e-04  wd=0.0519  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1500/2343] loss=0.2434  lr=2.47e-04  wd=0.0519  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1550/2343] loss=0.2367  lr=2.47e-04  wd=0.0520  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1600/2343] loss=0.2243  lr=2.47e-04  wd=0.0520  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1650/2343] loss=0.2286  lr=2.47e-04  wd=0.0520  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1700/2343] loss=0.2348  lr=2.47e-04  wd=0.0521  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1750/2343] loss=0.2592  lr=2.47e-04  wd=0.0521  ema=0.99613  gpu=11996MB
+  [Epoch 12/100 | Iter 1800/2343] loss=0.2373  lr=2.47e-04  wd=0.0522  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 1850/2343] loss=0.2638  lr=2.47e-04  wd=0.0522  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 1900/2343] loss=0.2372  lr=2.47e-04  wd=0.0523  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 1950/2343] loss=0.2619  lr=2.47e-04  wd=0.0523  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2000/2343] loss=0.2438  lr=2.47e-04  wd=0.0524  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2050/2343] loss=0.2404  lr=2.47e-04  wd=0.0524  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2100/2343] loss=0.2891  lr=2.47e-04  wd=0.0524  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2150/2343] loss=0.2577  lr=2.47e-04  wd=0.0525  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2200/2343] loss=0.2623  lr=2.47e-04  wd=0.0525  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2250/2343] loss=0.2509  lr=2.47e-04  wd=0.0526  ema=0.99614  gpu=11996MB
+  [Epoch 12/100 | Iter 2300/2343] loss=0.2405  lr=2.47e-04  wd=0.0526  ema=0.99614  gpu=11996MB
+  [DIAG] Epoch 12: cos_sim=0.6519 (min=0.0308 max=0.9595) l2_dist=20.3424  rep_diversity=0.6509 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.253332
+Epoch 12/100  (4324s)  train_loss=0.2499  val_loss=0.2514
+  [Epoch 13/100 | Iter 50/2343] loss=0.2658  lr=2.47e-04  wd=0.0527  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 100/2343] loss=0.2353  lr=2.47e-04  wd=0.0527  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 150/2343] loss=0.2524  lr=2.47e-04  wd=0.0528  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 200/2343] loss=0.2493  lr=2.47e-04  wd=0.0528  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 250/2343] loss=0.2452  lr=2.47e-04  wd=0.0529  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 300/2343] loss=0.2761  lr=2.47e-04  wd=0.0529  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 350/2343] loss=0.2622  lr=2.47e-04  wd=0.0530  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 400/2343] loss=0.2766  lr=2.47e-04  wd=0.0530  ema=0.99614  gpu=11996MB
+  [Epoch 13/100 | Iter 450/2343] loss=0.2580  lr=2.46e-04  wd=0.0531  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 500/2343] loss=0.2742  lr=2.46e-04  wd=0.0531  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 550/2343] loss=0.2104  lr=2.46e-04  wd=0.0532  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 600/2343] loss=0.2576  lr=2.46e-04  wd=0.0532  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 650/2343] loss=0.2713  lr=2.46e-04  wd=0.0532  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 700/2343] loss=0.2331  lr=2.46e-04  wd=0.0533  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 750/2343] loss=0.2617  lr=2.46e-04  wd=0.0533  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 800/2343] loss=0.2383  lr=2.46e-04  wd=0.0534  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 850/2343] loss=0.2767  lr=2.46e-04  wd=0.0534  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 900/2343] loss=0.2322  lr=2.46e-04  wd=0.0535  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 950/2343] loss=0.2504  lr=2.46e-04  wd=0.0535  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1000/2343] loss=0.2641  lr=2.46e-04  wd=0.0536  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1050/2343] loss=0.2295  lr=2.46e-04  wd=0.0536  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1100/2343] loss=0.2548  lr=2.46e-04  wd=0.0537  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1150/2343] loss=0.2716  lr=2.46e-04  wd=0.0537  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1200/2343] loss=0.2586  lr=2.46e-04  wd=0.0537  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1250/2343] loss=0.2646  lr=2.46e-04  wd=0.0538  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1300/2343] loss=0.2218  lr=2.46e-04  wd=0.0538  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1350/2343] loss=0.2306  lr=2.46e-04  wd=0.0539  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1400/2343] loss=0.2624  lr=2.46e-04  wd=0.0539  ema=0.99615  gpu=11996MB
+  [Epoch 13/100 | Iter 1450/2343] loss=0.2517  lr=2.46e-04  wd=0.0540  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1500/2343] loss=0.2545  lr=2.46e-04  wd=0.0540  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1550/2343] loss=0.2635  lr=2.46e-04  wd=0.0541  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1600/2343] loss=0.2722  lr=2.46e-04  wd=0.0541  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1650/2343] loss=0.2352  lr=2.46e-04  wd=0.0542  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1700/2343] loss=0.2584  lr=2.46e-04  wd=0.0542  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1750/2343] loss=0.2666  lr=2.46e-04  wd=0.0543  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1800/2343] loss=0.2590  lr=2.46e-04  wd=0.0543  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1850/2343] loss=0.2757  lr=2.46e-04  wd=0.0544  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1900/2343] loss=0.2620  lr=2.46e-04  wd=0.0544  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 1950/2343] loss=0.2652  lr=2.46e-04  wd=0.0545  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2000/2343] loss=0.2355  lr=2.46e-04  wd=0.0545  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2050/2343] loss=0.2486  lr=2.46e-04  wd=0.0545  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2100/2343] loss=0.2744  lr=2.46e-04  wd=0.0546  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2150/2343] loss=0.2588  lr=2.46e-04  wd=0.0546  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2200/2343] loss=0.2509  lr=2.46e-04  wd=0.0547  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2250/2343] loss=0.2727  lr=2.46e-04  wd=0.0547  ema=0.99616  gpu=11996MB
+  [Epoch 13/100 | Iter 2300/2343] loss=0.2647  lr=2.46e-04  wd=0.0548  ema=0.99616  gpu=11996MB
+  [DIAG] Epoch 13: cos_sim=0.6162 (min=-0.0335 max=0.9562) l2_dist=21.1625  rep_diversity=0.8014 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 40, 768]) h shape=torch.Size([256, 40, 768]) num_patches=256
+  train_eval_loss=0.255574
+Epoch 13/100  (4348s)  train_loss=0.2514  val_loss=0.2561
+  [Epoch 14/100 | Iter 50/2343] loss=0.2526  lr=2.46e-04  wd=0.0549  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 100/2343] loss=0.2603  lr=2.46e-04  wd=0.0549  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 150/2343] loss=0.2354  lr=2.46e-04  wd=0.0550  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 200/2343] loss=0.2699  lr=2.46e-04  wd=0.0550  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 250/2343] loss=0.2443  lr=2.46e-04  wd=0.0551  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 300/2343] loss=0.2458  lr=2.46e-04  wd=0.0551  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 350/2343] loss=0.2380  lr=2.45e-04  wd=0.0552  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 400/2343] loss=0.2535  lr=2.45e-04  wd=0.0552  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 450/2343] loss=0.2755  lr=2.45e-04  wd=0.0553  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 500/2343] loss=0.2651  lr=2.45e-04  wd=0.0553  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 550/2343] loss=0.2512  lr=2.45e-04  wd=0.0554  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 600/2343] loss=0.2818  lr=2.45e-04  wd=0.0554  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 650/2343] loss=0.2497  lr=2.45e-04  wd=0.0555  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 700/2343] loss=0.2594  lr=2.45e-04  wd=0.0555  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 750/2343] loss=0.2698  lr=2.45e-04  wd=0.0556  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 800/2343] loss=0.2714  lr=2.45e-04  wd=0.0556  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 850/2343] loss=0.2548  lr=2.45e-04  wd=0.0557  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 900/2343] loss=0.2362  lr=2.45e-04  wd=0.0557  ema=0.99617  gpu=11996MB
+  [Epoch 14/100 | Iter 950/2343] loss=0.2709  lr=2.45e-04  wd=0.0558  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1000/2343] loss=0.2423  lr=2.45e-04  wd=0.0558  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1050/2343] loss=0.2796  lr=2.45e-04  wd=0.0559  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1100/2343] loss=0.2529  lr=2.45e-04  wd=0.0559  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1150/2343] loss=0.2364  lr=2.45e-04  wd=0.0560  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1200/2343] loss=0.2455  lr=2.45e-04  wd=0.0560  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1250/2343] loss=0.2596  lr=2.45e-04  wd=0.0560  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1300/2343] loss=0.2615  lr=2.45e-04  wd=0.0561  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1350/2343] loss=0.2689  lr=2.45e-04  wd=0.0561  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1400/2343] loss=0.2635  lr=2.45e-04  wd=0.0562  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1450/2343] loss=0.2753  lr=2.45e-04  wd=0.0562  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1500/2343] loss=0.2410  lr=2.45e-04  wd=0.0563  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1550/2343] loss=0.2495  lr=2.45e-04  wd=0.0564  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1600/2343] loss=0.2697  lr=2.45e-04  wd=0.0564  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1650/2343] loss=0.2902  lr=2.45e-04  wd=0.0565  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1700/2343] loss=0.2600  lr=2.45e-04  wd=0.0565  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1750/2343] loss=0.2555  lr=2.45e-04  wd=0.0566  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1800/2343] loss=0.2442  lr=2.45e-04  wd=0.0566  ema=0.99618  gpu=11996MB
+  [Epoch 14/100 | Iter 1850/2343] loss=0.2551  lr=2.45e-04  wd=0.0567  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 1900/2343] loss=0.2580  lr=2.45e-04  wd=0.0567  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 1950/2343] loss=0.2787  lr=2.45e-04  wd=0.0568  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2000/2343] loss=0.2664  lr=2.45e-04  wd=0.0568  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2050/2343] loss=0.2778  lr=2.45e-04  wd=0.0569  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2100/2343] loss=0.2556  lr=2.45e-04  wd=0.0569  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2150/2343] loss=0.2450  lr=2.45e-04  wd=0.0570  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2200/2343] loss=0.2581  lr=2.45e-04  wd=0.0570  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2250/2343] loss=0.2410  lr=2.45e-04  wd=0.0571  ema=0.99619  gpu=11996MB
+  [Epoch 14/100 | Iter 2300/2343] loss=0.2650  lr=2.45e-04  wd=0.0571  ema=0.99619  gpu=11996MB
+  [DIAG] Epoch 14: cos_sim=0.6169 (min=0.0060 max=0.9716) l2_dist=21.0761  rep_diversity=0.6033 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.250948
+Epoch 14/100  (4361s)  train_loss=0.2554  val_loss=0.2536
+  [Epoch 15/100 | Iter 50/2343] loss=0.2588  lr=2.44e-04  wd=0.0572  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 100/2343] loss=0.2229  lr=2.44e-04  wd=0.0573  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 150/2343] loss=0.2624  lr=2.44e-04  wd=0.0573  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 200/2343] loss=0.2736  lr=2.44e-04  wd=0.0574  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 250/2343] loss=0.2680  lr=2.44e-04  wd=0.0574  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 300/2343] loss=0.2537  lr=2.44e-04  wd=0.0575  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 350/2343] loss=0.2556  lr=2.44e-04  wd=0.0575  ema=0.99619  gpu=11996MB
+  [Epoch 15/100 | Iter 400/2343] loss=0.2599  lr=2.44e-04  wd=0.0576  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 450/2343] loss=0.2401  lr=2.44e-04  wd=0.0576  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 500/2343] loss=0.2482  lr=2.44e-04  wd=0.0577  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 550/2343] loss=0.2764  lr=2.44e-04  wd=0.0577  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 600/2343] loss=0.2731  lr=2.44e-04  wd=0.0578  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 650/2343] loss=0.2511  lr=2.44e-04  wd=0.0578  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 700/2343] loss=0.2668  lr=2.44e-04  wd=0.0579  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 750/2343] loss=0.2487  lr=2.44e-04  wd=0.0579  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 800/2343] loss=0.2737  lr=2.44e-04  wd=0.0580  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 850/2343] loss=0.2718  lr=2.44e-04  wd=0.0580  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 900/2343] loss=0.2607  lr=2.44e-04  wd=0.0581  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 950/2343] loss=0.2437  lr=2.44e-04  wd=0.0581  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 1000/2343] loss=0.2538  lr=2.44e-04  wd=0.0582  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 1050/2343] loss=0.2599  lr=2.44e-04  wd=0.0583  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 1100/2343] loss=0.2677  lr=2.44e-04  wd=0.0583  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 1150/2343] loss=0.2719  lr=2.44e-04  wd=0.0584  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 1200/2343] loss=0.2510  lr=2.44e-04  wd=0.0584  ema=0.99620  gpu=11996MB
+  [Epoch 15/100 | Iter 1250/2343] loss=0.2542  lr=2.44e-04  wd=0.0585  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1300/2343] loss=0.2243  lr=2.44e-04  wd=0.0585  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1350/2343] loss=0.2575  lr=2.44e-04  wd=0.0586  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1400/2343] loss=0.2743  lr=2.44e-04  wd=0.0586  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1450/2343] loss=0.2599  lr=2.44e-04  wd=0.0587  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1500/2343] loss=0.2473  lr=2.44e-04  wd=0.0587  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1550/2343] loss=0.2789  lr=2.44e-04  wd=0.0588  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1600/2343] loss=0.2774  lr=2.44e-04  wd=0.0588  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1650/2343] loss=0.2486  lr=2.44e-04  wd=0.0589  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1700/2343] loss=0.2705  lr=2.44e-04  wd=0.0589  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1750/2343] loss=0.2403  lr=2.44e-04  wd=0.0590  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1800/2343] loss=0.2552  lr=2.44e-04  wd=0.0591  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1850/2343] loss=0.2729  lr=2.44e-04  wd=0.0591  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1900/2343] loss=0.2598  lr=2.43e-04  wd=0.0592  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 1950/2343] loss=0.2548  lr=2.43e-04  wd=0.0592  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 2000/2343] loss=0.2721  lr=2.43e-04  wd=0.0593  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 2050/2343] loss=0.2669  lr=2.43e-04  wd=0.0593  ema=0.99621  gpu=11996MB
+  [Epoch 15/100 | Iter 2100/2343] loss=0.2555  lr=2.43e-04  wd=0.0594  ema=0.99622  gpu=11996MB
+  [Epoch 15/100 | Iter 2150/2343] loss=0.2615  lr=2.43e-04  wd=0.0594  ema=0.99622  gpu=11996MB
+  [Epoch 15/100 | Iter 2200/2343] loss=0.2569  lr=2.43e-04  wd=0.0595  ema=0.99622  gpu=11996MB
+  [Epoch 15/100 | Iter 2250/2343] loss=0.2611  lr=2.43e-04  wd=0.0595  ema=0.99622  gpu=11996MB
+  [Epoch 15/100 | Iter 2300/2343] loss=0.2510  lr=2.43e-04  wd=0.0596  ema=0.99622  gpu=11996MB
+  [DIAG] Epoch 15: cos_sim=0.6827 (min=0.0444 max=0.9733) l2_dist=19.4174  rep_diversity=0.6362 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.256493
+Epoch 15/100  (4372s)  train_loss=0.2570  val_loss=0.2585
+  Uploading jepa_patch-log.csv (5,175,208 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/jepa_patch-log.csv
+  Upload OK: jepa_patch-log.csv
+  [Epoch 16/100 | Iter 50/2343] loss=0.2595  lr=2.43e-04  wd=0.0597  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 100/2343] loss=0.2505  lr=2.43e-04  wd=0.0598  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 150/2343] loss=0.2884  lr=2.43e-04  wd=0.0598  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 200/2343] loss=0.2544  lr=2.43e-04  wd=0.0599  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 250/2343] loss=0.2802  lr=2.43e-04  wd=0.0599  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 300/2343] loss=0.2457  lr=2.43e-04  wd=0.0600  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 350/2343] loss=0.2442  lr=2.43e-04  wd=0.0600  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 400/2343] loss=0.2510  lr=2.43e-04  wd=0.0601  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 450/2343] loss=0.2586  lr=2.43e-04  wd=0.0601  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 500/2343] loss=0.2432  lr=2.43e-04  wd=0.0602  ema=0.99622  gpu=11996MB
+  [Epoch 16/100 | Iter 550/2343] loss=0.2610  lr=2.43e-04  wd=0.0603  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 600/2343] loss=0.2508  lr=2.43e-04  wd=0.0603  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 650/2343] loss=0.2587  lr=2.43e-04  wd=0.0604  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 700/2343] loss=0.2410  lr=2.43e-04  wd=0.0604  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 750/2343] loss=0.2645  lr=2.43e-04  wd=0.0605  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 800/2343] loss=0.2804  lr=2.43e-04  wd=0.0605  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 850/2343] loss=0.2390  lr=2.43e-04  wd=0.0606  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 900/2343] loss=0.2554  lr=2.43e-04  wd=0.0606  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 950/2343] loss=0.2368  lr=2.43e-04  wd=0.0607  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1000/2343] loss=0.2336  lr=2.43e-04  wd=0.0608  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1050/2343] loss=0.2605  lr=2.43e-04  wd=0.0608  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1100/2343] loss=0.2407  lr=2.43e-04  wd=0.0609  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1150/2343] loss=0.2679  lr=2.43e-04  wd=0.0609  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1200/2343] loss=0.2471  lr=2.43e-04  wd=0.0610  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1250/2343] loss=0.2664  lr=2.43e-04  wd=0.0610  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1300/2343] loss=0.2626  lr=2.42e-04  wd=0.0611  ema=0.99623  gpu=11996MB
+  [Epoch 16/100 | Iter 1350/2343] loss=0.2532  lr=2.42e-04  wd=0.0612  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1400/2343] loss=0.3013  lr=2.42e-04  wd=0.0612  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1450/2343] loss=0.2771  lr=2.42e-04  wd=0.0613  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1500/2343] loss=0.2465  lr=2.42e-04  wd=0.0613  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1550/2343] loss=0.2558  lr=2.42e-04  wd=0.0614  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1600/2343] loss=0.2633  lr=2.42e-04  wd=0.0614  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1650/2343] loss=0.2546  lr=2.42e-04  wd=0.0615  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1700/2343] loss=0.2837  lr=2.42e-04  wd=0.0616  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1750/2343] loss=0.2431  lr=2.42e-04  wd=0.0616  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1800/2343] loss=0.2635  lr=2.42e-04  wd=0.0617  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1850/2343] loss=0.2730  lr=2.42e-04  wd=0.0617  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1900/2343] loss=0.2573  lr=2.42e-04  wd=0.0618  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 1950/2343] loss=0.2664  lr=2.42e-04  wd=0.0618  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 2000/2343] loss=0.2532  lr=2.42e-04  wd=0.0619  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 2050/2343] loss=0.2484  lr=2.42e-04  wd=0.0620  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 2100/2343] loss=0.2769  lr=2.42e-04  wd=0.0620  ema=0.99624  gpu=11996MB
+  [Epoch 16/100 | Iter 2150/2343] loss=0.3172  lr=2.42e-04  wd=0.0621  ema=0.99625  gpu=11996MB
+  [Epoch 16/100 | Iter 2200/2343] loss=0.2755  lr=2.42e-04  wd=0.0621  ema=0.99625  gpu=11996MB
+  [Epoch 16/100 | Iter 2250/2343] loss=0.2766  lr=2.42e-04  wd=0.0622  ema=0.99625  gpu=11996MB
+  [Epoch 16/100 | Iter 2300/2343] loss=0.2606  lr=2.42e-04  wd=0.0622  ema=0.99625  gpu=11996MB
+  [DIAG] Epoch 16: cos_sim=0.6161 (min=-0.0597 max=0.9626) l2_dist=21.0820  rep_diversity=0.4944 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 42, 768]) h shape=torch.Size([256, 42, 768]) num_patches=256
+  train_eval_loss=0.262863
+Epoch 16/100  (4376s)  train_loss=0.2598  val_loss=0.2631
+  [Epoch 17/100 | Iter 50/2343] loss=0.2470  lr=2.42e-04  wd=0.0624  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 100/2343] loss=0.2819  lr=2.42e-04  wd=0.0624  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 150/2343] loss=0.2594  lr=2.42e-04  wd=0.0625  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 200/2343] loss=0.2751  lr=2.42e-04  wd=0.0625  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 250/2343] loss=0.2486  lr=2.42e-04  wd=0.0626  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 300/2343] loss=0.2884  lr=2.42e-04  wd=0.0627  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 350/2343] loss=0.2730  lr=2.42e-04  wd=0.0627  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 400/2343] loss=0.2564  lr=2.42e-04  wd=0.0628  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 450/2343] loss=0.2562  lr=2.42e-04  wd=0.0628  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 500/2343] loss=0.2351  lr=2.42e-04  wd=0.0629  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 550/2343] loss=0.2643  lr=2.41e-04  wd=0.0629  ema=0.99625  gpu=11996MB
+  [Epoch 17/100 | Iter 600/2343] loss=0.2560  lr=2.41e-04  wd=0.0630  ema=0.99626  gpu=11996MB
+  [Epoch 17/100 | Iter 650/2343] loss=0.2832  lr=2.41e-04  wd=0.0631  ema=0.99626  gpu=11996MB
+  [Epoch 17/100 | Iter 700/2343] loss=0.2416  lr=2.41e-04  wd=0.0631  ema=0.99626  gpu=11996MB
+  [Epoch 17/100 | Iter 750/2343] loss=0.2627  lr=2.41e-04  wd=0.0632  ema=0.99626  gpu=11996MB
+  [Epoch 17/100 | Iter 800/2343] loss=0.2559  lr=2.41e-04  wd=0.0632  ema=0.99626  gpu=11996MB
+  [Epoch 17/100 | Iter 850/2343] loss=0.2707  lr=2.41e-04  wd=0.0633  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 900/2343] loss=0.2453  lr=2.41e-04  wd=0.0634  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 950/2343] loss=0.2765  lr=2.41e-04  wd=0.0634  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1000/2343] loss=0.2507  lr=2.41e-04  wd=0.0635  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1050/2343] loss=0.2832  lr=2.41e-04  wd=0.0635  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1100/2343] loss=0.2518  lr=2.41e-04  wd=0.0636  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1150/2343] loss=0.2806  lr=2.41e-04  wd=0.0637  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1200/2343] loss=0.2626  lr=2.41e-04  wd=0.0637  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1250/2343] loss=0.2370  lr=2.41e-04  wd=0.0638  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1300/2343] loss=0.2475  lr=2.41e-04  wd=0.0638  ema=0.99626  gpu=12025MB
+  [Epoch 17/100 | Iter 1350/2343] loss=0.2761  lr=2.41e-04  wd=0.0639  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1400/2343] loss=0.2476  lr=2.41e-04  wd=0.0640  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1450/2343] loss=0.2697  lr=2.41e-04  wd=0.0640  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1500/2343] loss=0.2631  lr=2.41e-04  wd=0.0641  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1550/2343] loss=0.2728  lr=2.41e-04  wd=0.0641  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1600/2343] loss=0.2511  lr=2.41e-04  wd=0.0642  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1650/2343] loss=0.2685  lr=2.41e-04  wd=0.0643  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1700/2343] loss=0.2624  lr=2.41e-04  wd=0.0643  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1750/2343] loss=0.2548  lr=2.41e-04  wd=0.0644  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1800/2343] loss=0.2330  lr=2.41e-04  wd=0.0644  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1850/2343] loss=0.2383  lr=2.41e-04  wd=0.0645  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1900/2343] loss=0.2568  lr=2.41e-04  wd=0.0646  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 1950/2343] loss=0.2432  lr=2.41e-04  wd=0.0646  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 2000/2343] loss=0.2578  lr=2.41e-04  wd=0.0647  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 2050/2343] loss=0.2402  lr=2.41e-04  wd=0.0647  ema=0.99627  gpu=12025MB
+  [Epoch 17/100 | Iter 2100/2343] loss=0.2404  lr=2.40e-04  wd=0.0648  ema=0.99628  gpu=12025MB
+  [Epoch 17/100 | Iter 2150/2343] loss=0.2751  lr=2.40e-04  wd=0.0649  ema=0.99628  gpu=12025MB
+  [Epoch 17/100 | Iter 2200/2343] loss=0.2735  lr=2.40e-04  wd=0.0649  ema=0.99628  gpu=12025MB
+  [Epoch 17/100 | Iter 2250/2343] loss=0.2543  lr=2.40e-04  wd=0.0650  ema=0.99628  gpu=12025MB
+  [Epoch 17/100 | Iter 2300/2343] loss=0.2501  lr=2.40e-04  wd=0.0651  ema=0.99628  gpu=12025MB
+  [DIAG] Epoch 17: cos_sim=0.6493 (min=0.0027 max=0.9578) l2_dist=20.3230  rep_diversity=0.8034 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 36, 768]) h shape=torch.Size([256, 36, 768]) num_patches=256
+  train_eval_loss=0.252705
+Epoch 17/100  (4374s)  train_loss=0.2586  val_loss=0.2587
+  [Epoch 18/100 | Iter 50/2343] loss=0.2455  lr=2.40e-04  wd=0.0652  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 100/2343] loss=0.2701  lr=2.40e-04  wd=0.0652  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 150/2343] loss=0.2591  lr=2.40e-04  wd=0.0653  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 200/2343] loss=0.2427  lr=2.40e-04  wd=0.0654  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 250/2343] loss=0.2450  lr=2.40e-04  wd=0.0654  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 300/2343] loss=0.2645  lr=2.40e-04  wd=0.0655  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 350/2343] loss=0.2409  lr=2.40e-04  wd=0.0655  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 400/2343] loss=0.2721  lr=2.40e-04  wd=0.0656  ema=0.99628  gpu=12025MB
+  [Epoch 18/100 | Iter 450/2343] loss=0.2359  lr=2.40e-04  wd=0.0657  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 500/2343] loss=0.2568  lr=2.40e-04  wd=0.0657  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 550/2343] loss=0.2462  lr=2.40e-04  wd=0.0658  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 600/2343] loss=0.2617  lr=2.40e-04  wd=0.0658  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 650/2343] loss=0.2754  lr=2.40e-04  wd=0.0659  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 700/2343] loss=0.2636  lr=2.40e-04  wd=0.0660  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 750/2343] loss=0.2381  lr=2.40e-04  wd=0.0660  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 800/2343] loss=0.2849  lr=2.40e-04  wd=0.0661  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 850/2343] loss=0.2665  lr=2.40e-04  wd=0.0662  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 900/2343] loss=0.2529  lr=2.40e-04  wd=0.0662  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 950/2343] loss=0.2615  lr=2.40e-04  wd=0.0663  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 1000/2343] loss=0.2568  lr=2.40e-04  wd=0.0663  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 1050/2343] loss=0.2400  lr=2.40e-04  wd=0.0664  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 1100/2343] loss=0.2425  lr=2.40e-04  wd=0.0665  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 1150/2343] loss=0.2789  lr=2.40e-04  wd=0.0665  ema=0.99629  gpu=12025MB
+  [Epoch 18/100 | Iter 1200/2343] loss=0.2600  lr=2.39e-04  wd=0.0666  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1250/2343] loss=0.2586  lr=2.39e-04  wd=0.0667  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1300/2343] loss=0.2735  lr=2.39e-04  wd=0.0667  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1350/2343] loss=0.2516  lr=2.39e-04  wd=0.0668  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1400/2343] loss=0.2559  lr=2.39e-04  wd=0.0669  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1450/2343] loss=0.2539  lr=2.39e-04  wd=0.0669  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1500/2343] loss=0.2568  lr=2.39e-04  wd=0.0670  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1550/2343] loss=0.2591  lr=2.39e-04  wd=0.0670  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1600/2343] loss=0.2788  lr=2.39e-04  wd=0.0671  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1650/2343] loss=0.2884  lr=2.39e-04  wd=0.0672  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1700/2343] loss=0.2527  lr=2.39e-04  wd=0.0672  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1750/2343] loss=0.2580  lr=2.39e-04  wd=0.0673  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1800/2343] loss=0.2323  lr=2.39e-04  wd=0.0674  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1850/2343] loss=0.2432  lr=2.39e-04  wd=0.0674  ema=0.99630  gpu=12025MB
+  [Epoch 18/100 | Iter 1900/2343] loss=0.2453  lr=2.39e-04  wd=0.0675  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 1950/2343] loss=0.2396  lr=2.39e-04  wd=0.0676  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2000/2343] loss=0.2503  lr=2.39e-04  wd=0.0676  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2050/2343] loss=0.2629  lr=2.39e-04  wd=0.0677  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2100/2343] loss=0.2690  lr=2.39e-04  wd=0.0677  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2150/2343] loss=0.2446  lr=2.39e-04  wd=0.0678  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2200/2343] loss=0.2637  lr=2.39e-04  wd=0.0679  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2250/2343] loss=0.2437  lr=2.39e-04  wd=0.0679  ema=0.99631  gpu=12025MB
+  [Epoch 18/100 | Iter 2300/2343] loss=0.2603  lr=2.39e-04  wd=0.0680  ema=0.99631  gpu=12025MB
+  [DIAG] Epoch 18: cos_sim=0.6197 (min=0.0404 max=0.9315) l2_dist=21.1697  rep_diversity=0.5448 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 36, 768]) h shape=torch.Size([256, 36, 768]) num_patches=256
+  train_eval_loss=0.256898
+Epoch 18/100  (4370s)  train_loss=0.2572  val_loss=0.2584
+  [Epoch 19/100 | Iter 50/2343] loss=0.2669  lr=2.39e-04  wd=0.0681  ema=0.99631  gpu=12025MB
+  [Epoch 19/100 | Iter 100/2343] loss=0.2513  lr=2.39e-04  wd=0.0682  ema=0.99631  gpu=12025MB
+  [Epoch 19/100 | Iter 150/2343] loss=0.2638  lr=2.39e-04  wd=0.0683  ema=0.99631  gpu=12025MB
+  [Epoch 19/100 | Iter 200/2343] loss=0.2506  lr=2.38e-04  wd=0.0683  ema=0.99631  gpu=12025MB
+  [Epoch 19/100 | Iter 250/2343] loss=0.2595  lr=2.38e-04  wd=0.0684  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 300/2343] loss=0.2761  lr=2.38e-04  wd=0.0685  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 350/2343] loss=0.2358  lr=2.38e-04  wd=0.0685  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 400/2343] loss=0.2334  lr=2.38e-04  wd=0.0686  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 450/2343] loss=0.2483  lr=2.38e-04  wd=0.0687  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 500/2343] loss=0.2389  lr=2.38e-04  wd=0.0687  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 550/2343] loss=0.2457  lr=2.38e-04  wd=0.0688  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 600/2343] loss=0.2609  lr=2.38e-04  wd=0.0688  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 650/2343] loss=0.2573  lr=2.38e-04  wd=0.0689  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 700/2343] loss=0.2630  lr=2.38e-04  wd=0.0690  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 750/2343] loss=0.2523  lr=2.38e-04  wd=0.0690  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 800/2343] loss=0.2545  lr=2.38e-04  wd=0.0691  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 850/2343] loss=0.2665  lr=2.38e-04  wd=0.0692  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 900/2343] loss=0.2548  lr=2.38e-04  wd=0.0692  ema=0.99632  gpu=12025MB
+  [Epoch 19/100 | Iter 950/2343] loss=0.2591  lr=2.38e-04  wd=0.0693  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1000/2343] loss=0.3343  lr=2.38e-04  wd=0.0694  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1050/2343] loss=0.2849  lr=2.38e-04  wd=0.0694  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1100/2343] loss=0.2721  lr=2.38e-04  wd=0.0695  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1150/2343] loss=0.2603  lr=2.38e-04  wd=0.0696  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1200/2343] loss=0.2464  lr=2.38e-04  wd=0.0696  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1250/2343] loss=0.2760  lr=2.38e-04  wd=0.0697  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1300/2343] loss=0.2591  lr=2.38e-04  wd=0.0698  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1350/2343] loss=0.2602  lr=2.38e-04  wd=0.0698  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1400/2343] loss=0.2465  lr=2.38e-04  wd=0.0699  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1450/2343] loss=0.2416  lr=2.38e-04  wd=0.0700  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1500/2343] loss=0.2433  lr=2.38e-04  wd=0.0700  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1550/2343] loss=0.2554  lr=2.37e-04  wd=0.0701  ema=0.99633  gpu=12025MB
+  [Epoch 19/100 | Iter 1600/2343] loss=0.2611  lr=2.37e-04  wd=0.0702  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1650/2343] loss=0.2637  lr=2.37e-04  wd=0.0702  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1700/2343] loss=0.2686  lr=2.37e-04  wd=0.0703  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1750/2343] loss=0.2532  lr=2.37e-04  wd=0.0704  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1800/2343] loss=0.2600  lr=2.37e-04  wd=0.0704  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1850/2343] loss=0.2427  lr=2.37e-04  wd=0.0705  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1900/2343] loss=0.2535  lr=2.37e-04  wd=0.0706  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 1950/2343] loss=0.2535  lr=2.37e-04  wd=0.0706  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2000/2343] loss=0.2578  lr=2.37e-04  wd=0.0707  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2050/2343] loss=0.2399  lr=2.37e-04  wd=0.0708  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2100/2343] loss=0.2571  lr=2.37e-04  wd=0.0708  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2150/2343] loss=0.2560  lr=2.37e-04  wd=0.0709  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2200/2343] loss=0.2495  lr=2.37e-04  wd=0.0710  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2250/2343] loss=0.2566  lr=2.37e-04  wd=0.0710  ema=0.99634  gpu=12025MB
+  [Epoch 19/100 | Iter 2300/2343] loss=0.2749  lr=2.37e-04  wd=0.0711  ema=0.99635  gpu=12025MB
+  [DIAG] Epoch 19: cos_sim=0.6570 (min=0.0408 max=0.9732) l2_dist=20.1035  rep_diversity=0.5361 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 36, 768]) h shape=torch.Size([256, 36, 768]) num_patches=256
+  train_eval_loss=0.254266
+Epoch 19/100  (4378s)  train_loss=0.2572  val_loss=0.2564
+  [Epoch 20/100 | Iter 50/2343] loss=0.2564  lr=2.37e-04  wd=0.0712  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 100/2343] loss=0.2622  lr=2.37e-04  wd=0.0713  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 150/2343] loss=0.2461  lr=2.37e-04  wd=0.0714  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 200/2343] loss=0.2413  lr=2.37e-04  wd=0.0714  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 250/2343] loss=0.2393  lr=2.37e-04  wd=0.0715  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 300/2343] loss=0.2445  lr=2.37e-04  wd=0.0716  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 350/2343] loss=0.2492  lr=2.37e-04  wd=0.0717  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 400/2343] loss=0.2563  lr=2.37e-04  wd=0.0717  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 450/2343] loss=0.2662  lr=2.37e-04  wd=0.0718  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 500/2343] loss=0.2475  lr=2.36e-04  wd=0.0719  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 550/2343] loss=0.2654  lr=2.36e-04  wd=0.0719  ema=0.99635  gpu=12025MB
+  [Epoch 20/100 | Iter 600/2343] loss=0.2432  lr=2.36e-04  wd=0.0720  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 650/2343] loss=0.2454  lr=2.36e-04  wd=0.0721  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 700/2343] loss=0.2546  lr=2.36e-04  wd=0.0721  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 750/2343] loss=0.2612  lr=2.36e-04  wd=0.0722  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 800/2343] loss=0.2534  lr=2.36e-04  wd=0.0723  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 850/2343] loss=0.2327  lr=2.36e-04  wd=0.0723  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 900/2343] loss=0.2303  lr=2.36e-04  wd=0.0724  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 950/2343] loss=0.2718  lr=2.36e-04  wd=0.0725  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 1000/2343] loss=0.2567  lr=2.36e-04  wd=0.0725  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 1050/2343] loss=0.2534  lr=2.36e-04  wd=0.0726  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 1100/2343] loss=0.2540  lr=2.36e-04  wd=0.0727  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 1150/2343] loss=0.2607  lr=2.36e-04  wd=0.0728  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 1200/2343] loss=0.2477  lr=2.36e-04  wd=0.0728  ema=0.99636  gpu=12025MB
+  [Epoch 20/100 | Iter 1250/2343] loss=0.2575  lr=2.36e-04  wd=0.0729  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1300/2343] loss=0.2603  lr=2.36e-04  wd=0.0730  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1350/2343] loss=0.2513  lr=2.36e-04  wd=0.0730  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1400/2343] loss=0.2369  lr=2.36e-04  wd=0.0731  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1450/2343] loss=0.2621  lr=2.36e-04  wd=0.0732  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1500/2343] loss=0.2555  lr=2.36e-04  wd=0.0732  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1550/2343] loss=0.2548  lr=2.36e-04  wd=0.0733  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1600/2343] loss=0.2641  lr=2.36e-04  wd=0.0734  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1650/2343] loss=0.2519  lr=2.36e-04  wd=0.0735  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1700/2343] loss=0.2468  lr=2.35e-04  wd=0.0735  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1750/2343] loss=0.2807  lr=2.35e-04  wd=0.0736  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1800/2343] loss=0.2646  lr=2.35e-04  wd=0.0737  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1850/2343] loss=0.2561  lr=2.35e-04  wd=0.0737  ema=0.99637  gpu=12025MB
+  [Epoch 20/100 | Iter 1900/2343] loss=0.2425  lr=2.35e-04  wd=0.0738  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 1950/2343] loss=0.2396  lr=2.35e-04  wd=0.0739  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2000/2343] loss=0.2567  lr=2.35e-04  wd=0.0739  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2050/2343] loss=0.2442  lr=2.35e-04  wd=0.0740  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2100/2343] loss=0.2616  lr=2.35e-04  wd=0.0741  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2150/2343] loss=0.2342  lr=2.35e-04  wd=0.0742  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2200/2343] loss=0.2569  lr=2.35e-04  wd=0.0742  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2250/2343] loss=0.2418  lr=2.35e-04  wd=0.0743  ema=0.99638  gpu=12025MB
+  [Epoch 20/100 | Iter 2300/2343] loss=0.2520  lr=2.35e-04  wd=0.0744  ema=0.99638  gpu=12025MB
+  [DIAG] Epoch 20: cos_sim=0.6706 (min=-0.0341 max=0.9715) l2_dist=19.9808  rep_diversity=0.4938 (1.0=collapsed)
+  [DIAG] z shape=torch.Size([256, 35, 768]) h shape=torch.Size([256, 35, 768]) num_patches=256
+  train_eval_loss=0.254867
+Epoch 20/100  (4374s)  train_loss=0.2547  val_loss=0.2571
+  Uploading jepa_patch-log.csv (6,908,356 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/jepa_patch-log.csvEarly stopping: val loss has not improved for 15 epochs (best=0.1502)
+
+======================================================================
+Training complete. Best val loss: 0.1502
+======================================================================
+  Upload OK: jepa_patch-log.csv
+  Uploading jepa_patch-log.csv (6,908,356 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/jepa_patch-log.csv
+  Upload OK: jepa_patch-log.csv
+  Uploading config.yaml (973 bytes) -> ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260330_235237/config.yaml
+  Upload OK: config.yaml
+COMPUTE_REDACTED:220:260 [0] NCCL INFO [Service thread] Connection closed by localRank 0
+COMPUTE_REDACTED:221:258 [1] NCCL INFO [Service thread] Connection closed by localRank 1
+COMPUTE_REDACTED:223:259 [3] NCCL INFO [Service thread] Connection closed by localRank 3
+COMPUTE_REDACTED:222:257 [2] NCCL INFO [Service thread] Connection closed by localRank 2
+COMPUTE_REDACTED:223:223 [3] NCCL INFO MSCCL: Teardown finished
+COMPUTE_REDACTED:223:223 [3] NCCL INFO comm 0x4a0e81a0 rank 3 nranks 4 cudaDev 3 busId 400000 - Abort COMPLETE
+COMPUTE_REDACTED:220:220 [0] NCCL INFO MSCCL: Teardown finished
+COMPUTE_REDACTED:220:220 [0] NCCL INFO comm 0x5d63de90 rank 0 nranks 4 cudaDev 0 busId 100000 - Abort COMPLETE
+COMPUTE_REDACTED:221:221 [1] NCCL INFO MSCCL: Teardown finished
+COMPUTE_REDACTED:221:221 [1] NCCL INFO comm 0x6504bce0 rank 1 nranks 4 cudaDev 1 busId 200000 - Abort COMPLETE
+COMPUTE_REDACTED:222:222 [2] NCCL INFO MSCCL: Teardown finished
+COMPUTE_REDACTED:222:222 [2] NCCL INFO comm 0x88132e80 rank 2 nranks 4 cudaDev 2 busId 300000 - Abort COMPLETE
