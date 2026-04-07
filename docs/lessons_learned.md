@@ -84,6 +84,30 @@ Documented for reference. These are intentional differences, not bugs:
 
 ---
 
+## Frozen Probe Evaluation Protocol
+
+### 10. Frozen probe is capped — more epochs and no WD don't help
+- **What happened:** Ran 100-epoch frozen probe (matching I-JEPA/MAE/DINO protocol) with weight_decay=0 on ImageNet→SSL ep32 best checkpoint. Test AUC: 0.7787 vs 0.7742 with 50 epochs + WD=0.01. Only +0.45% improvement.
+- **Root cause:** The frozen encoder features are the bottleneck, not probe training duration or regularization. Train loss dropped lower (0.475 vs 0.513) but val gap widened — extra capacity went to overfitting, not generalization. Model peaked at epoch 35 and early-stopped at 55.
+- **Lesson:** For this encoder, frozen probe is capped at ~0.78 test AUC. The fix is fine-tuning, not longer probe training.
+
+### 11. Literature protocol for frozen probe evaluation
+- **Standard:** 90-100 epochs, cosine LR schedule, no weight decay on probe. I-JEPA uses SGD LR=0.002 at batch=16384; MAE uses LARS LR=0.1 at batch=16384; DINO uses SGD LR=0.001 at batch=1024.
+- **Our setup:** AdamW LR=1e-4 at batch=64 — within range after batch-size scaling. Weight decay should be 0 for frozen probe (all papers use 0).
+- **Key insight:** Batch size matters for LR comparison. Scale LR linearly with batch: LR_ours = LR_paper × (our_batch / paper_batch).
+
+### 12. Don't run multiple frozen probe jobs on the same GPU
+- **What happened:** Submitted 4 frozen probe jobs simultaneously. All defaulted to cuda:0, each getting ~25% GPU time. Feature pre-computation (normally ~40 min) took 2.5+ hours per job.
+- **Fix:** Run sequentially, or set `CUDA_VISIBLE_DEVICES` per job to spread across GPUs.
+- **Rule:** Frozen probe jobs use single python process on cuda:0. Multiple jobs = time-sharing, not parallelism.
+
+### 13. torchrun port conflict when multiple DDP jobs share a compute instance
+- **What happened:** Multiple unfrozen (torchrun) jobs ran simultaneously, all trying to bind port 29500. First job got the port, others crashed with "Address already in use".
+- **Fix:** Add `MASTER_PORT` env var with unique port per job config, or run sequentially.
+- **Rule:** Only one torchrun job per compute instance at a time, unless using different MASTER_PORT values.
+
+---
+
 ## General Rules
 
 1. **I-JEPA loss is NOT a reliable metric.** It can be low due to collapse or high due to diverse targets. Monitor rep_diversity and cos_sim instead.
