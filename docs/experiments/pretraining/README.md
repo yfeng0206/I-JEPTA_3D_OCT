@@ -18,4 +18,4 @@ Summary of I-JEPA pretraining runs on 600K OCT slices for glaucoma detection.
 2. **Early stopping must ignore pre-warmup epochs**: EMA target has not diverged yet at ep1, producing artificially low val_loss.
 3. **ImageNet init needs aggressive, not gentle, tuning**: Gentle LR preserves the ImageNet representation, which collapses on OCT data. Higher LR forces the model to restructure.
 4. **I-JEPA loss plateau is normal**: Pretraining loss does not correlate with downstream quality. Always evaluate with downstream probes.
-5. **Random init (Run 3) outperformed ImageNet init (Run 5) on downstream tasks**: Run 3 encoder used in F1/F2/U1/U2; Run 5 ep32 achieved 0.774 AUC frozen but ep99 degraded to 0.685.
+5. **ImageNet init (Run 5 ep32) is the best encoder**: 0.774 frozen, **0.828 fine-tune** (best result). Later epochs degrade (ep99: 0.685 frozen). Random init (Run 3) achieves 0.734 frozen / 0.819 fine-tune.
