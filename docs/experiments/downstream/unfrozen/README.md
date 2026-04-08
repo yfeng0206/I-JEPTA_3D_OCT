@@ -86,6 +86,10 @@ These runs use the best ImageNet-init pretrained encoder from Run 5 (ep32).
 
 ## Training Curves
 
+![Unfrozen Val AUC](../../../../results/unfrozen_val_auc.png)
+
+![Unfrozen Train Loss](../../../../results/unfrozen_train_loss.png)
+
 ### U1: Random-Init, d=2, 32 slices (best val AUC = 0.819)
 
 | Epoch | Train Loss | Val AUC | LR enc / probe |
