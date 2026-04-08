@@ -19,7 +19,9 @@ All runs use 100 OCT slices per eye, 256x256 crop size, patch size 16, batch siz
 
 ## Comparison Plots
 
-![Comparison](../../../../results/frozen_probe_comparison.png)
+![Val AUC](../../../../results/frozen_probe_val_auc.png)
+
+![Train Loss](../../../../results/frozen_probe_loss.png)
 
 ![Degradation](../../../../results/imagenet_degradation.png)
 

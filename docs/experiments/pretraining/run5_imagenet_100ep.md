@@ -40,6 +40,3 @@ Loss plateaued at ~0.25 from ep32 through ep99. Crash at ep100 iter 2200 (StopIt
 - Downstream results using these checkpoints: ep32 best achieved 0.774 test AUC (frozen), ep99 achieved 0.685 (worse than random init!). See [frozen probe results](../downstream/frozen/).
 - The StopIteration crash at ep100 was caused by the momentum schedule iterator being exhausted before the epoch completed; this has been fixed.
 
-## Pretraining Loss Curve
-
-![Pretraining Loss](../../../results/pretraining_loss.png)
