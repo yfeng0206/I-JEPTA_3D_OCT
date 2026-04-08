@@ -12,10 +12,10 @@ Training uses DDP on 4x NVIDIA T4 (16 GB each) with batch_size=1 per GPU and gra
 |-----|-------------|-------|------|--------|---------|----------|--------|
 | U1 | Random->SSL ep11 | d=2 | Linear | 32 | 0.819 | pending | completed |
 | U2 | Random->SSL ep11 | d=3 | Linear | 64 | 0.815 | pending | completed |
-| **U3** | **ImageNet->SSL ep32** | **d=2** | **MLP** | **32** | **0.826** | **0.828** | **completed** |
-| U4 | ImageNet->SSL ep32 | d=2 | MLP | 64 | — | — | running |
-| U5 | ImageNet->SSL ep32 | d=3 | MLP | 32 | — | — | queued |
-| U6 | ImageNet->SSL ep32 | d=3 | MLP | 64 | — | — | queued |
+| U3 | ImageNet->SSL ep32 | d=2 | MLP | 32 | 0.826 | 0.828 | completed |
+| U4 | ImageNet->SSL ep32 | d=2 | MLP | 64 | 0.832 | 0.829 | completed |
+| **U5** | **ImageNet->SSL ep32** | **d=3** | **MLP** | **32** | **0.828** | **0.829** | **completed** |
+| U6 | ImageNet->SSL ep32 | d=3 | MLP | 64 | — | — | running |
 
 ## Key Finding
 
@@ -136,6 +136,8 @@ Best epoch: 15 (val AUC 0.826). Test AUC **0.828** — our best result so far. I
 | Frozen, ImageNet-init ep32, d=3 | 0.799 | 0.774 | Fixed |
 | Unfrozen, Random-init, d=2 | 0.819 | pending | Fine-tuned |
 | Unfrozen, Random-init, d=3 | 0.815 | pending | Fine-tuned |
-| **Unfrozen, ImageNet-init, d=2** | **0.826** | **0.828** | **Fine-tuned** |
+| Unfrozen, ImageNet-init, d=2 s32 | 0.826 | 0.828 | Fine-tuned |
+| Unfrozen, ImageNet-init, d=2 s64 | 0.832 | 0.829 | Fine-tuned |
+| **Unfrozen, ImageNet-init, d=3 s32** | **0.828** | **0.829** | **Fine-tuned** |
 
-ImageNet-init + fine-tuning is the clear winner. The gap to SLIViT (0.869) is now **4.1%**. Remaining runs (U4-U6) will test if more slices or deeper probe can close it further.
+ImageNet-init + fine-tuning results are clustered at **0.828-0.829 test AUC** across all configs. Neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) provide meaningful improvement. The gap to SLIViT (0.869) is **4.0%** — the encoder representations are the ceiling, not the probe architecture or slice count.
