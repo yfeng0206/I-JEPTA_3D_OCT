@@ -26,6 +26,10 @@ Resumed from Run 2's ep9 with the early stopping fix applied. Converged at ep11,
 | 15 | 0.1591 | 0.1598 | 0.83 | 0.72 |
 | 18 | 0.1618 | 0.1616 | 0.79 | 0.70 |
 
+## Training Curve
+
+![Random-Init Pretraining Loss](../../../results/pretraining_random_init.png)
+
 ## Key Observations
 
 - Best checkpoint: ep11, val_loss=0.1586.

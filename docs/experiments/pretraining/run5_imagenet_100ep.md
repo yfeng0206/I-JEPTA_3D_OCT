@@ -30,6 +30,10 @@ Loss plateaued at ~0.25 from ep32 through ep99. Crash at ep100 iter 2200 (StopIt
 - `jepa_patch-ep75.pth.tar` -- epoch 75
 - `jepa_patch-latest.pth.tar` -- epoch ~99
 
+## Training Curve
+
+![ImageNet-Init Pretraining Loss](../../../results/pretraining_imagenet_init.png)
+
 ## Key Observations
 
 - I-JEPA loss plateau at ~0.25 is normal. Loss is NOT correlated with downstream representation quality. Must evaluate via downstream probes.

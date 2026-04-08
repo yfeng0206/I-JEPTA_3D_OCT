@@ -12,10 +12,21 @@ Summary of I-JEPA pretraining runs on 600K OCT slices for glaucoma detection.
 | [Run 4](run4_imagenet_gentle.md) | ImageNet | 0.0001 | Collapsed | 0.008 (collapsed) | Gentle LR caused collapse |
 | [Run 5](run5_imagenet_100ep.md) | ImageNet | 0.00025 | Completed 100ep | ~0.25 plateau | Best ImageNet-init encoder |
 
+## Training Curves
+
+### All Runs
+![All Pretraining Runs](../../../results/pretraining_all_runs.png)
+
+### ImageNet-Init (100 epochs)
+![ImageNet-Init Pretraining](../../../results/pretraining_imagenet_init.png)
+
+### Random-Init (Runs 1-3)
+![Random-Init Pretraining](../../../results/pretraining_random_init.png)
+
 ## Key Takeaways
 
 1. **OCT requires lower LR than ImageNet**: Correlated gradients from less diverse data make the effective LR higher than the nominal value.
 2. **Early stopping must ignore pre-warmup epochs**: EMA target has not diverged yet at ep1, producing artificially low val_loss.
 3. **ImageNet init needs aggressive, not gentle, tuning**: Gentle LR preserves the ImageNet representation, which collapses on OCT data. Higher LR forces the model to restructure.
 4. **I-JEPA loss plateau is normal**: Pretraining loss does not correlate with downstream quality. Always evaluate with downstream probes.
-5. **ImageNet init (Run 5 ep32) is the best encoder**: 0.774 frozen, **0.828 fine-tune** (best result). Later epochs degrade (ep99: 0.685 frozen). Random init (Run 3) achieves 0.734 frozen / 0.819 fine-tune.
+5. **Random init (Run 3) outperformed ImageNet init (Run 5) on downstream tasks**: Run 3 encoder used in F1/F2/U1/U2; Run 5 ep32 achieved 0.774 AUC frozen but ep99 degraded to 0.685.
