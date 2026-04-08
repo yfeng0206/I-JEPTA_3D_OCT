@@ -28,6 +28,10 @@ LOAD_CHECKPOINT=${LOAD_CHECKPOINT:-false}
 READ_CHECKPOINT=${READ_CHECKPOINT:-null}
 PRETRAINED_ENCODER=${PRETRAINED_ENCODER:-null}
 
+# Azure blob storage
+BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}
+BLOB_CONTAINER=${BLOB_CONTAINER:?'Set BLOB_CONTAINER env var'}
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_TAG="patch_${MODEL_NAME}_ps${PATCH_SIZE}_ep${EPOCHS}_bs${BATCH_SIZE}_lr${LR}"
 OUTPUT_DIR="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"
@@ -66,8 +70,8 @@ from azure.identity import DefaultAzureCredential
 from azure.storage.blob import ContainerClient
 import os
 
-account = 'STORAGE_ACCOUNT_REDACTED'
-container_name = 'CONTAINER_REDACTED'
+account = '${BLOB_ACCOUNT}'
+container_name = '${BLOB_CONTAINER}'
 prefix = 'fhl-test-data'
 local_dir = '${DATA_DIR}/data'
 os.makedirs(local_dir, exist_ok=True)
@@ -107,8 +111,8 @@ from azure.storage.blob import BlobClient
 import os
 blob_name = '${RESUME_BLOB}'
 local_path = '${READ_CHECKPOINT}'
-account = 'STORAGE_ACCOUNT_REDACTED'
-container = 'CONTAINER_REDACTED'
+account = '${BLOB_ACCOUNT}'
+container = '${BLOB_CONTAINER}'
 print('Downloading %s ...' % blob_name)
 cred = DefaultAzureCredential()
 blob = BlobClient(
@@ -134,8 +138,8 @@ from azure.storage.blob import BlobClient
 import os
 blob_name = '${PRETRAINED_BLOB}'
 local_path = '${PRETRAINED_ENCODER}'
-account = 'STORAGE_ACCOUNT_REDACTED'
-container = 'CONTAINER_REDACTED'
+account = '${BLOB_ACCOUNT}'
+container = '${BLOB_CONTAINER}'
 print('Downloading %s ...' % blob_name)
 cred = DefaultAzureCredential()
 blob = BlobClient(
@@ -234,8 +238,8 @@ try:
     from azure.storage.blob import ContainerClient
     cred = ManagedIdentityCredential()
     container = ContainerClient(
-        account_url='https://STORAGE_ACCOUNT_REDACTED.blob.core.windows.net',
-        container_name='CONTAINER_REDACTED',
+        account_url='https://${BLOB_ACCOUNT}.blob.core.windows.net',
+        container_name='${BLOB_CONTAINER}',
         credential=cred,
     )
     for fpath in files:

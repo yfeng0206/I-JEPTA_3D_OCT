@@ -70,11 +70,8 @@ def _upload_worker(local_path, blob_prefix, log_fn):
     try:
         from azure.identity import ManagedIdentityCredential
         from azure.storage.blob import ContainerClient
-        account = os.environ.get('BLOB_ACCOUNT', 'STORAGE_ACCOUNT_REDACTED')
-        container_name = os.environ.get(
-            'BLOB_CONTAINER',
-            'CONTAINER_REDACTED',
-        )
+        account = os.environ['BLOB_ACCOUNT']
+        container_name = os.environ['BLOB_CONTAINER']
         cred = ManagedIdentityCredential()
         container = ContainerClient(
             account_url='https://%s.blob.core.windows.net' % account,

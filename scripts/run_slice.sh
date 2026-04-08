@@ -24,6 +24,10 @@ PRED_EMB_DIM=${PRED_EMB_DIM:-384}
 NUM_WORKERS=${NUM_WORKERS:-4}
 NPROC=${NPROC:-4}
 
+# Azure blob storage
+BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}
+BLOB_CONTAINER=${BLOB_CONTAINER:?'Set BLOB_CONTAINER env var'}
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RUN_TAG="slice_ep${EPOCHS}_bs${BATCH_SIZE}_lr${LR}"
 OUTPUT_DIR="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"
@@ -49,9 +53,9 @@ from azure.identity import DefaultAzureCredential
 from azure.storage.blob import ContainerClient, BlobClient
 import os
 
-account = 'YOUR_STORAGE_ACCOUNT'
-container_name = 'YOUR_CONTAINER_NAME'
-prefix = 'YOUR_DATA_PREFIX'
+account = '${BLOB_ACCOUNT}'
+container_name = '${BLOB_CONTAINER}'
+prefix = 'fhl-test-data'
 local_dir = '${DATA_DIR}/data'
 fe_path = '${FE_CHECKPOINT}'
 os.makedirs(local_dir, exist_ok=True)
@@ -185,8 +189,8 @@ try:
     from azure.storage.blob import ContainerClient
     cred = ManagedIdentityCredential()
     container = ContainerClient(
-        account_url='https://YOUR_STORAGE_ACCOUNT.blob.core.windows.net',
-        container_name='YOUR_CONTAINER_NAME',
+        account_url='https://${BLOB_ACCOUNT}.blob.core.windows.net',
+        container_name='${BLOB_CONTAINER}',
         credential=cred,
     )
     for fpath in files:

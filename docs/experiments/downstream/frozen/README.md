@@ -10,22 +10,17 @@ All runs use 100 OCT slices per eye, 256x256 crop size, patch size 16, batch siz
 
 | Run ID | Encoder Checkpoint | Probe Depth | Head Type | Slices | Val AUC | Test AUC | Sensitivity | Specificity |
 |--------|-------------------|-------------|-----------|--------|---------|----------|-------------|-------------|
-| [frozen_imagenet_ep32_d3_s100](imagenet_ep32_d3_mlp.md) | jepa_patch-best (ep32) | 3 | mlp | 100 | 0.7992 | **0.7742** | 0.6310 | 0.7816 |
-| [frozen_random_d3_s100](random_d3_linear.md) | jepa_patch-best (ep32) | 3 | linear | 100 | 0.7523 | 0.7341 | -- | -- |
 | [frozen_random_d2_s100](random_d2_linear.md) | jepa_patch-best (ep32) | 2 | linear | 100 | 0.7435 | 0.7327 | -- | -- |
+| [frozen_random_d3_s100](random_d3_linear.md) | jepa_patch-best (ep32) | 3 | linear | 100 | 0.7523 | 0.7341 | -- | -- |
+| [frozen_imagenet_ep32_d3_s100](imagenet_ep32_d3_mlp.md) | jepa_patch-best (ep32) | 3 | mlp | 100 | 0.7992 | 0.7742 | 0.6310 | 0.7816 |
 | [frozen_imagenet_ep50_d3_s100](imagenet_ep50_d3_mlp.md) | jepa_patch-ep50 | 3 | mlp | 100 | 0.6785 | 0.7058 | 0.5634 | 0.7471 |
 | [frozen_imagenet_ep75_d3_s100](imagenet_ep75_d3_mlp.md) | jepa_patch-ep75 | 3 | mlp | 100 | 0.6637 | 0.6950 | 0.5969 | 0.7060 |
 | [frozen_imagenet_ep99_d3_s100](imagenet_ep99_d3_mlp.md) | jepa_patch-latest (ep99) | 3 | mlp | 100 | 0.6588 | 0.6847 | 0.6030 | 0.6760 |
 
-## Training Curves
+## Comparison Plots
 
-### Val AUC During Training
-![Val AUC](../../../../results/frozen_probe_val_auc.png)
+![Comparison](../../../../results/frozen_probe_comparison.png)
 
-### Train vs Val Loss
-![Train/Val Loss](../../../../results/frozen_probe_loss.png)
-
-### Test AUC vs Pretraining Epoch
 ![Degradation](../../../../results/imagenet_degradation.png)
 
 ## Key Findings
