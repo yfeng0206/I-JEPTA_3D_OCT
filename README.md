@@ -1,6 +1,6 @@
 # I-JEPA for FairVision OCT Glaucoma Classification
 
-Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/ijepa) (Assran et al., CVPR 2023) on [Harvard FairVision](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision) OCT data for binary glaucoma classification. Builds on our SLIViT reproduction in [SliViT_3D_OCT_Glaucoma](https://github.com/yfeng0206/SliViT_3D_OCT_Glaucoma).
+Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/ijepa) (Assran et al., CVPR 2023) on [Harvard FairVision](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision) OCT data for binary glaucoma classification.
 
 ![Downstream AUC Curves](results/downstream_auc_curves.png)
 
@@ -8,7 +8,6 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 | Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
 |--------|-------------|---------|--------|-------|------|----------|
-| **SLIViT baseline** | Kermany OCT | ConvNeXt+ViT | 32 | 5-layer ViT | Linear | **0.869** |
 | **I-JEPA unfrozen d=3** | **ImageNet→SSL ep32** | **ViT-B/16 fine-tune** | **32** | **3 blocks** | **MLP** | **0.829** |
 | I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | 0.829 |
@@ -27,7 +26,7 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 1. **Fine-tuning is the key lever**: Unfreezing the encoder gives +5.5% AUC (0.774 → 0.829 for ImageNet-init), confirming that task-specific adaptation matters more than better pretraining or probe architecture.
 
-2. **ImageNet→SSL + fine-tune is our best approach**: 0.829 test AUC, closing the gap to SLIViT (0.869) to 4.0%. All 4 unfrozen MLP configs cluster at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help.
+2. **ImageNet→SSL + fine-tune is our best approach**: 0.829 test AUC. All 4 unfrozen MLP configs cluster at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help.
 
 3. **ImageNet init helps frozen probe** (+4%): 0.774 (ImageNet→SSL ep32) vs 0.734 (Random→SSL), but only at early pretraining epochs.
 
@@ -50,9 +49,7 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 ## Motivation
 
-Our SLIViT experiments reached 0.869 test AUC using a ConvNeXt feature extractor pretrained on Kermany OCT and a ViT integrator trained on 6K labeled FairVision volumes. Two bottlenecks limited further improvement: the ConvNeXt features were pretrained on a different task (not glaucoma), and the ViT integrator was trained from scratch on a small labeled dataset.
-
-I-JEPA addresses both by learning representations directly from unlabeled OCT data through masked prediction in representation space. We implement two approaches, with patch-level as the primary approach.
+I-JEPA learns representations directly from unlabeled OCT data through masked prediction in representation space. No hand-crafted augmentations are needed. We implement two approaches, with patch-level as the primary approach.
 
 ### Patch-level I-JEPA (primary)
 
@@ -96,5 +93,4 @@ results/                          # Training curves, plots, raw data
 ## References
 
 - Assran et al., "Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture" ([paper](https://arxiv.org/abs/2301.08243), [code](https://github.com/facebookresearch/ijepa))
-- Avram et al., "SLIViT: a general AI framework for clinical-feature diagnosis from limited 3D biomedical-imaging data" ([paper](https://pubmed.ncbi.nlm.nih.gov/38045283/), [code](https://github.com/cozygene/SLIViT))
 - Luo et al., "Harvard Ophthalmology AI-Lab FairVision Dataset" ([paper](https://arxiv.org/abs/2310.02492), [code](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision))

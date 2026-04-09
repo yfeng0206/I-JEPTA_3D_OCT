@@ -145,4 +145,4 @@ Best epoch: 15 (val AUC 0.826). Test AUC **0.828** — our best result so far. I
 | Unfrozen, ImageNet-init, d=2 s64 | 0.832 | 0.829 | Fine-tuned |
 | **Unfrozen, ImageNet-init, d=3 s32** | **0.828** | **0.829** | **Fine-tuned** |
 
-ImageNet-init + fine-tuning results are clustered at **0.828-0.829 test AUC** across all configs. Neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) provide meaningful improvement. The gap to SLIViT (0.869) is **4.0%** — the encoder representations are the ceiling, not the probe architecture or slice count.
+ImageNet-init + fine-tuning results are clustered at **0.828-0.829 test AUC** across all configs. Neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) provide meaningful improvement. The encoder representations are the ceiling, not the probe architecture or slice count.
