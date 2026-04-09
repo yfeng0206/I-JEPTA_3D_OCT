@@ -12,9 +12,10 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 | I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 2 blocks | MLP | 0.828 |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | Linear | pending |
-| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 (val) |
-| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 (val) |
+| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 val* |
+| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 val* |
+
+*\*Test AUC unavailable — DDP teardown crash during test evaluation (older code, since fixed).*
 | I-JEPA frozen d=3 | ImageNet→SSL ep32 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.774 |
 | I-JEPA frozen d=3 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 3 blocks | Linear | 0.734 |
 | I-JEPA frozen d=2 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 2 blocks | Linear | 0.733 |
@@ -43,7 +44,7 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 | **Experiments** | [All experiments](docs/experiments) |
 | **Pretraining** | [Pretraining runs](docs/experiments/pretraining) (Random-init, ImageNet-init, loss curves) |
 | **Frozen Probe** | [Frozen probe eval](docs/experiments/downstream/frozen) (6 runs: Random vs ImageNet, multiple epochs) |
-| **Fine-tuning** | [Unfrozen encoder eval](docs/experiments/downstream/unfrozen) (7 runs: d=2/3, 32/64 slices, MLP/Linear) |
+| **Fine-tuning** | [Unfrozen encoder eval](docs/experiments/downstream/unfrozen) (6 runs: d=2/3, 32/64 slices) |
 | **Architecture** | [Model architecture details](docs/architecture.md) |
 | **Lessons Learned** | [Mistakes & fixes log](docs/lessons_learned.md) |
 
