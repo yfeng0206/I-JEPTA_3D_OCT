@@ -2,14 +2,18 @@
 
 Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/ijepa) (Assran et al., CVPR 2023) on [Harvard FairVision](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision) OCT data for binary glaucoma classification. Builds on our SLIViT reproduction in [SliViT_3D_OCT_Glaucoma](https://github.com/yfeng0206/SliViT_3D_OCT_Glaucoma).
 
+![Downstream AUC Curves](results/downstream_auc_curves.png)
+
 ## Results Summary
 
 | Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
 |--------|-------------|---------|--------|-------|------|----------|
 | **SLIViT baseline** | Kermany OCT | ConvNeXt+ViT | 32 | 5-layer ViT | Linear | **0.869** |
 | **I-JEPA unfrozen d=3** | **ImageNet→SSL ep32** | **ViT-B/16 fine-tune** | **32** | **3 blocks** | **MLP** | **0.829** |
+| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 2 blocks | MLP | 0.828 |
+| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | Linear | pending |
 | I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 (val) |
 | I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 (val) |
 | I-JEPA frozen d=3 | ImageNet→SSL ep32 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.774 |
@@ -19,25 +23,17 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 | I-JEPA frozen d=3 | ImageNet→SSL ep75 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.695 |
 | I-JEPA frozen d=3 | ImageNet→SSL ep99 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.685 |
 
-*Unfrozen d=3 s64 (ImageNet→SSL ep32) — running, last job.*
-
-![Test AUC Comparison](results/test_auc_comparison.png)
-
 ## Key Findings
 
-1. **ImageNet init helps frozen probe** (+4%): 0.774 (ImageNet→SSL ep32) vs 0.734 (Random→SSL), but only at early pretraining epochs.
+1. **Fine-tuning is the key lever**: Unfreezing the encoder gives +5.5% AUC (0.774 → 0.829 for ImageNet-init), confirming that task-specific adaptation matters more than better pretraining or probe architecture.
 
-2. **I-JEPA pretraining degrades ImageNet features over time**: Test AUC drops 0.774 → 0.685 from ep32 to ep99. The self-supervised objective overwrites useful ImageNet features with low-level patch prediction features that are less relevant to glaucoma.
+2. **ImageNet→SSL + fine-tune is our best approach**: 0.829 test AUC, closing the gap to SLIViT (0.869) to 4.0%. All 4 unfrozen MLP configs cluster at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help.
 
-3. **Fine-tuning is the key lever**: Unfreezing the encoder gives +8.5% AUC (0.734 → 0.819 for random-init, 0.774 → 0.829 for ImageNet-init), confirming that task-specific adaptation matters more than better pretraining.
+3. **ImageNet init helps frozen probe** (+4%): 0.774 (ImageNet→SSL ep32) vs 0.734 (Random→SSL), but only at early pretraining epochs.
 
-4. **ImageNet→SSL + fine-tune is our best approach**: 0.829 test AUC, closing the gap to SLIViT (0.869) to 4.0%. All 3 completed unfrozen configs cluster at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help.
+4. **I-JEPA pretraining degrades ImageNet features over time**: Test AUC drops 0.774 → 0.685 from ep32 to ep99. The self-supervised objective overwrites useful ImageNet features with low-level patch prediction features that are less relevant to glaucoma.
 
-5. **Probe depth and slice count don't matter once encoder is unfrozen**: d=2/32s (0.828), d=2/64s (0.829), d=3/32s (0.829) are all within noise. The encoder is the ceiling.
-
-6. **Frozen probe is capped at ~0.78**: 100-epoch training with WD=0 (matching literature protocol) gave only +0.45% over 50 epochs.
-
-6. **Frozen probe is capped at ~0.78**: 100-epoch training with WD=0 (matching literature protocol) gave only +0.45% over 50 epochs. More training can't overcome frozen feature limitations.
+5. **Frozen probe is capped at ~0.78**: 100-epoch training with WD=0 (matching literature protocol) gave only +0.45% over 50 epochs. More training can't overcome frozen feature limitations.
 
 ![ImageNet Degradation](results/imagenet_degradation.png)
 
@@ -48,7 +44,7 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 | **Experiments** | [All experiments](docs/experiments) |
 | **Pretraining** | [Pretraining runs](docs/experiments/pretraining) (Random-init, ImageNet-init, loss curves) |
 | **Frozen Probe** | [Frozen probe eval](docs/experiments/downstream/frozen) (6 runs: Random vs ImageNet, multiple epochs) |
-| **Fine-tuning** | [Unfrozen encoder eval](docs/experiments/downstream/unfrozen) (6 runs: d=2/3, 32/64 slices) |
+| **Fine-tuning** | [Unfrozen encoder eval](docs/experiments/downstream/unfrozen) (7 runs: d=2/3, 32/64 slices, MLP/Linear) |
 | **Architecture** | [Model architecture details](docs/architecture.md) |
 | **Lessons Learned** | [Mistakes & fixes log](docs/lessons_learned.md) |
 
@@ -85,7 +81,7 @@ src/
   eval_downstream.py              # Downstream classification
   helper.py                       # Model init, optimizer, checkpoint I/O
 
-configs/                          # AzureML job configs & training configs
+configs/                          # Training configs
 scripts/                          # Entry point shell scripts
 docs/
   experiments/                    # Detailed experiment logs & results

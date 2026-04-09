@@ -38,4 +38,5 @@ Encoder unfrozen with low LR (5e-6), DDP on 4x T4 GPUs, effective batch=16.
 | U3 | ImageNet→SSL ep32 | d=2 | MLP | 32 | 0.826 | 0.828 | [details](downstream/unfrozen/README.md) |
 | U4 | ImageNet→SSL ep32 | d=2 | MLP | 64 | 0.832 | 0.829 | [details](downstream/unfrozen/README.md) |
 | **U5** | **ImageNet→SSL ep32** | **d=3** | **MLP** | **32** | **0.828** | **0.829** | [details](downstream/unfrozen/README.md) |
-| U6 | ImageNet→SSL ep32 | d=3 | MLP | 64 | — | running | [details](downstream/unfrozen/README.md) |
+| U6 | ImageNet→SSL ep32 | d=3 | MLP | 64 | 0.832 | 0.829 | [details](downstream/unfrozen/README.md) |
+| U7 | ImageNet→SSL ep32 | d=3 | Linear | 32 | — | pending | [details](downstream/unfrozen/README.md) |

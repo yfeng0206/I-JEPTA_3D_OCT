@@ -15,7 +15,8 @@ Training uses DDP on 4x NVIDIA T4 (16 GB each) with batch_size=1 per GPU and gra
 | U3 | ImageNet->SSL ep32 | d=2 | MLP | 32 | 0.826 | 0.828 | completed |
 | U4 | ImageNet->SSL ep32 | d=2 | MLP | 64 | 0.832 | 0.829 | completed |
 | **U5** | **ImageNet->SSL ep32** | **d=3** | **MLP** | **32** | **0.828** | **0.829** | **completed** |
-| U6 | ImageNet->SSL ep32 | d=3 | MLP | 64 | — | — | running |
+| U6 | ImageNet->SSL ep32 | d=3 | MLP | 64 | 0.832 | 0.829 | completed |
+| U7 | ImageNet->SSL ep32 | d=3 | Linear | 32 | — | — | running |
 
 ## Key Finding
 
