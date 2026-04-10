@@ -16,3 +16,4 @@ results/**/torchrun_stdout.log
 
 # Exclude large pretraining logs (per-iteration CSVs, 6-23MB)
 results/pretraining/*/jepa_patch-log.csv
+checkpoints/jepa_patch-imagenet-init-ep32-best.pth.tar

@@ -670,8 +670,8 @@ def evaluate_slice(encode_fn, head, loader, criterion, device):
     return avg_loss, auc
 
 
-def run_slice_downstream(config, device):
-    """Downstream evaluation using a slice-level I-JEPA pretrained encoder."""
+def _run_slice_downstream_ARCHIVED(config, device):
+    """ARCHIVED: Slice-level I-JEPA collapsed, code moved to archive/slice_level/."""
     data_cfg = config['data']
     model_cfg = config['model']
     train_cfg = config['training']
@@ -1228,10 +1228,8 @@ def main(args):
         mode = config.get('mode', 'patch')
         if mode == 'patch':
             run_patch_downstream(config, device)
-        elif mode == 'slice':
-            run_slice_downstream(config, device)
         else:
-            raise ValueError("Unknown mode: %s" % mode)
+            raise ValueError("Unknown mode: %s (slice-level archived)" % mode)
 
 
 if __name__ == '__main__':
