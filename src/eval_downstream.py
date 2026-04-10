@@ -38,6 +38,23 @@ from sklearn.metrics import roc_auc_score
 
 import yaml
 
+# ImageNet normalization (must match pretraining transforms in src/transforms.py)
+IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+
+def imagenet_normalize(x):
+    """Normalize a batch of [0,1] images to ImageNet mean/std.
+
+    Args:
+        x: (B, 3, H, W) tensor in [0, 1] range.
+    Returns:
+        (B, 3, H, W) tensor normalized to ImageNet distribution.
+    """
+    mean = IMAGENET_MEAN.to(x.device, x.dtype)
+    std = IMAGENET_STD.to(x.device, x.dtype)
+    return (x - mean) / std
+
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
@@ -237,6 +254,7 @@ def precompute_features(encoder, data_dir, split, num_slices, slice_size,
             parts = []
             for j in range(0, flat.size(0), chunk_size):
                 chunk = flat[j:j + chunk_size]
+                chunk = imagenet_normalize(chunk)  # match pretraining distribution
                 with autocast():
                     out = encoder(chunk)      # (chunk, patches, D)
                 parts.append(out.mean(dim=1).cpu())  # (chunk, D)
@@ -851,6 +869,7 @@ class DownstreamModel(nn.Module):
     def forward(self, volumes):
         B, S, C, H, W = volumes.shape
         flat = volumes.reshape(B * S, C, H, W)
+        flat = imagenet_normalize(flat)  # match pretraining distribution
         parts = []
         for i in range(0, flat.size(0), self.chunk_size):
             chunk = flat[i:i + self.chunk_size]
