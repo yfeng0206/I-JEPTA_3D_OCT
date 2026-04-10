@@ -1,0 +1,25 @@
+mode: dinov3_frozen
+data:
+  data_dir: /tmp/fairvision_data/data
+  num_slices: 100
+  slice_size: 256
+  batch_size: 64
+  num_workers: 4
+  encode_chunk_size: 100  # larger since no gradients
+model:
+  encoder_name: dinov3_vitb16
+  freeze_encoder: true
+  probe_num_heads: 12
+  probe_depth: 3
+  head_type: mlp
+training:
+  lr_probe: 0.0001
+  lr_head: 0.001
+  weight_decay: 0  # literature: no WD for frozen probe
+  dropout: 0.1
+  epochs: 100
+  patience: 20
+  warmup_epochs: 3
+  seed: 42
+logging:
+  output_dir: /tmp/dinov3_outputs/frozen_d3_s100
