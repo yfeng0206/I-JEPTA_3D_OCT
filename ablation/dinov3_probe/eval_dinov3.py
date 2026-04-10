@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.eval_downstream import (
     AttentiveProbe, LinearHead, MLPHead, DownstreamModel,
     cosine_schedule_with_warmup, OCTVolumeDataset,
+    imagenet_normalize,
 )
 
 
@@ -144,6 +145,7 @@ def precompute_features(encoder, data_dir, split, num_slices, slice_size,
             parts = []
             for j in range(0, flat.size(0), chunk_size):
                 chunk = flat[j:j + chunk_size]
+                chunk = imagenet_normalize(chunk)  # match pretraining distribution
                 with autocast():
                     out = encode_model(chunk)      # (chunk, patches, D)
                 parts.append(out.mean(dim=1).cpu())  # mean-pool patches → (chunk, D)
