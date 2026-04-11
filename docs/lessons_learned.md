@@ -4,18 +4,6 @@ Record of mistakes, failed experiments, and fixes so we don't repeat them.
 
 ---
 
-## Critical Bugs
-
-### 0. 2D positional embeddings were collapsed — all patches got the same position
-- **What happened:** All 256 patch positions in the ViT-B/16 encoder received identical positional embeddings (unique rows = 1). The encoder had zero spatial awareness during ALL pretraining — both random-init and ImageNet-init.
-- **Root cause:** In `_get_2d_sincos_pos_embed_from_grid_proper`, the meshgrid indices were swapped. `np.meshgrid(w, h)` with default 'xy' indexing puts W-coords in grid[0] and H-coords in grid[1]. But the code used `grid[0, 0, :, 0]` for H (=all zeros) and `grid[1, 0, 0, :]` for W (=all zeros). The `pos_embed` is `nn.Parameter(requires_grad=False)`, so it was never corrected during training.
-- **Why ImageNet-init was also affected:** `scripts/download_imagenet_vit.py` explicitly skips pos_embed during conversion (line 69), so pretraining always used the repo's broken sincos table.
-- **Fix:** Swap indices: `grid[1, 0, :, 0]` for H, `grid[0, 0, 0, :]` for W. Verified: unique rows = 256.
-- **Impact:** All existing checkpoints lack spatial position information. Remarkably, the encoder still achieved 0.834 frozen AUC without it — suggesting the patch content alone carries strong signal for OCT glaucoma. Retraining with correct pos_embed should improve results further.
-- **Rule:** Always verify pos_embed uniqueness when implementing sincos embeddings. A quick `len(np.unique(pos, axis=0))` check catches this instantly.
-
----
-
 ## Pretraining Issues
 
 ### 1. LR=0.0005 too high for OCT data (Run 1)
@@ -96,33 +84,13 @@ Documented for reference. These are intentional differences, not bugs:
 
 ---
 
-## Normalization Mismatch (Critical Bug)
-
-### 10. ImageNet normalization mismatch caused -10% AUC in frozen probe
-- **What happened:** Frozen probe results (0.734 random, 0.774 ImageNet-init) were dramatically lower than expected. After fixing normalization, frozen random jumped to **0.834** (+10 points).
-- **Root cause:** The encoder was pretrained with `make_transforms()` which applies `T.Normalize(IMAGENET_MEAN, IMAGENET_STD)`, but `eval_downstream.py` fed raw [0,1] tensors to the frozen encoder. The encoder saw completely wrong input distribution — like running a model trained on standardized data with unstandardized inputs.
-- **Why it was hard to catch:** (1) The unfrozen path was less affected because the encoder could adapt during fine-tuning, and (2) the frozen probe still trained and produced reasonable-looking AUC numbers (0.73-0.77), just artificially suppressed.
-- **Fix:** Added `imagenet_normalize()` before all encoder inputs in `eval_downstream.py`:
-  ```python
-  IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-  IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
-  def imagenet_normalize(x):
-      mean = IMAGENET_MEAN.to(x.device, x.dtype)
-      std = IMAGENET_STD.to(x.device, x.dtype)
-      return (x - mean) / std
-  ```
-- **Rule:** Always verify that eval-time preprocessing exactly matches pretraining preprocessing. If the encoder was trained with normalization, eval must apply the same normalization.
-
----
-
 ## Frozen Probe Evaluation Protocol
 
-### 11. Frozen probe is NOT capped at 0.78 (was a normalization bug)
-- **What happened:** Earlier conclusion that "frozen probe is capped at ~0.78" was wrong — it was capped by the normalization mismatch, not by feature quality.
-- **Corrected result:** With proper normalization, frozen Random-init achieves **0.834 test AUC** — within 0.5% of the best unfrozen result (0.829).
-- **Lesson:** Before concluding that a model's features are limited, verify the evaluation pipeline is correct. A 10-point AUC gap was entirely an eval bug.
+### 10. Eval-time preprocessing must match pretraining
+- **Key rule:** If the encoder was pretrained with ImageNet normalization (`T.Normalize(IMAGENET_MEAN, IMAGENET_STD)`), the downstream evaluation must apply the same normalization before feeding images to the encoder.
+- **Our setup:** `imagenet_normalize()` is applied before all encoder inputs in both frozen and unfrozen paths in `eval_downstream.py`.
 
-### 12. Literature protocol for frozen probe evaluation
+### 11. Literature protocol for frozen probe evaluation
 - **Standard:** 90-100 epochs, cosine LR schedule, no weight decay on probe. I-JEPA uses SGD LR=0.002 at batch=16384; MAE uses LARS LR=0.1 at batch=16384; DINO uses SGD LR=0.001 at batch=1024.
 - **Our setup:** AdamW LR=1e-4 at batch=64 — within range after batch-size scaling. Weight decay should be 0 for frozen probe (all papers use 0).
 - **Key insight:** Batch size matters for LR comparison. Scale LR linearly with batch: LR_ours = LR_paper × (our_batch / paper_batch).

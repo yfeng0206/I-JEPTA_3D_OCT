@@ -2,42 +2,18 @@
 
 Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/ijepa) (Assran et al., CVPR 2023) on [Harvard FairVision](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision) OCT data for binary glaucoma classification.
 
-![Downstream AUC Curves](results/downstream_auc_curves.png)
-
 ## Results Summary
 
-All frozen probe results below use the corrected evaluation pipeline with proper ImageNet normalization (see [normalization fix](#normalization-fix)).
+Pretraining in progress — results will be updated once complete.
 
 | Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
 |--------|-------------|---------|--------|-------|------|----------|
-| **I-JEPA frozen d=3** | **Random→SSL ep11** | **ViT-B/16 frozen** | **100** | **3 blocks** | **MLP** | **0.834** |
-| I-JEPA frozen d=3 | ImageNet→SSL ep32 | ViT-B/16 frozen | 100 | 3 blocks | MLP | *running* |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | 0.829 |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | 0.829 |
-| I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | 0.829 |
-| I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 2 blocks | MLP | 0.828 |
-| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 val |
-| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 val |
-| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | *running* |
-| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | *running* |
-
-## Key Findings
-
-1. **Frozen probe nearly matches fine-tuning**: With correct normalization, the frozen Random-init encoder achieves **0.834 test AUC** — within 0.5% of the best unfrozen result (0.829). This means the I-JEPA representations are already strong enough for downstream classification without fine-tuning.
-
-2. **Normalization matters enormously**: Applying ImageNet normalization (mean/std) at eval time — matching what was used during pretraining — improved frozen probe from 0.734 to **0.834** (+10 points). See [normalization fix](#normalization-fix).
-
-3. **I-JEPA pretraining degrades ImageNet features over time**: Test AUC drops from ep32 to ep99 for ImageNet-init. The self-supervised objective overwrites useful ImageNet features with low-level patch prediction features.
-
-4. **Unfrozen results cluster tightly**: All 4 unfrozen MLP configs land at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help once the encoder is fine-tuned.
-
-![Normalization Fix Impact](results/normfix_impact.png)
-
-### Normalization Fix
-
-Early frozen probe results (0.734, 0.774) were obtained with a normalization mismatch: the encoder was pretrained with `T.Normalize(IMAGENET_MEAN, IMAGENET_STD)` but downstream evaluation fed raw [0,1] tensors. Applying `imagenet_normalize()` before the frozen encoder restored the correct input distribution and produced a +10 point AUC improvement. All results in the table above reflect the corrected pipeline.
-
-![ImageNet Degradation](results/imagenet_degradation.png)
+| I-JEPA frozen d=3 | Random→SSL | ViT-B/16 frozen | 100 | 3 blocks | MLP | pending |
+| I-JEPA frozen d=3 | ImageNet→SSL | ViT-B/16 frozen | 100 | 3 blocks | MLP | pending |
+| I-JEPA unfrozen d=3 | Random→SSL | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | pending |
+| I-JEPA unfrozen d=3 | Random→SSL | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | pending |
+| I-JEPA unfrozen d=3 | ImageNet→SSL | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | pending |
+| I-JEPA unfrozen d=3 | ImageNet→SSL | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | pending |
 
 ## Quick Links
 
