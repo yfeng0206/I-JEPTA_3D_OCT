@@ -362,7 +362,7 @@ def _save_diagnostic_plots(output_dir, test_labels, test_probs, test_auc,
 def run_patch_downstream(config, device):
     """Downstream glaucoma classification with I-JEPA pretrained encoder.
 
-    Protocol (matched to SLIViT baseline for fair comparison):
+    Protocol:
       1. Pre-compute: encode all volumes with frozen ViT, cache to disk
       2. Train: AttentiveProbe (2 blocks) + LinearHead on cached features
       3. Early stop on val AUC, patience=5
@@ -467,7 +467,7 @@ def run_patch_downstream(config, device):
     print('  Head (%s):     %s params (trainable)' % (head_type, format(head_params, ',')))
     print('  Total trainable: %s' % format(probe_params + head_params, ','))
 
-    # ---- Optimizer (matched to SLIViT protocol) ----------------------------
+    # ---- Optimizer ------------------------------------------------------------
     param_groups = [
         {'params': probe.parameters(), 'lr': train_cfg.get('lr_probe', 1e-4)},
         {'params': head.parameters(), 'lr': train_cfg.get('lr_head', 1e-3)},
@@ -633,7 +633,7 @@ def run_patch_downstream(config, device):
     print('\nResults saved to %s' % output_dir)
     print('  best_val_auc = %.4f' % best_auc)
     print('  test_auc     = %.4f' % (test_auc if test_auc else 0))
-    print('  (SLIViT baseline: 0.869 test AUC)')
+    print('  encoder: %s' % config.get('model', {}).get('encoder_checkpoint', 'unknown'))
 
     return results
 
@@ -670,8 +670,8 @@ def evaluate_slice(encode_fn, head, loader, criterion, device):
     return avg_loss, auc
 
 
-def _run_slice_downstream_ARCHIVED(config, device):
-    """ARCHIVED: Slice-level I-JEPA collapsed, code moved to archive/slice_level/."""
+def run_slice_downstream(config, device):
+    """Downstream evaluation using a slice-level I-JEPA pretrained encoder."""
     data_cfg = config['data']
     model_cfg = config['model']
     train_cfg = config['training']
@@ -1194,7 +1194,7 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         print('\nResults saved to %s' % output_dir)
         print('  best_val_auc = %.4f' % best_auc)
         print('  test_auc     = %.4f' % test_auc)
-        print('  (SLIViT baseline: 0.869, frozen probe: 0.733)')
+        print('  encoder: %s' % config.get('model', {}).get('encoder_checkpoint', 'unknown'))
 
 
 # ---------------------------------------------------------------------------
@@ -1228,8 +1228,10 @@ def main(args):
         mode = config.get('mode', 'patch')
         if mode == 'patch':
             run_patch_downstream(config, device)
+        elif mode == 'slice':
+            run_slice_downstream(config, device)
         else:
-            raise ValueError("Unknown mode: %s (slice-level archived)" % mode)
+            raise ValueError("Unknown mode: %s" % mode)
 
 
 if __name__ == '__main__':

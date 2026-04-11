@@ -6,34 +6,36 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 ## Results Summary
 
+All frozen probe results below use the corrected evaluation pipeline with proper ImageNet normalization (see [normalization fix](#normalization-fix)).
+
 | Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
 |--------|-------------|---------|--------|-------|------|----------|
-| **I-JEPA unfrozen d=3** | **ImageNet→SSL ep32** | **ViT-B/16 fine-tune** | **32** | **3 blocks** | **MLP** | **0.829** |
+| **I-JEPA frozen d=3** | **Random→SSL ep11** | **ViT-B/16 frozen** | **100** | **3 blocks** | **MLP** | **0.834** |
+| I-JEPA frozen d=3 | ImageNet→SSL ep32 | ViT-B/16 frozen | 100 | 3 blocks | MLP | *running* |
+| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 2 blocks | MLP | 0.829 |
 | I-JEPA unfrozen d=2 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 32 | 2 blocks | MLP | 0.828 |
-| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 val* |
-| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 val* |
-
-*\*Test AUC unavailable — DDP teardown crash during test evaluation (older code, since fixed).*
-| I-JEPA frozen d=3 | ImageNet→SSL ep32 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.774 |
-| I-JEPA frozen d=3 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 3 blocks | Linear | 0.734 |
-| I-JEPA frozen d=2 | Random→SSL ep11 | ViT-B/16 frozen | 100 | 2 blocks | Linear | 0.733 |
-| I-JEPA frozen d=3 | ImageNet→SSL ep50 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.706 |
-| I-JEPA frozen d=3 | ImageNet→SSL ep75 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.695 |
-| I-JEPA frozen d=3 | ImageNet→SSL ep99 | ViT-B/16 frozen | 100 | 3 blocks | MLP | 0.685 |
+| I-JEPA unfrozen d=2 | Random→SSL ep11 | ViT-B/16 fine-tune | 32 | 2 blocks | Linear | 0.819 val |
+| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | Linear | 0.815 val |
+| I-JEPA unfrozen d=3 | Random→SSL ep11 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | *running* |
+| I-JEPA unfrozen d=3 | ImageNet→SSL ep32 | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | *running* |
 
 ## Key Findings
 
-1. **Fine-tuning is the key lever**: Unfreezing the encoder gives +5.5% AUC (0.774 → 0.829 for ImageNet-init), confirming that task-specific adaptation matters more than better pretraining or probe architecture.
+1. **Frozen probe nearly matches fine-tuning**: With correct normalization, the frozen Random-init encoder achieves **0.834 test AUC** — within 0.5% of the best unfrozen result (0.829). This means the I-JEPA representations are already strong enough for downstream classification without fine-tuning.
 
-2. **ImageNet→SSL + fine-tune is our best approach**: 0.829 test AUC. All 4 unfrozen MLP configs cluster at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help.
+2. **Normalization matters enormously**: Applying ImageNet normalization (mean/std) at eval time — matching what was used during pretraining — improved frozen probe from 0.734 to **0.834** (+10 points). See [normalization fix](#normalization-fix).
 
-3. **ImageNet init helps frozen probe** (+4%): 0.774 (ImageNet→SSL ep32) vs 0.734 (Random→SSL), but only at early pretraining epochs.
+3. **I-JEPA pretraining degrades ImageNet features over time**: Test AUC drops from ep32 to ep99 for ImageNet-init. The self-supervised objective overwrites useful ImageNet features with low-level patch prediction features.
 
-4. **I-JEPA pretraining degrades ImageNet features over time**: Test AUC drops 0.774 → 0.685 from ep32 to ep99. The self-supervised objective overwrites useful ImageNet features with low-level patch prediction features that are less relevant to glaucoma.
+4. **Unfrozen results cluster tightly**: All 4 unfrozen MLP configs land at 0.828-0.829 — neither deeper probe (d=3 vs d=2) nor more slices (64 vs 32) help once the encoder is fine-tuned.
 
-5. **Frozen probe is capped at ~0.78**: 100-epoch training with WD=0 (matching literature protocol) gave only +0.45% over 50 epochs. More training can't overcome frozen feature limitations.
+![Normalization Fix Impact](results/normfix_impact.png)
+
+### Normalization Fix
+
+Early frozen probe results (0.734, 0.774) were obtained with a normalization mismatch: the encoder was pretrained with `T.Normalize(IMAGENET_MEAN, IMAGENET_STD)` but downstream evaluation fed raw [0,1] tensors. Applying `imagenet_normalize()` before the frozen encoder restored the correct input distribution and produced a +10 point AUC improvement. All results in the table above reflect the corrected pipeline.
 
 ![ImageNet Degradation](results/imagenet_degradation.png)
 

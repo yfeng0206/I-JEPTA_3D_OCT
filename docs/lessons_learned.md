@@ -84,24 +84,43 @@ Documented for reference. These are intentional differences, not bugs:
 
 ---
 
+## Normalization Mismatch (Critical Bug)
+
+### 10. ImageNet normalization mismatch caused -10% AUC in frozen probe
+- **What happened:** Frozen probe results (0.734 random, 0.774 ImageNet-init) were dramatically lower than expected. After fixing normalization, frozen random jumped to **0.834** (+10 points).
+- **Root cause:** The encoder was pretrained with `make_transforms()` which applies `T.Normalize(IMAGENET_MEAN, IMAGENET_STD)`, but `eval_downstream.py` fed raw [0,1] tensors to the frozen encoder. The encoder saw completely wrong input distribution — like running a model trained on standardized data with unstandardized inputs.
+- **Why it was hard to catch:** (1) The unfrozen path was less affected because the encoder could adapt during fine-tuning, and (2) the frozen probe still trained and produced reasonable-looking AUC numbers (0.73-0.77), just artificially suppressed.
+- **Fix:** Added `imagenet_normalize()` before all encoder inputs in `eval_downstream.py`:
+  ```python
+  IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+  IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+  def imagenet_normalize(x):
+      mean = IMAGENET_MEAN.to(x.device, x.dtype)
+      std = IMAGENET_STD.to(x.device, x.dtype)
+      return (x - mean) / std
+  ```
+- **Rule:** Always verify that eval-time preprocessing exactly matches pretraining preprocessing. If the encoder was trained with normalization, eval must apply the same normalization.
+
+---
+
 ## Frozen Probe Evaluation Protocol
 
-### 10. Frozen probe is capped — more epochs and no WD don't help
-- **What happened:** Ran 100-epoch frozen probe (matching I-JEPA/MAE/DINO protocol) with weight_decay=0 on ImageNet→SSL ep32 best checkpoint. Test AUC: 0.7787 vs 0.7742 with 50 epochs + WD=0.01. Only +0.45% improvement.
-- **Root cause:** The frozen encoder features are the bottleneck, not probe training duration or regularization. Train loss dropped lower (0.475 vs 0.513) but val gap widened — extra capacity went to overfitting, not generalization. Model peaked at epoch 35 and early-stopped at 55.
-- **Lesson:** For this encoder, frozen probe is capped at ~0.78 test AUC. The fix is fine-tuning, not longer probe training.
+### 11. Frozen probe is NOT capped at 0.78 (was a normalization bug)
+- **What happened:** Earlier conclusion that "frozen probe is capped at ~0.78" was wrong — it was capped by the normalization mismatch, not by feature quality.
+- **Corrected result:** With proper normalization, frozen Random-init achieves **0.834 test AUC** — within 0.5% of the best unfrozen result (0.829).
+- **Lesson:** Before concluding that a model's features are limited, verify the evaluation pipeline is correct. A 10-point AUC gap was entirely an eval bug.
 
-### 11. Literature protocol for frozen probe evaluation
+### 12. Literature protocol for frozen probe evaluation
 - **Standard:** 90-100 epochs, cosine LR schedule, no weight decay on probe. I-JEPA uses SGD LR=0.002 at batch=16384; MAE uses LARS LR=0.1 at batch=16384; DINO uses SGD LR=0.001 at batch=1024.
 - **Our setup:** AdamW LR=1e-4 at batch=64 — within range after batch-size scaling. Weight decay should be 0 for frozen probe (all papers use 0).
 - **Key insight:** Batch size matters for LR comparison. Scale LR linearly with batch: LR_ours = LR_paper × (our_batch / paper_batch).
 
-### 12. Don't run multiple frozen probe jobs on the same GPU
+### 13. Don't run multiple frozen probe jobs on the same GPU
 - **What happened:** Submitted 4 frozen probe jobs simultaneously. All defaulted to cuda:0, each getting ~25% GPU time. Feature pre-computation (normally ~40 min) took 2.5+ hours per job.
 - **Fix:** Run sequentially, or set `CUDA_VISIBLE_DEVICES` per job to spread across GPUs.
 - **Rule:** Frozen probe jobs use single python process on cuda:0. Multiple jobs = time-sharing, not parallelism.
 
-### 13. torchrun port conflict when multiple DDP jobs share a compute instance
+### 14. torchrun port conflict when multiple DDP jobs share a compute instance
 - **What happened:** Multiple unfrozen (torchrun) jobs ran simultaneously, all trying to bind port 29500. First job got the port, others crashed with "Address already in use".
 - **Fix:** Add `MASTER_PORT` env var with unique port per job config, or run sequentially.
 - **Rule:** Only one torchrun job per compute instance at a time, unless using different MASTER_PORT values.

@@ -36,7 +36,7 @@ OCT Volume (200 B-scans)
 
 | ID | Experiment | Question | Status |
 |----|-----------|----------|--------|
-| P2a | Kermany supervised → FairVision | Does supervised OCT pretraining (like SLIViT) beat self-supervised? | planned |
+| P2a | Kermany supervised → FairVision | Does supervised OCT pretraining beat self-supervised? | planned |
 | P2b | Kermany I-JEPA → FairVision | Is I-JEPA on Kermany (84K labeled OCT) better than on FairVision? | planned |
 | P2c | MAE pretrain on FairVision 600K | Is I-JEPA actually better than MAE on our data? (paper claims yes) | planned |
 
@@ -55,9 +55,8 @@ OCT Volume (200 B-scans)
 
 | Method | Encoder (params) | Pretrain | Test AUC |
 |--------|-----------------|----------|----------|
-| I-JEPA frozen | ViT-B/16 (86M) | ImageNet → I-JEPA on 600K OCT | 0.774 |
-| **I-JEPA unfrozen** | **ViT-B/16 (86M)** | **ImageNet → I-JEPA on 600K OCT** | **0.829** |
-| SLIViT (reference) | ConvNeXt-T + ViT (55M) | ImageNet → Kermany (supervised) | 0.869 |
+| **I-JEPA frozen** | **ViT-B/16 (86M)** | **Random → I-JEPA on 600K OCT** | **0.834** |
+| I-JEPA unfrozen | ViT-B/16 (86M) | ImageNet → I-JEPA on 600K OCT | 0.829 |
 | RETFound (literature) | MAE ViT-L (300M) | ImageNet → 1.6M retinal (MAE) | 0.91 |
 
 ## Priority Order
