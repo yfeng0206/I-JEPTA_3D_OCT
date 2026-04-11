@@ -886,7 +886,7 @@ class DownstreamModel(nn.Module):
 # ---------------------------------------------------------------------------
 
 @torch.no_grad()
-def evaluate_finetune(model, loader, criterion, device):
+def evaluate_finetune(model, loader, criterion, device, return_predictions=False):
     """Evaluate fine-tune model on a data loader."""
     model.eval()
     total_loss = 0.0
@@ -926,6 +926,8 @@ def evaluate_finetune(model, loader, criterion, device):
 
     avg_loss = total_loss / max(n_samples, 1)
     auc = roc_auc_score(all_labels, all_probs) if len(np.unique(all_labels)) >= 2 else 0.5
+    if return_predictions:
+        return avg_loss, auc, all_labels, all_probs
     return avg_loss, auc
 
 
@@ -1171,9 +1173,32 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         test_loader = DataLoader(test_dataset, batch_size=batch_size,
                                  shuffle=False, num_workers=2, pin_memory=True)
         test_model = raw.to(device)
-        test_loss, test_auc = evaluate_finetune(test_model, test_loader, criterion, device)
+        test_loss, test_auc, test_labels, test_probs = evaluate_finetune(
+            test_model, test_loader, criterion, device, return_predictions=True)
         print('Best epoch: %d  |  Val AUC: %.4f  |  TEST AUC: %.4f'
               % (best_epoch, best_auc, test_auc))
+
+        # Sensitivity / specificity at threshold=0.5
+        sensitivity = specificity = None
+        if test_labels is not None:
+            test_preds = (test_probs >= 0.5).astype(int)
+            tp = ((test_preds == 1) & (test_labels == 1)).sum()
+            tn = ((test_preds == 0) & (test_labels == 0)).sum()
+            fp = ((test_preds == 1) & (test_labels == 0)).sum()
+            fn = ((test_preds == 0) & (test_labels == 1)).sum()
+            sensitivity = float(tp / max(tp + fn, 1))
+            specificity = float(tn / max(tn + fp, 1))
+            print('  Sensitivity: %.4f  |  Specificity: %.4f  (threshold=0.5)'
+                  % (sensitivity, specificity))
+
+        # Save predictions
+        np.savez(os.path.join(output_dir, 'test_predictions.npz'),
+                 labels=test_labels, probs=test_probs)
+        print('  Saved test_predictions.npz (%d samples)' % len(test_labels))
+
+        # Diagnostic plots
+        _save_diagnostic_plots(output_dir, test_labels, test_probs, test_auc,
+                               None, None)
 
         results = {
             'mode': 'patch_finetune',
@@ -1184,6 +1209,8 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
             'best_val_auc': best_auc,
             'test_auc': test_auc,
             'test_loss': test_loss,
+            'sensitivity': sensitivity,
+            'specificity': specificity,
             'lr_encoder': train_cfg.get('lr_encoder', 5e-6),
             'accum_steps': accum_steps,
             'effective_batch': eff_batch,
