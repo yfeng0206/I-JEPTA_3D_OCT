@@ -66,7 +66,10 @@ import torch.distributed as dist
 from src.models.vision_transformer import (
     VisionTransformer, SliceEncoder, Block, VIT_EMBED_DIMS,
 )
-from src.models.feature_extractor import FrozenFeatureExtractor
+try:
+    from src.models.feature_extractor import FrozenFeatureExtractor
+except ImportError:
+    FrozenFeatureExtractor = None  # Slice-level approach (archived)
 from src.datasets.oct_volumes import OCTVolumeDataset
 from src.helper import _VIT_CONFIGS
 from src.utils.distributed import init_distributed

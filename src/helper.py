@@ -26,7 +26,10 @@ from src.models.vision_transformer import (
     slice_encoder,
     slice_predictor,
 )
-from src.models.feature_extractor import FrozenFeatureExtractor
+try:
+    from src.models.feature_extractor import FrozenFeatureExtractor
+except ImportError:
+    FrozenFeatureExtractor = None  # Slice-level approach (archived)
 from src.utils.tensors import trunc_normal_
 from src.utils.schedulers import WarmupCosineSchedule, CosineWDSchedule
 
