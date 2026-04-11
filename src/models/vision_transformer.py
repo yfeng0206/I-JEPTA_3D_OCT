@@ -61,8 +61,8 @@ def get_2d_sincos_pos_embed(embed_dim, grid_size):
 
 def _get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
     assert embed_dim % 2 == 0
-    emb_h = get_1d_sincos_pos_embed(embed_dim // 2, grid[0, 0, :, 0])  # (H, D/2)
-    emb_w = get_1d_sincos_pos_embed(embed_dim // 2, grid[1, 0, 0, :])  # (W, D/2)
+    emb_h = get_1d_sincos_pos_embed(embed_dim // 2, grid[1, 0, :, 0])  # (H, D/2)
+    emb_w = get_1d_sincos_pos_embed(embed_dim // 2, grid[0, 0, 0, :])  # (W, D/2)
     return np.concatenate([emb_h, emb_w], axis=1)  # (H*W — broadcast), but we need care
 
     # The above is a simplification; the standard approach tiles properly:
@@ -102,10 +102,11 @@ def get_1d_sincos_pos_embed(embed_dim, grid_size_or_positions):
 def _get_2d_sincos_pos_embed_from_grid_proper(embed_dim, grid):
     """Proper 2-D sincos from a (2, 1, H, W) grid."""
     assert embed_dim % 2 == 0
-    # grid[0]: shape (1, H, W) — height coordinates
-    # grid[1]: shape (1, H, W) — width coordinates
-    emb_h = get_1d_sincos_pos_embed(embed_dim // 2, grid[0, 0, :, 0])  # (H, D/2)
-    emb_w = get_1d_sincos_pos_embed(embed_dim // 2, grid[1, 0, 0, :])  # (W, D/2)
+    # meshgrid(w, h) with default 'xy' indexing:
+    #   grid[0]: shape (1, H, W) — width coordinates  (constant along rows)
+    #   grid[1]: shape (1, H, W) — height coordinates (constant along cols)
+    emb_h = get_1d_sincos_pos_embed(embed_dim // 2, grid[1, 0, :, 0])  # (H, D/2)
+    emb_w = get_1d_sincos_pos_embed(embed_dim // 2, grid[0, 0, 0, :])  # (W, D/2)
     # Tile: each (h, w) position gets [emb_h[h], emb_w[w]]
     H, W = grid.shape[2], grid.shape[3]
     emb_h_tiled = np.repeat(emb_h, W, axis=0)  # (H*W, D/2)
