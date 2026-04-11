@@ -4,6 +4,18 @@ Record of mistakes, failed experiments, and fixes so we don't repeat them.
 
 ---
 
+## Critical Bugs
+
+### 0. 2D positional embeddings were collapsed — all patches got the same position
+- **What happened:** All 256 patch positions in the ViT-B/16 encoder received identical positional embeddings (unique rows = 1). The encoder had zero spatial awareness during ALL pretraining — both random-init and ImageNet-init.
+- **Root cause:** In `_get_2d_sincos_pos_embed_from_grid_proper`, the meshgrid indices were swapped. `np.meshgrid(w, h)` with default 'xy' indexing puts W-coords in grid[0] and H-coords in grid[1]. But the code used `grid[0, 0, :, 0]` for H (=all zeros) and `grid[1, 0, 0, :]` for W (=all zeros). The `pos_embed` is `nn.Parameter(requires_grad=False)`, so it was never corrected during training.
+- **Why ImageNet-init was also affected:** `scripts/download_imagenet_vit.py` explicitly skips pos_embed during conversion (line 69), so pretraining always used the repo's broken sincos table.
+- **Fix:** Swap indices: `grid[1, 0, :, 0]` for H, `grid[0, 0, 0, :]` for W. Verified: unique rows = 256.
+- **Impact:** All existing checkpoints lack spatial position information. Remarkably, the encoder still achieved 0.834 frozen AUC without it — suggesting the patch content alone carries strong signal for OCT glaucoma. Retraining with correct pos_embed should improve results further.
+- **Rule:** Always verify pos_embed uniqueness when implementing sincos embeddings. A quick `len(np.unique(pos, axis=0))` check catches this instantly.
+
+---
+
 ## Pretraining Issues
 
 ### 1. LR=0.0005 too high for OCT data (Run 1)
