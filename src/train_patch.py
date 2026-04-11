@@ -584,14 +584,8 @@ def main(args):
             % (epoch + 1, opt_cfg['epochs'], epoch_time, loss_meter.avg,
                val_str, improved))
 
-        # Save latest checkpoint (main process only)
+        # Save periodic + best checkpoints (main process only)
         if is_main:
-            latest_path = os.path.join(output_dir, '%s-latest.pth.tar' % write_tag)
-            save_checkpoint(
-                latest_path, encoder, predictor, target_encoder, optimizer,
-                scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
-                world_size, lr_val,
-            )
             if (epoch + 1) % 25 == 0:
                 ep_path = os.path.join(output_dir, '%s-ep%d.pth.tar' % (write_tag, epoch + 1))
                 save_checkpoint(
@@ -599,9 +593,8 @@ def main(args):
                     scaler, epoch + 1, loss_meter.avg, data_cfg['batch_size'],
                     world_size, lr_val,
                 )
-            # Upload latest checkpoint every 10 epochs, log CSV every 5
-            if (epoch + 1) % 10 == 0:
-                upload_to_blob(latest_path, blob_prefix, log)
+                upload_to_blob(ep_path, blob_prefix, log)
+            # Upload log CSV every 5 epochs
             if (epoch + 1) % 5 == 0:
                 csv_file = os.path.join(output_dir, '%s-log.csv' % write_tag)
                 if os.path.exists(csv_file):
