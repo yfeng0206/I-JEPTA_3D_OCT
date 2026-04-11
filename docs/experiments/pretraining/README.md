@@ -2,31 +2,31 @@
 
 Summary of I-JEPA pretraining runs on 600K OCT slices for glaucoma detection.
 
-## Runs Overview
+## Current Runs (in progress)
 
-| Run | Init | LR | Outcome | Best Val Loss | Notes |
-|-----|------|----|---------|---------------|-------|
-| [Run 1](run1_random_lr0005.md) | Random | 0.0005 | Early stopped ep26 | 0.2081 (ep11) | LR too high for OCT |
-| [Run 2](run2_random_lr00025.md) | Random | 0.00025 | Bug stopped ep9 | 0.1197 (ep1, artificial) | Early stopping bug |
-| [Run 3](run3_random_resume.md) | Random (resume) | 0.00025 | Converged ep11 | 0.1586 (ep11) | Best random-init encoder |
-| [Run 4](run4_imagenet_gentle.md) | ImageNet | 0.0001 | Collapsed | 0.008 (collapsed) | Gentle LR caused collapse |
-| [Run 5](run5_imagenet_100ep.md) | ImageNet | 0.00025 | Completed 100ep | ~0.25 plateau | Best ImageNet-init encoder |
+| Run | Init | LR | Epochs | Warmup | EMA | Status |
+|-----|------|----|--------|--------|-----|--------|
+| Random-init | Random | 0.00025 | 100 | 5 | 0.996→1.0 | pending |
+| ImageNet-init | ImageNet ViT-B/16 (timm) | 0.00025 | 100 | 5 | 0.996→1.0 | pending |
 
-## Training Curves
+Both use: ViT-B/16, batch 64×4 GPUs×2 accum = 512 effective, weight decay 0.04→0.4, no early stopping.
 
-### All Runs
-![All Pretraining Runs](../../../results/pretraining_all_runs.png)
+## Previous Runs (exploratory)
 
-### ImageNet-Init (100 epochs)
-![ImageNet-Init Pretraining](../../../results/pretraining_imagenet_init.png)
+These early runs informed our hyperparameter choices. Key lessons:
 
-### Random-Init (Runs 1-3)
-![Random-Init Pretraining](../../../results/pretraining_random_init.png)
+| Run | Init | LR | Outcome | Lesson |
+|-----|------|----|---------|--------|
+| Run 1 | Random | 0.0005 | Diverged after warmup | LR too high for OCT data |
+| Run 2 | Random | 0.00025 | Stopped ep9 | Early stopping bug (counted pre-warmup) |
+| Run 3 | Random | 0.00025 | Converged ep11 | Best random-init with this LR |
+| Run 4 | ImageNet | 0.0001 | Collapsed | Gentle LR preserves ImageNet features → collapse on OCT |
+| Run 5 | ImageNet | 0.00025 | 100 epochs | Aggressive LR works — forces domain adaptation |
 
 ## Key Takeaways
 
-1. **OCT requires lower LR than ImageNet**: Correlated gradients from less diverse data make the effective LR higher than the nominal value.
+1. **OCT requires lower LR than ImageNet**: Correlated gradients from less diverse data make the effective LR higher than the nominal value. Peak LR=0.00025 with effective batch 512.
 2. **Early stopping must ignore pre-warmup epochs**: EMA target has not diverged yet at ep1, producing artificially low val_loss.
 3. **ImageNet init needs aggressive, not gentle, tuning**: Gentle LR preserves the ImageNet representation, which collapses on OCT data. Higher LR forces the model to restructure.
 4. **I-JEPA loss plateau is normal**: Pretraining loss does not correlate with downstream quality. Always evaluate with downstream probes.
-5. **Random init (Run 3) outperformed ImageNet init (Run 5) on downstream tasks**: Run 3 encoder used in F1/F2/U1/U2; Run 5 ep32 achieved 0.774 AUC frozen but ep99 degraded to 0.685.
+5. **No early stopping for final runs**: Literature standard (RETFound: 800 epochs, US-JEPA: 100 epochs) is fixed-epoch training. We run full 100 epochs and save checkpoints every 25.
