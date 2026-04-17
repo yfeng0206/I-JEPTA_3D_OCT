@@ -1123,9 +1123,13 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         lr_head = optimizer.param_groups[2]['lr']
 
         should_stop = False
+        # Only track best / early-stop after warmup: during warmup the LR
+        # is linearly ramping from 0, so the encoder has barely moved and
+        # val AUC isn't a meaningful signal. Same principle as pretraining.
+        past_warmup = (epoch + 1) > train_cfg.get('warmup_epochs', 3)
         if is_main:
             improved = val_auc > best_auc
-            marker = ' *' if improved else ''
+            marker = ' *' if (improved and past_warmup) else ''
             print('Epoch %2d/%d (%5.0fs) | Train: %.4f | Val: %.4f | AUC: %.4f | LR: %.1e/%.1e/%.1e%s'
                   % (epoch, epochs, elapsed, train_loss, val_loss, val_auc,
                      lr_enc, lr_probe, lr_head, marker))
@@ -1136,21 +1140,22 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
                                   lr_enc, lr_probe, lr_head, elapsed))
                 csv_file.flush()
 
-            if improved:
-                best_auc = val_auc
-                patience_counter = 0
-                torch.save({
-                    'epoch': epoch,
-                    'encoder': raw.encoder.state_dict(),
-                    'probe': raw.probe.state_dict(),
-                    'head': raw.head.state_dict(),
-                    'val_auc': val_auc,
-                }, os.path.join(output_dir, 'best_model.pt'))
-            else:
-                patience_counter += 1
-                if patience_counter >= patience:
-                    print('Early stopping at epoch %d (patience=%d)' % (epoch, patience))
-                    should_stop = True
+            if past_warmup:
+                if improved:
+                    best_auc = val_auc
+                    patience_counter = 0
+                    torch.save({
+                        'epoch': epoch,
+                        'encoder': raw.encoder.state_dict(),
+                        'probe': raw.probe.state_dict(),
+                        'head': raw.head.state_dict(),
+                        'val_auc': val_auc,
+                    }, os.path.join(output_dir, 'best_model.pt'))
+                else:
+                    patience_counter += 1
+                    if patience_counter >= patience:
+                        print('Early stopping at epoch %d (patience=%d)' % (epoch, patience))
+                        should_stop = True
 
         # Broadcast early stop decision — ALL ranks must reach this
         if world_size > 1:
