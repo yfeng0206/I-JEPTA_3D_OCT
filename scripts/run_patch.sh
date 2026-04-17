@@ -2,7 +2,7 @@
 # AML entry point for patch-level I-JEPA pretraining.
 # Reads env vars, downloads data from blob, runs torchrun, uploads results.
 
-set -e
+set -euo pipefail
 
 EPOCHS=${EPOCHS:-100}
 BATCH_SIZE=${BATCH_SIZE:-32}
@@ -44,7 +44,7 @@ df -h /tmp 2>/dev/null || df -h
 
 echo "=== Environment Info ==="
 python --version
-pip show torch 2>/dev/null | grep -E "^Name|^Version"
+pip show torch 2>/dev/null | grep -E "^Name|^Version" || true
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo "nvidia-smi not available"
 
 echo "=== Installing dependencies ==="
