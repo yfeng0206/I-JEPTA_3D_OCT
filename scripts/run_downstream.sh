@@ -6,7 +6,7 @@
 # Adapted from I-JEPA attentive probe (Assran et al., 2023) with 2 blocks
 # for inter-slice relationship learning (slices are independently encoded).
 
-set -e
+set -euo pipefail
 
 MODE=${MODE:-patch}
 EPOCHS=${EPOCHS:-50}
@@ -42,6 +42,7 @@ LR_ENCODER=${LR_ENCODER:-0.000001}
 LR_HEAD=${LR_HEAD:-0.001}
 WEIGHT_DECAY=${WEIGHT_DECAY:-0.01}
 DROPOUT=${DROPOUT:-0.1}
+WARMUP_EPOCHS=${WARMUP_EPOCHS:-3}
 
 # Azure blob storage
 BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}
@@ -60,7 +61,7 @@ df -h /tmp 2>/dev/null || df -h
 
 echo "=== Environment Info ==="
 python --version
-pip show torch 2>/dev/null | grep -E "^Name|^Version"
+pip show torch 2>/dev/null | grep -E "^Name|^Version" || true
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo "nvidia-smi not available"
 
 echo "=== Installing dependencies ==="
@@ -197,7 +198,7 @@ training:
   dropout: ${DROPOUT}
   epochs: ${EPOCHS}
   patience: ${PATIENCE}
-  warmup_epochs: 3
+  warmup_epochs: ${WARMUP_EPOCHS}
   accum_steps: ${ACCUM_STEPS}
   seed: ${SEED}
 logging:
