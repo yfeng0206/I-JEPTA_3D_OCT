@@ -22,6 +22,8 @@ HEAD_TYPE=${HEAD_TYPE:-linear}
 LR_PROBE=${LR_PROBE:-0.0001}
 LR_HEAD=${LR_HEAD:-0.001}
 WEIGHT_DECAY=${WEIGHT_DECAY:-0}
+DROPOUT=${DROPOUT:-0.1}
+WARMUP_EPOCHS=${WARMUP_EPOCHS:-3}
 
 IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:?'Set IJEPA_BLOB_PREFIX env var'}
 BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}
@@ -169,10 +171,10 @@ training:
   lr_encoder: 0.000001
   lr_head: ${LR_HEAD}
   weight_decay: ${WEIGHT_DECAY}
-  dropout: 0.1
+  dropout: ${DROPOUT}
   epochs: ${EPOCHS}
   patience: ${PATIENCE}
-  warmup_epochs: 3
+  warmup_epochs: ${WARMUP_EPOCHS}
   accum_steps: 1
   seed: ${SEED}
 logging:
