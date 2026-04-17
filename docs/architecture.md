@@ -116,69 +116,82 @@ Adjacent OCT slices produce nearly identical ConvNeXt features (cosine similarit
 
 ![Downstream Classification Pipeline](../results/downstream_pipeline.svg)
 
-### AttentiveProbe
+### AttentiveProbe (default)
+
+Full self-attention over [CLS, s1..s100] with FFN. One block (d=1) — matches I-JEPA paper convention.
 
 | Component | Detail |
-|-----------|--------|
-| Architecture | Transformer blocks with learnable CLS token |
-| CLS token | Learnable, 1 x 768 |
-| Positional embedding | Learnable, (N+1) x 768 |
-| Depth | 2 blocks (d=2) or 3 blocks (d=3) |
+|---|---|
+| Architecture | Transformer block(s) with learnable CLS token |
+| CLS token | Learnable, 1 × 768 |
+| Positional embedding | Learnable, (N+1) × 768 |
+| Depth | 1 block (literature-aligned default) |
 | Attention heads | 12 |
 | MLP ratio | 4.0 |
 | Final norm | LayerNorm |
-| Output | CLS token (index 0) after final norm |
-| Parameters (d=2) | ~14.3M |
-| Parameters (d=3) | ~21.4M |
+| Output | CLS token after final norm → (B, 768) |
+| Parameters (d=1) | ~7.17M |
 
-### Classification Heads
+### CrossAttnPool (minimal ablation alternative)
+
+Single learnable query, single-head cross-attention (head_dim=64), no FFN, no self-attention between slices. Slice-axis positional embedding preserves axial order (needed because per-slice features are mean-pooled before the probe, so slice order is not in the feature values). ~26× smaller than AttentiveProbe d=1 while preserving attention-based slice weighting and axial position info. Implemented in `src/models/attentive_pool_minimal.py`.
+
+| Component | Detail |
+|---|---|
+| Query tokens | 1 learnable (1 × 768) |
+| Positional embedding | Learnable, S × 768 |
+| Q / K / V projection | Linear(768 → 64) |
+| Attention | Single-head, softmax(QK/√64) |
+| Output projection | Linear(64 → 768) |
+| Final norm | LayerNorm(768) |
+| Parameters | ~277K |
+
+### Classification Head
+
+Only LinearHead is in active use. (MLPHead code exists but is not part of the current protocol.)
 
 **LinearHead:**
 
 | Component | Detail |
-|-----------|--------|
-| Layers | LayerNorm(768) -> Linear(768, 1) |
-| Parameters | ~2.3K |
-
-**MLPHead:**
-
-| Component | Detail |
-|-----------|--------|
-| Layers | LayerNorm(768) -> Linear(768, 256) -> GELU -> Dropout(0.1) -> Linear(256, 1) |
-| Parameters | ~197K |
+|---|---|
+| Layers | LayerNorm(768) → Linear(768, 1) |
+| Parameters | 2,305 |
 
 ### Training Configurations
 
 **Frozen probe (encoder frozen):**
 
 | Parameter | Value |
-|-----------|-------|
+|---|---|
 | Encoder | Frozen (no gradients) |
 | Slices | 100 |
-| Batch size | 64 |
-| Probe LR | 1e-4 |
-| Head LR | 1e-3 |
-| Epochs | 50 |
-| Patience | 5 |
+| Batch size | 256 |
+| Probe LR = Head LR | 4e-4 (single LR, linear-scaled from 1e-3 @ bs=1024) |
+| Epochs / Patience | 50 / 15 |
+| Warmup | 5 epochs |
+| Weight decay | 0.05 |
+| Dropout (probe) | 0.2 |
 | Features | Pre-computed once and cached |
 
-**Fine-tuning (encoder unfrozen):**
+**Fine-tuning (encoder unfrozen, MAE-style LLRD):**
 
 | Parameter | Value |
-|-----------|-------|
-| Encoder | Unfrozen (LR=5e-6) |
-| Slices | 32 or 64 (100 OOMs with encoder gradients) |
+|---|---|
+| Encoder | Unfrozen with layer-wise LR decay |
+| LLRD γ | 0.65 (ViT-B standard) |
+| Base LR | 4e-4 (probe, head, encoder.norm) |
+| Effective per-layer LR | embed 1.48e-6 → top block 2.60e-4 → head 4e-4 |
+| Slices | 64 (100 OOMs with encoder gradients on T4 16GB) |
 | Batch size / GPU | 1 |
 | Gradient accumulation | 4 |
-| Effective batch size | 16 (1 x 4 GPUs x 4 accum) |
-| Encoder LR | 5e-6 |
-| Probe LR | 1e-4 (20x encoder LR) |
-| Head LR | 1e-3 |
-| Epochs | 25 |
-| Patience | 5 |
-| Warmup | 3 epochs |
+| Effective batch size | 16 (1 × 4 GPUs × 4 accum) |
+| Epochs / Patience | 50 / 15 (gated on past_warmup) |
+| Warmup | 10 epochs |
+| Weight decay | 0.05 |
+| Dropout (probe) | 0.2 |
 | LR schedule | Cosine with warmup |
-| GPUs | 4x T4 16 GB (DDP) |
+| AMP | fp16 autocast |
+| GPUs | 4× T4 16 GB (DDP) |
 
 ## 4. Comparison with Original I-JEPA
 
@@ -197,14 +210,14 @@ Adjacent OCT slices produce nearly identical ConvNeXt features (cosine similarit
 | qkv_bias default | False (True in practice) | True |
 | CLS token | Has interpolation code (buggy for no-CLS) | Direct pos_embed add (cleaner) |
 | Pretrained init | Not supported | Custom loading path with shape-mismatch handling |
-| Downstream eval | AttentiveProbe (1 block) on ImageNet patches | AttentiveProbe (2-3 blocks) on OCT volume slices |
+| Downstream eval | AttentiveProbe (1 block) on ImageNet patches | AttentiveProbe (1 block, d=1) on OCT volume slices |
 
 Key differences explained:
 
 - **Patch grid 256 vs 196**: Our 256x256 images with 16x16 patches yield 16x16=256 patches vs ImageNet's 224/16=14x14=196. More patches means more context for masked prediction.
 - **Cosine vs linear momentum**: For EMA range [0.996, 1.0], the max difference between cosine and linear is ~0.0003. Negligible.
 - **Target path fp32**: We intentionally run the target encoder without autocast for slightly more precise target representations. No backward pass is needed on the target path, so the memory cost is minimal.
-- **Probe depth**: The original paper uses 1 block because ImageNet patch tokens already carry global context from 12 encoder layers. Our slice tokens are independently encoded (no cross-slice attention in the encoder), so we use 2-3 blocks to let the probe learn inter-slice relationships.
+- **Probe depth**: The I-JEPA paper uses 1 block; we follow that convention after confirming deeper probes (d=3 at 21M params) give no AUC gain over d=1 (7M) on this dataset — the encoder, not the probe, is the bottleneck.
 
 ## 5. Memory Budget
 
@@ -314,7 +327,7 @@ This differs from MAE which reconstructs pixels at masked positions. I-JEPA pred
 
 ### Early Stopping
 
-- **Pretraining**: Patience-based on validation loss, but only counting epochs after warmup (pre-warmup epochs have artificially low loss due to EMA initialization). For the 100-epoch ImageNet run, patience was set to 9999 (effectively disabled).
+- **Pretraining**: No early stopping in the current protocol. Patience is technically supported (gated on `past_warmup` to avoid latching onto the artificially low pre-warmup loss from EMA initialization), but set to 999 in practice to disable it. Literature (RETFound, V-JEPA) uses fixed-epoch training.
 - **Downstream**: Patience=5 on validation AUC. Early stopping is critical here because fine-tuning with small effective batch sizes (16) overfits quickly.
 
 ## 8. Code Differences from Official I-JEPA
@@ -330,7 +343,7 @@ These are intentional differences documented for reproducibility:
 | Pretrained init | Not supported | Custom loading with shape-mismatch skip | Novel capability for domain adaptation |
 | CLS token | Has interpolation code (buggy for no-CLS) | Direct pos_embed addition | Cleaner, avoids the bug |
 | Patch grid | 14x14 (224/16) | 16x16 (256/16) | 256 vs 196 patches |
-| Downstream probe | 1 block, ImageNet classes | 2-3 blocks, volume-level binary classification | Adapted for 3D OCT volumes |
+| Downstream probe | 1 block, ImageNet classes | 1 block, volume-level binary classification | Same depth, different task |
 | Gradient accumulation | None (large GPU fleet) | 2 (pretraining) or 4 (fine-tuning) | Needed for small GPU count |
 | DDP early stop sync | N/A | Broadcast-based flag (no break in rank-specific blocks) | Avoids NCCL deadlocks |
 | Blob uploads | N/A | Non-blocking background threads | Avoids NCCL timeouts from blocking I/O |

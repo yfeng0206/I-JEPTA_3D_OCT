@@ -53,17 +53,8 @@ Linear probe sweep across 4 pretraining checkpoints from the random-init posfix 
 
 5. **Sensitivity / Specificity tradeoff varies across checkpoints.** ep25 is conservative (0.61/0.91); later checkpoints more balanced (~0.80/0.75). Same probe hyperparameters, different feature regimes.
 
-## Next Steps
+## Follow-ups
 
-- Fine-tune on **ep100** checkpoint (submitted as `shy_star_12ywn5x5g8` with 50 epochs, 10 warmup, 15 patience, LR_encoder=1e-5, past_warmup gate on patience). Expected uplift to ~0.89-0.91 Test AUC based on Zhou 2025's fine-tune-vs-LP gap.
-- (Optional ablation) Mean-pool + linear head — tests whether the d=1 attentive probe is earning its 7M params.
-- Cross-dataset evaluation (Kermany) pending.
-
-## Comparison to earlier runs
-
-| Run | Probe | WD | Dropout | LR | Best ep25 Val AUC |
-|---|---|---|---|---|---|
-| `random_d3_normfix.md` (d=3, wd=0) | d=3 AttentiveProbe | 0 | 0.1 | 1e-4/1e-3 | 0.8437 |
-| **This run (d=1, literature-tuned)** | d=1 AttentiveProbe | 0.05 | 0.2 | 4e-4 single | **0.8460** |
-
-d=1 with regularization is marginally better and has less overfit-collapse. Main value is establishing a literature-aligned baseline rather than gaining AUC.
+- **Fine-tune on ep100** — LLRD γ=0.65, 50 epochs, 10 warmup, 15 patience, past_warmup gate. Running as `willing_yogurt_6t1cvqhy7w`. Expected target ~0.89-0.91 Test AUC from Zhou 2025's fine-tune-vs-LP gap.
+- **Cross-attn pool ablation** — minimal 280K probe (single cross-attn, head_dim=64, no FFN, slice pos_embed) on ep100. Tests whether the d=1 attentive probe's 7M params are earning their keep.
+- **Mean-pool + linear ablation** — ~800 params, pure linear probe. Tests whether attention-based slice weighting matters at all for OCT glaucoma.

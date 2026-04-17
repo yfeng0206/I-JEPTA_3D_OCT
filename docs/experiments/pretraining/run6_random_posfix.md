@@ -1,6 +1,6 @@
-# Pretraining Run 6: Random-init 100ep (posfix)
+# Pretraining: Random-init 100ep
 
-First run with corrected 2D sinusoidal positional embeddings. Random initialization, 100 epochs, no early stopping. **Completed** — all checkpoints uploaded.
+Current baseline: random-init I-JEPA ViT-B/16, 100 epochs, fixed 2D sinusoidal positional embeddings, no early stopping. **Completed** — all checkpoints uploaded and evaluated downstream.
 
 ## Config
 
@@ -56,13 +56,12 @@ First run with corrected 2D sinusoidal positional embeddings. Random initializat
 | `jepa_patch-ep75.pth.tar` | 75 | uploaded |
 | `jepa_patch-ep100.pth.tar` | 100 | uploaded |
 
-## Known Issues
+## Known issues (this run only — fixed for future runs)
 
-- **Best checkpoint bug**: `jepa_patch-best.pth.tar` is epoch 1 (val_loss=0.0764), which is the artificially low pre-warmup loss. The `past_warmup` guard only protects patience counting, not best checkpoint saving. Fix needed for future runs.
+- **`jepa_patch-best.pth.tar` is epoch 1** (val_loss=0.0764), which is the artificially low pre-warmup loss. The `past_warmup` guard only protected patience counting, not best-checkpoint saving. Fixed in commit `135ba2a`.
 
-## Key Observations
+## Observations
 
 - **Healthy diagnostics throughout**: rep_diversity stable 0.20-0.27, cos_sim stable 0.78-0.87. No collapse, no divergence.
-- **Loss increase is expected**: I-JEPA loss increases as EMA target learns harder representations. Train loss decreased in late epochs (0.1445→0.1357) while val loss remained in 0.14-0.15 range.
-- **Position encoding working**: Unlike pre-posfix runs, this run shows healthy rep_diversity from epoch 1 (~0.45, dropping to ~0.2 by ep25). Pre-posfix runs had rep_diversity 0.5-0.7 throughout.
-- **Downstream evaluation in progress**: Linear probe sweep (ep25/50/75/100, 4 GPUs parallel) submitted as `dreamy_basin_6rxm9myg2g`.
+- **Loss increase is expected**: I-JEPA loss increases as EMA target learns harder representations. Train loss decreased in late epochs (0.1445 → 0.1357) while val loss stayed in 0.14-0.15.
+- **Downstream sweep picked ep100 as winner**: Val AUC 0.8597, Test AUC 0.8706. See [frozen/random_posfix_d1_sweep.md](../downstream/frozen/random_posfix_d1_sweep.md).

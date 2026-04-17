@@ -1,116 +1,103 @@
 # Lessons Learned
 
-Record of mistakes, failed experiments, and fixes so we don't repeat them.
+Mistakes, debug-traps, and invariants we've paid to learn. Keep these visible so they don't sneak back in.
 
 ---
 
-## Pretraining Issues
+## Pretraining
 
-### 1. LR=0.0005 too high for OCT data (Run 1)
-- **What happened:** Model learned well during warmup (epochs 1-11, LR 0.0001-0.0004) but destabilized once LR hit peak 0.0005. Val loss increased monotonically from epoch 12 onward.
-- **Root cause:** OCT images are less diverse than ImageNet (all retinal scans), producing more correlated gradients. sqrt scaling formula overestimated the right LR.
-- **Fix:** Reduced peak LR to 0.00025. Worked well.
-- **Rule:** For OCT data with ViT-B/16 and effective batch=512, peak LR=0.00025 is the sweet spot.
+### 1. LR=0.0005 too high for OCT
+- **What happens:** Model learns fine during warmup, diverges once LR hits peak.
+- **Why:** OCT is less diverse than ImageNet, gradients are more correlated, effective LR is higher than nominal. sqrt-scaling from the I-JEPA paper's LR overestimates.
+- **Rule:** For OCT + ViT-B/16 + effective batch 512, **peak LR = 0.00025**.
 
-### 2. Early stopping counted pre-warmup epochs (Run 2)
-- **What happened:** Epoch 1 had artificially low val_loss=0.1197 because EMA target hadn't diverged yet. No subsequent epoch could beat it. Early stopping triggered at epoch 9 while the model was still improving.
-- **Root cause:** Before warmup, both encoders are nearly identical, making prediction trivially easy (low loss). This isn't real performance.
-- **Fix:** Only start counting patience after warmup epochs. Added `past_warmup = (epoch + 1) > warmup_epochs`.
-- **Rule:** Never count pre-warmup epochs for early stopping in I-JEPA.
+### 2. Pre-warmup val loss is artificially low
+- **What happens:** Before warmup ends, the EMA target encoder hasn't diverged from the online encoder. Prediction is trivial → val_loss looks great → nothing ever beats it again → patience counter / best-checkpoint save latches onto epoch 1.
+- **Rule:** Every best-AUC / best-loss / patience decision must be **gated on `past_warmup`**. See `train_patch.py` + `eval_downstream.py` fine-tune path (commit `135ba2a`, off-by-one fix `0dcd9d0`).
 
-### 3. Blocking blob uploads caused NCCL timeout (Run 3, multiple downstream runs)
-- **What happened:** Uploading 1.5 GB checkpoint to blob blocked rank 0 for >30 min. Ranks 1-3 waited at next DDP collective, hit NCCL 30-min timeout.
-- **Root cause:** Synchronous blob upload in the training loop while other ranks wait.
-- **Fix:** Non-blocking uploads via background threads. Final uploads use `blocking=True` only after training loop ends.
-- **Rule:** Never do blocking I/O between DDP collective operations.
+### 3. Blocking blob uploads stall DDP
+- **What happens:** Rank 0 uploads a 1.5 GB checkpoint synchronously, takes >5 min, other ranks block on the next collective → NCCL 30-min timeout → hang.
+- **Rule:** Background-thread uploads during training, only `blocking=True` after the training loop ends.
 
-### 4. DDP early-stop sync bug (downstream fine-tuning)
-- **What happened:** Rank 0 hit `break` inside `if is_main:` block before reaching `dist.broadcast()`. Other ranks stuck waiting at broadcast forever.
-- **Root cause:** Python `break` exits the loop immediately, skipping the broadcast that all ranks need to reach.
-- **Fix:** Use `should_stop` flag instead of `break`. All ranks reach broadcast, then break.
-- **Rule:** Never use `break` inside a rank-specific block in DDP. Always broadcast the stop decision first.
+### 4. DDP early-stop `break` skips `dist.broadcast`
+- **What happens:** Rank 0 hits `break` inside `if is_main:` before reaching `dist.broadcast()`. Other ranks sit on the broadcast forever.
+- **Rule:** Use a `should_stop` flag, broadcast, THEN break on all ranks.
 
-### 5. Gradient accumulation misaligned with scheduler/EMA (early Run 1 bug)
-- **What happened:** Scheduler and EMA updated every micro-batch instead of every optimizer step. With accum_steps=2, scheduler ran 2x too fast.
-- **Root cause:** Scheduler/EMA step was outside the accumulation guard.
-- **Fix:** Only step scheduler/EMA when `(itr + 1) % accum_steps == 0`.
-- **Rule:** Scheduler, EMA, and optimizer must all step at the same rate.
+### 5. Grad accumulation must gate scheduler + EMA
+- **What happens:** Scheduler / EMA step every micro-batch. With `accum_steps=2`, scheduler runs 2× too fast.
+- **Rule:** Only step scheduler / EMA inside `if (itr + 1) % accum_steps == 0:`.
+
+### 6. DDP val-loss must be all-reduced across ranks
+- **What happens:** Each rank sees a different `val_loss` (its own shard). Early-stop decisions diverge across ranks → NCCL hang at next collective.
+- **Rule:** `dist.all_reduce(sum, count)` → global mean before any rank-comparison decision. Fixed in commit `135ba2a`.
 
 ---
 
-## Downstream Issues
+## Downstream
 
-### 6. Frozen encoder rep_diversity is the bottleneck, not probe capacity
-- **What happened:** Increasing probe depth from 2 to 3 blocks gave only +0.1% test AUC (0.733 → 0.734).
-- **Root cause:** The frozen encoder's representations are the limiting factor. More probe layers can't extract signal that isn't in the features.
-- **Lesson:** When frozen probe performance plateaus, the fix is unfreezing the encoder, not adding more probe layers.
+### 7. Encoder representations are the bottleneck, not probe capacity
+- **What happens:** Probe depth d=3 (21M) vs d=1 (7M) moves Val AUC by ~0.002. 3× capacity, 0× gain.
+- **Rule:** When a frozen probe plateaus, don't scale the probe. Unfreeze the encoder or change the pretraining source.
 
-### 7. 100 slices OOM with encoder gradients
-- **What happened:** Fine-tuning with 100 slices, batch_size=1 OOM'd (15 GB on 16 GB T4). 64 slices worked (~11 GB).
-- **Root cause:** All 100 slice activations must stay in memory for backward through the probe. ~120 MB per slice activation graph.
-- **Fix:** Use 32-64 slices for fine-tuning. 100 slices only for frozen probe (no grad, uses ~5 MB per slice).
-- **Rule:** With ViT-B/16 encoder gradients on T4 16GB: max ~64 slices at batch_size=1.
+### 8. 100 slices OOM with encoder gradients
+- **What happens:** Unfrozen ViT-B/16 at bs=1 × 100 slices blows past 16 GB on T4. bs=1 × 64 slices fits (~11 GB).
+- **Rule:** Frozen probe can use all 100 slices. Unfrozen fine-tune: max 64 on T4 16GB.
+
+### 9. Eval preprocessing must match pretraining
+- **What happens:** Pretraining normalizes with ImageNet mean/std; downstream forgets to. Frozen probe AUC drops ~10 pts.
+- **Rule:** `imagenet_normalize()` before the encoder in both frozen and unfrozen paths. Applied in `eval_downstream.py`.
+
+### 10. Attentive probes overfit small medical datasets
+- **What happens:** Even d=1 (7M params) + weight_decay=0.05 + dropout=0.2 hits train AUC → 1.0 by epoch 10-15 on 6K samples. Val AUC peaks at epoch 4-8 then drifts.
+- **Why:** 7M params / 6K samples ≈ 1200 params/sample. Small-data attentive probes are known to over-parameterize — see [Attention, Please! ICLR 2026](https://arxiv.org/abs/2506.10178).
+- **Rule:** Frozen-probe overfit pattern is normal and invisible in the paper (only best-val is reported). Ceiling is the encoder, not the probe.
+
+### 11. Print buffering hides training progress under `tee`
+- **What happens:** Python `print()` is block-buffered (~4KB) when piped. Per-epoch progress sits in the buffer for ~40 epochs.
+- **Rule:** `sys.stdout.reconfigure(line_buffering=True)` at `__main__` (or `flush=True` on every print). `train_patch.py` does it via a `log()` helper; `eval_downstream.py` sets line buffering globally (commit `61f08c3`).
+
+### 12. Linear scaling rule for LR with batch size
+- **What happens:** Copy a literature LR verbatim without accounting for batch size. Literature's bs=1024 at LR=1e-3 ≠ our bs=256 at LR=1e-3.
+- **Rule:** `LR_ours = LR_ref × (bs_ours / bs_ref)`. For bs=256 from a bs=1024 reference, LR=4e-4.
+
+### 13. Torchrun port conflict with multiple DDP jobs on same node
+- **What happens:** Two DDP jobs on the same compute both bind port 29500. Second crashes with `Address already in use`.
+- **Rule:** Unique `MASTER_PORT` per job if co-scheduled, or run sequentially.
+
+### 14. Shell scripts need LF line endings for bash on Linux
+- **What happens:** Windows-edited scripts get CRLF. AML Linux bash chokes with `$'\r': command not found`.
+- **Rule:** `.gitattributes` has `*.sh text eol=lf`, but the working copy can still drift. Run `sed -i 's/\r$//' scripts/*.sh` before submitting.
 
 ---
 
-## ImageNet Pretrained Init Issues
+## Fine-tuning
 
-### 8. ImageNet ViT produces collapsed features for OCT (ongoing)
-- **What happened:** Initialized encoder from ImageNet supervised ViT-B/16. rep_diversity=0.98 at epoch 1 (near-collapse). Loss dropped to 0.008 and barely recovered.
-- **Root cause:** ImageNet ViT was trained on colorful natural images. OCT images are grayscale with repetitive structure. All OCT patches activate similar ImageNet features → near-identical representations → trivial prediction task.
-- **Attempted fix (failed):** EMA=0.999 (slower target updates) + LR=0.0001 (gentle). This made it WORSE — too gentle to escape collapse.
-- **Next attempt:** EMA=0.996 (standard) + LR=0.00025 (proven for OCT) to force faster adaptation away from collapsed ImageNet features.
-- **Key insight:** With pretrained init, the encoder needs AGGRESSIVE updates to specialize for the target domain, not gentle ones. The opposite of what we initially assumed.
+### 15. Layer-wise LR decay (LLRD) is standard for ViT fine-tuning
+- **Rule:** γ=0.65 for ViT-B, γ=0.75 for ViT-L, MAE convention. Top encoder layers get the full base LR; bottom layers get ~base × γ^num_layers. Our single flat `lr_encoder` was leaving 500× LR on the table for top encoder layers. Implemented in `build_finetune_param_groups` (commit `f78876f`).
 
-### 9. Investigated but NOT the cause: AMP and momentum schedule differences
-- **AMP mismatch (target fp32, context fp16):** Investigated as potential collapse cause. NOT the issue — PyTorch auto-upcasts for loss computation. We intentionally use fp32 for target (more precise, no backward needed).
-- **Cosine vs linear momentum:** Investigated as potential cause. NOT the issue — for EMA range 0.999→1.0, the difference is ~0.0003 max. Negligible.
-- **Lesson:** Don't throw fixes at the wall. Identify the actual bottleneck (EMA + LR too gentle for domain shift) before changing working code.
+### 16. Warmup gate also applies to fine-tune best-save and patience
+- **Rule:** Same bug class as pretraining #2. `epoch > warmup_epochs` (fine-tune loop is 1-indexed, not 0-indexed like pretraining — commit `0dcd9d0` fixes the off-by-one).
 
 ---
 
 ## Code Differences from Official I-JEPA
 
-Documented for reference. These are intentional differences, not bugs:
+Intentional, not bugs:
 
 | Aspect | Official | Ours | Impact |
-|--------|---------|------|--------|
+|---|---|---|---|
 | Momentum schedule | Linear | Cosine | Negligible for our EMA ranges |
-| Target path AMP | Under autocast | Without autocast (fp32) | Slightly more precise targets |
-| LayerNorm epsilon | 1e-6 | 1e-5 (PyTorch default) | Minor numerical difference |
-| qkv_bias default | False | True | Both use True in practice |
-| Pretrained init | Not supported | Custom loading path | Novel, needs careful tuning |
-| CLS token | Has interpolation code (buggy for no-CLS) | Direct pos_embed add | Cleaner |
+| Target path AMP | Under autocast | fp32 (no autocast) | Slightly more precise targets |
+| LayerNorm epsilon | 1e-6 | 1e-5 (PyTorch default) | Minor |
+| CLS token | Interpolation code present | No CLS, direct pos_embed add | Cleaner, avoids the no-CLS interpolation bug |
 
 ---
 
-## Frozen Probe Evaluation Protocol
+## General rules
 
-### 10. Eval-time preprocessing must match pretraining
-- **Key rule:** If the encoder was pretrained with ImageNet normalization (`T.Normalize(IMAGENET_MEAN, IMAGENET_STD)`), the downstream evaluation must apply the same normalization before feeding images to the encoder.
-- **Our setup:** `imagenet_normalize()` is applied before all encoder inputs in both frozen and unfrozen paths in `eval_downstream.py`.
-
-### 11. Literature protocol for frozen probe evaluation
-- **Standard:** 90-100 epochs, cosine LR schedule, no weight decay on probe. I-JEPA uses SGD LR=0.002 at batch=16384; MAE uses LARS LR=0.1 at batch=16384; DINO uses SGD LR=0.001 at batch=1024.
-- **Our setup:** AdamW LR=1e-4 at batch=64 — within range after batch-size scaling. Weight decay should be 0 for frozen probe (all papers use 0).
-- **Key insight:** Batch size matters for LR comparison. Scale LR linearly with batch: LR_ours = LR_paper × (our_batch / paper_batch).
-
-### 13. Don't run multiple frozen probe jobs on the same GPU
-- **What happened:** Submitted 4 frozen probe jobs simultaneously. All defaulted to cuda:0, each getting ~25% GPU time. Feature pre-computation (normally ~40 min) took 2.5+ hours per job.
-- **Fix:** Run sequentially, or set `CUDA_VISIBLE_DEVICES` per job to spread across GPUs.
-- **Rule:** Frozen probe jobs use single python process on cuda:0. Multiple jobs = time-sharing, not parallelism.
-
-### 14. torchrun port conflict when multiple DDP jobs share a compute instance
-- **What happened:** Multiple unfrozen (torchrun) jobs ran simultaneously, all trying to bind port 29500. First job got the port, others crashed with "Address already in use".
-- **Fix:** Add `MASTER_PORT` env var with unique port per job config, or run sequentially.
-- **Rule:** Only one torchrun job per compute instance at a time, unless using different MASTER_PORT values.
-
----
-
-## General Rules
-
-1. **I-JEPA loss is NOT a reliable metric.** It can be low due to collapse or high due to diverse targets. Monitor rep_diversity and cos_sim instead.
-2. **Early stopping for I-JEPA pretraining is unusual.** Most papers train for fixed epochs (RETFound: 800, US-JEPA: 100). Use validation loss selection like US-JEPA if early stopping is needed.
-3. **ImageNet init for I-JEPA is untested territory.** The official code doesn't support it. Domain adaptation (OCT) needs aggressive LR/EMA, not conservative ones.
-4. **Always upload checkpoints to blob immediately.** Don't wait until end of training — jobs crash.
-5. **DDP cleanup (barrier + destroy) must happen before any rank-specific code.** Otherwise NCCL timeouts are guaranteed.
+1. **I-JEPA loss is NOT a reliable quality metric.** Low loss can mean collapse; high loss can mean healthy learning. Monitor `rep_diversity` and `cos_sim` instead.
+2. **Downstream AUC is the quality signal.** Use the linear probe sweep across ep25/50/75/100 to pick the pretraining checkpoint.
+3. **No early stopping for final pretraining runs.** Literature standard (RETFound, V-JEPA) is fixed-epoch.
+4. **Upload checkpoints to blob during training.** Don't wait for the end — jobs crash.
+5. **DDP cleanup (barrier + destroy) must run on all ranks before any rank-specific code.**
+6. **Never revert local-only configs** (blob-storage accounts, compute names) to placeholders when committing.
