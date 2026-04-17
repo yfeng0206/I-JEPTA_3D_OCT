@@ -486,7 +486,7 @@ def run_patch_downstream(config, device):
     # ---- CSV logger --------------------------------------------------------
     csv_path = os.path.join(output_dir, 'train_log.csv')
     csv_file = open(csv_path, 'w')
-    csv_file.write('epoch,train_loss,train_auc,val_loss,val_auc,lr,elapsed_s\n')
+    csv_file.write('epoch,train_loss,train_auc,val_loss,val_auc,lr_probe,lr_head,elapsed_s\n')
     csv_file.flush()
 
     # ---- Training loop -----------------------------------------------------
@@ -533,16 +533,18 @@ def run_patch_downstream(config, device):
         train_auc = roc_auc_score(train_labels_np, train_probs_np) if len(np.unique(train_labels_np)) >= 2 else 0.5
 
         val_loss, val_auc = evaluate(probe, head, val_loader, criterion, device)
-        current_lr = optimizer.param_groups[0]['lr']
+        lr_probe = optimizer.param_groups[0]['lr']
+        lr_head = optimizer.param_groups[1]['lr']
 
         improved = val_auc > best_auc
         marker = ' *' if improved else ''
-        print('Epoch %2d/%d (%4.1fs) | Train: %.4f (AUC %.3f) | Val: %.4f | AUC: %.4f | LR: %.2e%s'
+        print('Epoch %2d/%d (%4.1fs) | Train: %.4f (AUC %.3f) | Val: %.4f | AUC: %.4f | LR: %.2e/%.2e%s'
               % (epoch, epochs, elapsed, train_loss, train_auc, val_loss, val_auc,
-                 current_lr, marker))
+                 lr_probe, lr_head, marker))
 
-        csv_file.write('%d,%.6f,%.6f,%.6f,%.6f,%.8f,%.1f\n'
-                       % (epoch, train_loss, train_auc, val_loss, val_auc, current_lr, elapsed))
+        csv_file.write('%d,%.6f,%.6f,%.6f,%.6f,%.8f,%.8f,%.1f\n'
+                       % (epoch, train_loss, train_auc, val_loss, val_auc,
+                          lr_probe, lr_head, elapsed))
         csv_file.flush()
 
         if improved:
@@ -1065,7 +1067,7 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
     if is_main:
         csv_path = os.path.join(output_dir, 'train_log.csv')
         csv_file = open(csv_path, 'w')
-        csv_file.write('epoch,train_loss,val_loss,val_auc,lr_enc,lr_probe,elapsed_s\n')
+        csv_file.write('epoch,train_loss,val_loss,val_auc,lr_enc,lr_probe,lr_head,elapsed_s\n')
         csv_file.flush()
 
     # ---- Training loop -----------------------------------------------------
@@ -1105,22 +1107,33 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
             n_samples += labels.size(0)
 
         elapsed = time.time() - t0
-        train_loss = total_loss / max(n_samples, 1)
+        # Aggregate train_loss across ranks so the logged curve matches the
+        # global training loss, not rank 0's shard only.
+        if dist.is_initialized() and world_size > 1:
+            stats = torch.tensor(
+                [total_loss, float(n_samples)], device=device, dtype=torch.float64,
+            )
+            dist.all_reduce(stats, op=dist.ReduceOp.SUM)
+            train_loss = (stats[0] / stats[1]).item()
+        else:
+            train_loss = total_loss / max(n_samples, 1)
         val_loss, val_auc = evaluate_finetune(model, val_loader, criterion, device)
         lr_enc = optimizer.param_groups[0]['lr']
         lr_probe = optimizer.param_groups[1]['lr']
+        lr_head = optimizer.param_groups[2]['lr']
 
         should_stop = False
         if is_main:
             improved = val_auc > best_auc
             marker = ' *' if improved else ''
-            print('Epoch %2d/%d (%5.0fs) | Train: %.4f | Val: %.4f | AUC: %.4f | LR: %.1e/%.1e%s'
+            print('Epoch %2d/%d (%5.0fs) | Train: %.4f | Val: %.4f | AUC: %.4f | LR: %.1e/%.1e/%.1e%s'
                   % (epoch, epochs, elapsed, train_loss, val_loss, val_auc,
-                     lr_enc, lr_probe, marker))
+                     lr_enc, lr_probe, lr_head, marker))
 
             if csv_file:
-                csv_file.write('%d,%.6f,%.6f,%.6f,%.8f,%.8f,%.1f\n'
-                               % (epoch, train_loss, val_loss, val_auc, lr_enc, lr_probe, elapsed))
+                csv_file.write('%d,%.6f,%.6f,%.6f,%.8f,%.8f,%.8f,%.1f\n'
+                               % (epoch, train_loss, val_loss, val_auc,
+                                  lr_enc, lr_probe, lr_head, elapsed))
                 csv_file.flush()
 
             if improved:

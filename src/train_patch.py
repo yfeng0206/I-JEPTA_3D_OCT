@@ -19,6 +19,7 @@ import sys
 import time
 
 import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -359,6 +360,15 @@ def main(args):
             val_loss_meter.update(loss.item())
         enc_unwrap.train()
         pred_unwrap.train()
+        # Aggregate across ranks so early stopping sees the same value
+        # everywhere (otherwise ranks can diverge and hang on a collective).
+        if dist.is_initialized() and world_size > 1:
+            stats = torch.tensor(
+                [val_loss_meter.sum, float(val_loss_meter.count)],
+                device=device, dtype=torch.float64,
+            )
+            dist.all_reduce(stats, op=dist.ReduceOp.SUM)
+            return (stats[0] / stats[1]).item()
         return val_loss_meter.avg
 
     # ---- Training loop -----------------------------------------------------
@@ -560,24 +570,23 @@ def main(args):
 
         if val_loss is not None:
             # Only track best / early-stop after warmup to avoid the
-            # artificially-low epoch-1 loss (EMA target hasn't diverged yet)
+            # artificially-low pre-warmup loss (EMA target hasn't diverged
+            # from online encoder yet, so val_loss looks unrealistically low).
             past_warmup = (epoch + 1) > warmup_epochs
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
-                if past_warmup:
+            if past_warmup:
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
                     epochs_no_improve = 0
-                improved = ' *'
-                if is_main:
-                    best_path = os.path.join(output_dir, '%s-best.pth.tar' % write_tag)
-                    save_checkpoint(
-                        best_path, encoder, predictor, target_encoder, optimizer,
-                        scaler, epoch + 1, val_loss, data_cfg['batch_size'],
-                        world_size, lr_val,
-                    )
-                    # Upload best checkpoint to blob immediately
-                    upload_to_blob(best_path, blob_prefix, log)
-            else:
-                if past_warmup:
+                    improved = ' *'
+                    if is_main:
+                        best_path = os.path.join(output_dir, '%s-best.pth.tar' % write_tag)
+                        save_checkpoint(
+                            best_path, encoder, predictor, target_encoder, optimizer,
+                            scaler, epoch + 1, val_loss, data_cfg['batch_size'],
+                            world_size, lr_val,
+                        )
+                        upload_to_blob(best_path, blob_prefix, log)
+                else:
                     epochs_no_improve += 1
 
         log('Epoch %d/%d  (%.0fs)  train_loss=%.4f%s%s'
@@ -620,7 +629,6 @@ def main(args):
                 upload_to_blob(fpath, blob_prefix, log, blocking=True)
 
     # Clean DDP shutdown so torchrun exits cleanly
-    import torch.distributed as dist
     if dist.is_initialized():
         dist.barrier()
         dist.destroy_process_group()
