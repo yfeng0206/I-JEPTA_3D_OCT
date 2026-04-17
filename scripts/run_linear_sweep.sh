@@ -24,6 +24,8 @@ LR_HEAD=${LR_HEAD:-0.001}
 WEIGHT_DECAY=${WEIGHT_DECAY:-0}
 DROPOUT=${DROPOUT:-0.1}
 WARMUP_EPOCHS=${WARMUP_EPOCHS:-3}
+PROBE_TYPE=${PROBE_TYPE:-attentive}       # 'attentive' | 'cross_attn_pool'
+PROBE_HEAD_DIM=${PROBE_HEAD_DIM:-64}      # only used when PROBE_TYPE=cross_attn_pool
 
 IJEPA_BLOB_PREFIX=${IJEPA_BLOB_PREFIX:?'Set IJEPA_BLOB_PREFIX env var'}
 BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}
@@ -163,8 +165,10 @@ model:
   patch_size: ${PATCH_SIZE}
   crop_size: ${CROP_SIZE}
   freeze_encoder: true
+  probe_type: ${PROBE_TYPE}
   probe_num_heads: ${PROBE_NUM_HEADS}
   probe_depth: ${PROBE_DEPTH}
+  probe_head_dim: ${PROBE_HEAD_DIM}
   head_type: ${HEAD_TYPE}
 training:
   lr_probe: ${LR_PROBE}

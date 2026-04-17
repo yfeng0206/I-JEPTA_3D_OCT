@@ -66,6 +66,7 @@ import torch.distributed as dist
 from src.models.vision_transformer import (
     VisionTransformer, SliceEncoder, Block, VIT_EMBED_DIMS,
 )
+from src.models.attentive_pool_minimal import CrossAttnPool
 try:
     from src.models.feature_extractor import FrozenFeatureExtractor
 except ImportError:
@@ -502,14 +503,29 @@ def run_patch_downstream(config, device):
         TensorDataset(test_feats, test_labels.float()),
         batch_size=batch_size, shuffle=False, pin_memory=True)
 
-    # ---- Attentive probe + head --------------------------------------------
+    # ---- Slice-aggregation probe + classification head ---------------------
+    # probe_type selects the slice-pooling architecture:
+    #   'attentive'       -> AttentiveProbe (default, ~7M at depth=1)
+    #   'cross_attn_pool' -> CrossAttnPool (~280K, single-head cross-attn,
+    #                        no FFN, slice-axis pos_embed). See
+    #                        src/models/attentive_pool_minimal.py.
     print('\n--- Model ---')
-    probe = AttentiveProbe(
-        num_slices=num_slices,
-        embed_dim=embed_dim,
-        num_heads=model_cfg.get('probe_num_heads', 12),
-        depth=model_cfg.get('probe_depth', 2),
-    ).to(device)
+    probe_type = model_cfg.get('probe_type', 'attentive')
+    if probe_type == 'cross_attn_pool':
+        probe = CrossAttnPool(
+            num_slices=num_slices,
+            embed_dim=embed_dim,
+            head_dim=model_cfg.get('probe_head_dim', 64),
+        ).to(device)
+        probe_desc = 'cross_attn_pool (head_dim=%d)' % model_cfg.get('probe_head_dim', 64)
+    else:
+        probe = AttentiveProbe(
+            num_slices=num_slices,
+            embed_dim=embed_dim,
+            num_heads=model_cfg.get('probe_num_heads', 12),
+            depth=model_cfg.get('probe_depth', 2),
+        ).to(device)
+        probe_desc = 'attentive (depth=%d)' % model_cfg.get('probe_depth', 2)
 
     head_type = model_cfg.get('head_type', 'linear')
     if head_type == 'mlp':
@@ -521,8 +537,7 @@ def run_patch_downstream(config, device):
     head_params = sum(p.numel() for p in head.parameters())
     enc_params = sum(p.numel() for p in encoder.parameters())
     print('  Frozen encoder:  %s params' % format(enc_params, ','))
-    print('  Attentive probe: %s params (trainable, depth=%d)'
-          % (format(probe_params, ','), model_cfg.get('probe_depth', 2)))
+    print('  Probe (%s): %s params (trainable)' % (probe_desc, format(probe_params, ',')))
     print('  Head (%s):     %s params (trainable)' % (head_type, format(head_params, ',')))
     print('  Total trainable: %s' % format(probe_params + head_params, ','))
 
