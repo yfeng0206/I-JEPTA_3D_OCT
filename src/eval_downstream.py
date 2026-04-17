@@ -67,6 +67,33 @@ from src.models.vision_transformer import (
     VisionTransformer, SliceEncoder, Block, VIT_EMBED_DIMS,
 )
 from src.models.attentive_pool_minimal import CrossAttnPool
+
+_PROBE_TYPES = ('attentive', 'cross_attn_pool')
+
+
+def _build_probe(probe_type, num_slices, embed_dim, model_cfg, device):
+    """Instantiate the slice-aggregation probe. Fails fast on unknown types."""
+    if probe_type not in _PROBE_TYPES:
+        raise ValueError(
+            "Unknown probe_type=%r. Valid values: %s"
+            % (probe_type, ', '.join(_PROBE_TYPES))
+        )
+    if probe_type == 'cross_attn_pool':
+        head_dim = model_cfg.get('probe_head_dim', 64)
+        probe = CrossAttnPool(
+            num_slices=num_slices, embed_dim=embed_dim, head_dim=head_dim,
+        ).to(device)
+        desc = 'cross_attn_pool (head_dim=%d)' % head_dim
+    else:  # 'attentive'
+        depth = model_cfg.get('probe_depth', 2)
+        probe = AttentiveProbe(
+            num_slices=num_slices,
+            embed_dim=embed_dim,
+            num_heads=model_cfg.get('probe_num_heads', 12),
+            depth=depth,
+        ).to(device)
+        desc = 'attentive (depth=%d)' % depth
+    return probe, desc
 try:
     from src.models.feature_extractor import FrozenFeatureExtractor
 except ImportError:
@@ -504,28 +531,10 @@ def run_patch_downstream(config, device):
         batch_size=batch_size, shuffle=False, pin_memory=True)
 
     # ---- Slice-aggregation probe + classification head ---------------------
-    # probe_type selects the slice-pooling architecture:
-    #   'attentive'       -> AttentiveProbe (default, ~7M at depth=1)
-    #   'cross_attn_pool' -> CrossAttnPool (~280K, single-head cross-attn,
-    #                        no FFN, slice-axis pos_embed). See
-    #                        src/models/attentive_pool_minimal.py.
+    # probe_type selects the slice-pooling architecture. See _build_probe.
     print('\n--- Model ---')
     probe_type = model_cfg.get('probe_type', 'attentive')
-    if probe_type == 'cross_attn_pool':
-        probe = CrossAttnPool(
-            num_slices=num_slices,
-            embed_dim=embed_dim,
-            head_dim=model_cfg.get('probe_head_dim', 64),
-        ).to(device)
-        probe_desc = 'cross_attn_pool (head_dim=%d)' % model_cfg.get('probe_head_dim', 64)
-    else:
-        probe = AttentiveProbe(
-            num_slices=num_slices,
-            embed_dim=embed_dim,
-            num_heads=model_cfg.get('probe_num_heads', 12),
-            depth=model_cfg.get('probe_depth', 2),
-        ).to(device)
-        probe_desc = 'attentive (depth=%d)' % model_cfg.get('probe_depth', 2)
+    probe, probe_desc = _build_probe(probe_type, num_slices, embed_dim, model_cfg, device)
 
     head_type = model_cfg.get('head_type', 'linear')
     if head_type == 'mlp':
@@ -1054,11 +1063,10 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
     embed_dim = vit_cfg['embed_dim']
     num_slices = data_cfg['num_slices']
 
-    probe = AttentiveProbe(
-        num_slices=num_slices,
-        embed_dim=embed_dim,
-        num_heads=model_cfg.get('probe_num_heads', 12),
-        depth=model_cfg.get('probe_depth', 2),
+    probe_type = model_cfg.get('probe_type', 'attentive')
+    # _build_probe fails fast on unknown probe_type; safe here.
+    probe, probe_desc = _build_probe(
+        probe_type, num_slices, embed_dim, model_cfg, device='cpu',
     )
 
     head_type = model_cfg.get('head_type', 'linear')
@@ -1081,8 +1089,8 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
     if is_main:
         print('  Encoder:  %s params (trainable, lr=%.1e)'
               % (format(enc_params, ','), train_cfg.get('lr_encoder', 5e-6)))
-        print('  Probe:    %s params (trainable, lr=%.1e)'
-              % (format(probe_params, ','), train_cfg.get('lr_probe', 1e-4)))
+        print('  Probe (%s): %s params (trainable, lr=%.1e)'
+              % (probe_desc, format(probe_params, ','), train_cfg.get('lr_probe', 1e-4)))
         print('  Head:     %s params (trainable, lr=%.1e)'
               % (format(head_params, ','), train_cfg.get('lr_head', 1e-3)))
 
