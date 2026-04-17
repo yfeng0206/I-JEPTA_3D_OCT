@@ -11,6 +11,24 @@ Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/i
 
 Full sweep across ep25/50/75/100 in [frozen probe sweep doc](docs/experiments/downstream/frozen/random_posfix_d1_sweep.md).
 
+### Frozen probe sweep (ep25 → ep100)
+
+Test AUC improves monotonically with pretraining length. ep100 wins on both Val and Test; +0.015 AUC from ep25 to ep100.
+
+![AUC per checkpoint](results/downstream/linear_sweep_random_posfix_d1/auc_per_checkpoint.png)
+
+![Val AUC per epoch](results/downstream/linear_sweep_random_posfix_d1/val_auc_per_epoch.png)
+
+Train vs val loss per checkpoint (overfit dynamics visible — expected for attentive probes on small medical data; see [lessons_learned.md](docs/lessons_learned.md) #10):
+
+![Train vs val loss grid](results/downstream/linear_sweep_random_posfix_d1/train_val_loss_grid.png)
+
+### Pretraining diagnostics (random-init, 100 epochs)
+
+All four I-JEPA health metrics in one grid. Loss goes UP as the EMA target learns harder representations — this is expected. Quality signals are `rep_diversity` (stable 0.20-0.27, not collapsed) and `cos_sim` (stable 0.78-0.87, healthy predictor tracking).
+
+![Pretraining diagnostics](results/pretraining/pretrain_random_posfix/diagnostics_all.png)
+
 ## Quick Links
 
 | | |
