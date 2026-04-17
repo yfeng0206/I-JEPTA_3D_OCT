@@ -8,6 +8,8 @@ Pretraining in progress — results will be updated once complete.
 
 | Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
 |--------|-------------|---------|--------|-------|------|----------|
+| I-JEPA frozen d=2 | Random→SSL | ViT-B/16 frozen | 100 | 2 blocks | Linear | pending |
+| I-JEPA frozen d=2 | ImageNet→SSL | ViT-B/16 frozen | 100 | 2 blocks | Linear | pending |
 | I-JEPA frozen d=3 | Random→SSL | ViT-B/16 frozen | 100 | 3 blocks | MLP | pending |
 | I-JEPA frozen d=3 | ImageNet→SSL | ViT-B/16 frozen | 100 | 3 blocks | MLP | pending |
 | I-JEPA unfrozen d=3 | Random→SSL | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | pending |
