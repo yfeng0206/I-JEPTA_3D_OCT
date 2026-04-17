@@ -173,6 +173,62 @@ def cosine_schedule_with_warmup(optimizer, warmup_epochs, total_epochs, steps_pe
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 
+def build_finetune_param_groups(encoder, probe, head, train_cfg):
+    """Build AdamW param_groups for fine-tuning.
+
+    If ``layer_decay`` in train_cfg is strictly in (0, 1), applies MAE-style
+    Layer-wise LR Decay (LLRD) to the encoder:
+      - base LR = ``lr_probe`` (also used for probe / encoder.norm)
+      - encoder.patch_embed + pos_embed: base * decay^(num_layers)
+      - encoder.blocks[i]:               base * decay^(num_layers - (i+1))
+      - encoder.norm + probe:            base
+      - head:                            ``lr_head`` (usually = base)
+    For ViT-B/16 with 12 blocks and decay=0.65, the deepest layer gets
+    ~0.65^13 ≈ 5.69e-3 of base; the top block gets 0.65 of base.
+
+    If ``layer_decay`` is missing or >= 1.0, falls back to the older flat
+    3-group setup (encoder, probe, head) so previous configs still work.
+
+    Returns ``(param_groups, mode)`` where mode is 'llrd' or 'flat'.
+    The first group is always the "deepest" / smallest-LR encoder group
+    and the last two are probe / head, so downstream logging can read
+    ``group[0]`` as the encoder floor and ``group[-2]`` / ``group[-1]``
+    as probe / head LR without branching on mode.
+    """
+    lr_probe = train_cfg.get('lr_probe', 1e-4)
+    lr_head = train_cfg.get('lr_head', lr_probe)
+    layer_decay = train_cfg.get('layer_decay', 1.0)
+    if layer_decay is None:
+        layer_decay = 1.0
+
+    if 0.0 < layer_decay < 1.0:
+        num_blocks = len(encoder.blocks)
+        num_layers = num_blocks + 1  # embed is layer 0, head is layer num_blocks+1
+        base_lr = lr_probe
+        groups = []
+        embed_lr = base_lr * (layer_decay ** num_layers)
+        groups.append({
+            'params': list(encoder.patch_embed.parameters()) + [encoder.pos_embed],
+            'lr': embed_lr,
+        })
+        for i, block in enumerate(encoder.blocks):
+            lr_i = base_lr * (layer_decay ** (num_layers - (i + 1)))
+            groups.append({'params': list(block.parameters()), 'lr': lr_i})
+        groups.append({'params': list(encoder.norm.parameters()), 'lr': base_lr})
+        groups.append({'params': list(probe.parameters()), 'lr': base_lr})
+        groups.append({'params': list(head.parameters()), 'lr': lr_head})
+        return groups, 'llrd'
+
+    # Flat fallback
+    lr_encoder = train_cfg.get('lr_encoder', 5e-6)
+    groups = [
+        {'params': list(encoder.parameters()), 'lr': lr_encoder},
+        {'params': list(probe.parameters()), 'lr': lr_probe},
+        {'params': list(head.parameters()), 'lr': lr_head},
+    ]
+    return groups, 'flat'
+
+
 # ---------------------------------------------------------------------------
 # Evaluation (works on cached feature tensors)
 # ---------------------------------------------------------------------------
@@ -1048,11 +1104,22 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         print('  Val:   %d volumes' % len(val_dataset))
 
     # ---- Optimizer ---------------------------------------------------------
-    param_groups = [
-        {'params': raw.encoder.parameters(), 'lr': train_cfg.get('lr_encoder', 5e-6)},
-        {'params': raw.probe.parameters(), 'lr': train_cfg.get('lr_probe', 1e-4)},
-        {'params': raw.head.parameters(), 'lr': train_cfg.get('lr_head', 1e-3)},
-    ]
+    # LLRD if train_cfg['layer_decay'] in (0, 1); flat otherwise. By convention
+    # groups[0] = deepest encoder layer (embed in LLRD; whole encoder in flat),
+    # groups[-2] = probe, groups[-1] = head. Logging reads these three indices.
+    param_groups, pg_mode = build_finetune_param_groups(
+        raw.encoder, raw.probe, raw.head, train_cfg,
+    )
+    if is_main:
+        if pg_mode == 'llrd':
+            lr_top_block = param_groups[-4]['lr']  # encoder.blocks[-1]
+            print('  Optimizer: AdamW + LLRD (decay=%.2f, %d groups)'
+                  % (train_cfg.get('layer_decay', 1.0), len(param_groups)))
+            print('    LR range: embed=%.2e .. top_block=%.2e .. head=%.2e'
+                  % (param_groups[0]['lr'], lr_top_block, param_groups[-1]['lr']))
+        else:
+            print('  Optimizer: AdamW + flat (encoder=%.2e, probe=%.2e, head=%.2e)'
+                  % (param_groups[0]['lr'], param_groups[-2]['lr'], param_groups[-1]['lr']))
     optimizer = torch.optim.AdamW(param_groups, weight_decay=train_cfg.get('weight_decay', 0.01))
     steps_per_epoch = len(train_loader) // accum_steps
     scheduler = cosine_schedule_with_warmup(
@@ -1118,9 +1185,11 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         else:
             train_loss = total_loss / max(n_samples, 1)
         val_loss, val_auc = evaluate_finetune(model, val_loader, criterion, device)
+        # group[0] = deepest encoder layer (embed in LLRD, whole encoder in flat)
+        # group[-2] = probe, group[-1] = head — by contract from build_finetune_param_groups
         lr_enc = optimizer.param_groups[0]['lr']
-        lr_probe = optimizer.param_groups[1]['lr']
-        lr_head = optimizer.param_groups[2]['lr']
+        lr_probe = optimizer.param_groups[-2]['lr']
+        lr_head = optimizer.param_groups[-1]['lr']
 
         should_stop = False
         # Only track best / early-stop after warmup: during warmup the LR

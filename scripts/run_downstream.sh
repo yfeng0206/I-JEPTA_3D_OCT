@@ -43,6 +43,7 @@ LR_HEAD=${LR_HEAD:-0.001}
 WEIGHT_DECAY=${WEIGHT_DECAY:-0.01}
 DROPOUT=${DROPOUT:-0.1}
 WARMUP_EPOCHS=${WARMUP_EPOCHS:-3}
+LAYER_DECAY=${LAYER_DECAY:-1.0}
 
 # Azure blob storage
 BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}
@@ -194,6 +195,7 @@ training:
   lr_probe: ${LR_PROBE}
   lr_encoder: ${LR_ENCODER}
   lr_head: ${LR_HEAD}
+  layer_decay: ${LAYER_DECAY}
   weight_decay: ${WEIGHT_DECAY}
   dropout: ${DROPOUT}
   epochs: ${EPOCHS}
