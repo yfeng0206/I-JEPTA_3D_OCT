@@ -1195,7 +1195,8 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         # Only track best / early-stop after warmup: during warmup the LR
         # is linearly ramping from 0, so the encoder has barely moved and
         # val AUC isn't a meaningful signal. Same principle as pretraining.
-        past_warmup = (epoch + 1) > train_cfg.get('warmup_epochs', 3)
+        # Epoch loop is 1..N, so warmup is finished when epoch > warmup_epochs.
+        past_warmup = epoch > train_cfg.get('warmup_epochs', 3)
         if is_main:
             improved = val_auc > best_auc
             marker = ' *' if (improved and past_warmup) else ''
