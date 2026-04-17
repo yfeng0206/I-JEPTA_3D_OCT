@@ -1,77 +1,85 @@
 # I-JEPA for FairVision OCT Glaucoma Classification
 
-Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/ijepa) (Assran et al., CVPR 2023) on [Harvard FairVision](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision) OCT data for binary glaucoma classification.
+Self-supervised pretraining using [I-JEPA](https://github.com/facebookresearch/ijepa) (Assran et al., CVPR 2023) on [Harvard FairVision](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision) OCT data for binary glaucoma classification on 3D volumes.
 
-## Results Summary
+## Current Status
 
-Pretraining in progress — results will be updated once complete.
+| Method | Encoder Init | Encoder | Slices | Probe | Val AUC | Test AUC |
+|---|---|---|---|---|---|---|
+| Frozen linear probe (d=1) | Random → I-JEPA ep100 | ViT-B/16 frozen | 100 | AttentiveProbe d=1 + Linear | **0.860** | **0.871** |
+| Fine-tune + LLRD γ=0.65 | Random → I-JEPA ep100 | ViT-B/16 unfrozen | 64 | AttentiveProbe d=1 + Linear | — | — (running) |
 
-| Method | Encoder Init | Encoder | Slices | Probe | Head | Test AUC |
-|--------|-------------|---------|--------|-------|------|----------|
-| I-JEPA frozen d=2 | Random→SSL | ViT-B/16 frozen | 100 | 2 blocks | Linear | pending |
-| I-JEPA frozen d=2 | ImageNet→SSL | ViT-B/16 frozen | 100 | 2 blocks | Linear | pending |
-| I-JEPA frozen d=3 | Random→SSL | ViT-B/16 frozen | 100 | 3 blocks | MLP | pending |
-| I-JEPA frozen d=3 | ImageNet→SSL | ViT-B/16 frozen | 100 | 3 blocks | MLP | pending |
-| I-JEPA unfrozen d=3 | Random→SSL | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | pending |
-| I-JEPA unfrozen d=3 | Random→SSL | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | pending |
-| I-JEPA unfrozen d=3 | ImageNet→SSL | ViT-B/16 fine-tune | 32 | 3 blocks | MLP | pending |
-| I-JEPA unfrozen d=3 | ImageNet→SSL | ViT-B/16 fine-tune | 64 | 3 blocks | MLP | pending |
+Full sweep across ep25/50/75/100 in [frozen probe sweep doc](docs/experiments/downstream/frozen/random_posfix_d1_sweep.md).
 
 ## Quick Links
 
 | | |
 |---|---|
 | **Experiments** | [All experiments](docs/experiments) |
-| **Pretraining** | [Pretraining runs](docs/experiments/pretraining) (Random-init, ImageNet-init, loss curves) |
-| **Frozen Probe** | [Frozen probe eval](docs/experiments/downstream/frozen) (6 runs: Random vs ImageNet, multiple epochs) |
-| **Fine-tuning** | [Unfrozen encoder eval](docs/experiments/downstream/unfrozen) (6 runs: d=2/3, 32/64 slices) |
-| **Architecture** | [Model architecture details](docs/architecture.md) |
-| **Lessons Learned** | [Mistakes & fixes log](docs/lessons_learned.md) |
+| **Pretraining** | [Random-init 100ep run](docs/experiments/pretraining/run6_random_posfix.md) |
+| **Frozen probe** | [d=1 sweep ep25/50/75/100](docs/experiments/downstream/frozen/random_posfix_d1_sweep.md) |
+| **Fine-tune** | [LLRD fine-tune on ep100](docs/experiments/downstream/unfrozen) |
+| **Architecture** | [Model architecture](docs/architecture.md) |
+| **Lessons learned** | [Mistakes & fixes log](docs/lessons_learned.md) |
+| **Research log** | [Problem/solution + paper references](docs/research_log.md) |
 
-## Motivation
+## Approach
 
-I-JEPA learns representations directly from unlabeled OCT data through masked prediction in representation space. No hand-crafted augmentations are needed. We implement two approaches, with patch-level as the primary approach.
+Patch-level I-JEPA applied to individual 256×256 OCT slices (600K slices from 6K Training volumes × 100 slices per volume). The encoder learns within-slice spatial features by predicting masked patch representations from context patches.
 
-### Patch-level I-JEPA (primary)
+Downstream, we mean-pool patches within each slice, aggregate 100 slice tokens with a literature-aligned **AttentiveProbe d=1** (~7M params, I-JEPA paper convention), then a LinearHead produces the binary glaucoma logit. Fine-tuning uses MAE-style Layer-wise LR Decay (γ=0.65).
 
-Standard I-JEPA applied to individual 256x256 OCT slices (600K images from 6K volumes x 100 slices). The encoder learns within-slice spatial features by predicting masked patch representations from context patches. See [architecture details](docs/architecture.md).
-
-### Slice-level I-JEPA (failed)
-
-I-JEPA applied to sequences of 32 ConvNeXt slice features per volume. Collapsed within 1-2 epochs due to insufficient token diversity (adjacent OCT slices produce nearly identical features). See [lessons learned](docs/lessons_learned.md).
+See [architecture.md](docs/architecture.md) for full spec.
 
 ## Dataset
 
-Harvard FairVision Glaucoma subset: 10,000 subjects (6K train / 1K val / 3K test), each with 200x200x200 OCT B-scan volume. Binary labels: glaucoma (1) or not (0). Available on [HuggingFace](https://huggingface.co/datasets/ming0100/Harvard_FairVision).
+Harvard FairVision Glaucoma subset: 10,000 subjects (6K train / 1K val / 3K test), each with 200×200×200 OCT B-scan volume. Binary label: glaucoma (1) vs not (0). Available on [HuggingFace](https://huggingface.co/datasets/ming0100/Harvard_FairVision).
 
 ## Project Structure
 
 ```
 src/
-  models/vision_transformer.py    # ViT encoder, predictor, slice-level variants
-  masks/multiblock.py             # 2D block masking (patch-level)
-  masks/slice_mask.py             # 1D contiguous masking (slice-level)
-  datasets/oct_slices.py          # Individual slice dataset (600K images)
-  datasets/oct_volumes.py         # Volume dataset (6K volumes)
-  utils/schedulers.py             # Warmup cosine LR, cosine WD
-  train_patch.py                  # Patch-level I-JEPA pretraining
-  train_slice.py                  # Slice-level I-JEPA pretraining
-  eval_downstream.py              # Downstream classification
-  helper.py                       # Model init, optimizer, checkpoint I/O
+  models/vision_transformer.py     ViT encoder + predictor (I-JEPA)
+  models/attentive_pool_minimal.py CrossAttnPool — minimal cross-attention probe (~280K)
+  masks/multiblock.py              2D block masking for patch-level I-JEPA
+  datasets/oct_slices.py           Per-slice dataset for SSL pretraining
+  datasets/oct_volumes.py          Per-volume dataset for downstream eval
+  utils/schedulers.py              Warmup-cosine LR, cosine WD
+  train_patch.py                   I-JEPA pretraining entry point
+  eval_downstream.py               Downstream frozen probe + fine-tune
 
-configs/                          # Training configs
-scripts/                          # Entry point shell scripts
+configs/                           YAML configs (AML configs are local-only)
+scripts/                           Shell scripts for AML job entry points
 docs/
-  experiments/                    # Detailed experiment logs & results
-    pretraining/                  # Pretraining run details
-    downstream/frozen/            # Frozen probe experiments
-    downstream/unfrozen/          # Fine-tuning experiments
-  architecture.md                 # Model architecture details
-  lessons_learned.md              # Mistakes & fixes
-results/                          # Training curves, plots, raw data
+  architecture.md                  Model architecture
+  lessons_learned.md               Mistakes & fixes
+  research_log.md                  Chronological problem/solution log + paper bibliography
+  experiments/
+    pretraining/                   Pretraining run docs
+    downstream/frozen/             Frozen probe sweep docs
+    downstream/unfrozen/           Fine-tune docs
+results/                           Training curves, AUC plots, raw CSVs
 ```
+
+## Roadmap
+
+- **Phase 1 (done)** — Random-init I-JEPA SSL on 600K OCT slices + d=1 frozen probe sweep (completed, ep100 winner)
+- **Phase 1.5 (running)** — Fine-tune ep100 with MAE-style LLRD
+- **Phase 2 (next)** — Baselines: DINOv3-ViT-B/16 + RETFound-DINOv2 frozen probes on our FairVision test split for apples-to-apples comparison
+- **Phase 3** — DINO-init → I-JEPA continued pretraining on FairVision; direct vs-RETFound-DINOv2 comparison
+- **Phase 4** — 3D-aware SSL (multi-view / axial)
+
+See [research_log.md](docs/research_log.md) for the full backlog.
 
 ## References
 
-- Assran et al., "Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture" ([paper](https://arxiv.org/abs/2301.08243), [code](https://github.com/facebookresearch/ijepa))
-- Luo et al., "Harvard Ophthalmology AI-Lab FairVision Dataset" ([paper](https://arxiv.org/abs/2310.02492), [code](https://github.com/Harvard-Ophthalmology-AI-Lab/FairVision))
+- Assran et al., *Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture*, CVPR 2023. [arxiv 2301.08243](https://arxiv.org/abs/2301.08243) · [code](https://github.com/facebookresearch/ijepa)
+- Bardes et al., *V-JEPA: Revisiting Feature Prediction for Learning Visual Representations from Video*, 2024. [arxiv 2404.08471](https://arxiv.org/html/2404.08471v1)
+- Zhou et al., *Generalist versus Specialist Vision Foundation Models for Ocular Disease and Oculomics*, 2025. [arxiv 2509.03421](https://arxiv.org/abs/2509.03421v1)
+- Zhou et al., *A foundation model for generalizable disease detection from retinal images* (RETFound), Nature 2023. [paper](https://www.nature.com/articles/s41586-023-06555-x)
+- Oquab et al., *DINOv2: Learning Robust Visual Features without Supervision*, 2023. [arxiv 2304.07193](https://arxiv.org/abs/2304.07193)
+- DINOv3 (Meta, 2025). [arxiv 2508.10104](https://arxiv.org/html/2508.10104v1)
+- Kakogeorgiou et al., *Attention, Please! Revisiting Attentive Probing for Masked Image Modeling*, ICLR 2026. [arxiv 2506.10178](https://arxiv.org/abs/2506.10178)
+- Luo et al., *FairVision: Equitable Deep Learning for Eye Disease Screening via Fair Identity Scaling*, 2024. [arxiv 2310.02492](https://arxiv.org/abs/2310.02492)
+
+Full bibliography with context: [docs/research_log.md](docs/research_log.md#paper-bibliography).
