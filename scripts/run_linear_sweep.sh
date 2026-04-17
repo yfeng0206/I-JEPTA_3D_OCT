@@ -34,11 +34,10 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 mkdir -p "$CKPT_DIR"
 
 CHECKPOINTS=("jepa_patch-ep25.pth.tar" "jepa_patch-ep50.pth.tar" "jepa_patch-ep75.pth.tar" "jepa_patch-ep100.pth.tar")
-GPU_IDS=(0 1 2 3)
 
 echo "=== Linear Probe Sweep ==="
 echo "  Checkpoints: ${CHECKPOINTS[*]}"
-echo "  GPUs: ${GPU_IDS[*]}"
+echo "  Mode: sequential on GPU 0"
 echo "  Blob prefix: ${IJEPA_BLOB_PREFIX}"
 
 # ── Install dependencies ────────────────────────────────────────────
@@ -125,15 +124,18 @@ for ckpt_name in checkpoints:
 print('All checkpoints ready.')
 "
 
-# ── Launch 4 probes in parallel ─────────────────────────────────────
+# ── Run 4 probes sequentially on GPU 0 ──────────────────────────────
+# Prior parallel version hung: 4 probes each holding ~2 GB of cached
+# features in RAM plus forking 4 DataLoader workers apiece blew past
+# node memory. Sequential avoids the contention; total wall time
+# ~4× single-probe instead of ~1× parallel.
 cd "$(dirname "$0")/.."
 
-PIDS=()
 EXIT_CODES=()
+ALL_OK=0
 
 for i in 0 1 2 3; do
     CKPT_NAME="${CHECKPOINTS[$i]}"
-    GPU="${GPU_IDS[$i]}"
     EP_TAG=$(echo "$CKPT_NAME" | sed 's/jepa_patch-//;s/.pth.tar//')
     RUN_TAG="downstream_linear_${EP_TAG}_d${PROBE_DEPTH}_s${NUM_SLICES}"
     RUN_OUTPUT="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"
@@ -177,19 +179,20 @@ logging:
   output_dir: ${RUN_OUTPUT}
 YAMLEOF
 
-    echo "=== Starting ${EP_TAG} on GPU ${GPU} ==="
+    echo ""
+    echo "=== [$((i+1))/4] Running ${EP_TAG} ==="
     echo "  Config: ${CONFIG_PATH}"
     echo "  Output: ${RUN_OUTPUT}"
 
-    # Run in background on assigned GPU (disable set -e so upload always runs)
-    (
-        set +e
-        EVAL_EXIT=0
-        CUDA_VISIBLE_DEVICES=${GPU} python src/eval_downstream.py --config "${CONFIG_PATH}" \
-            2>&1 | tee "${RUN_OUTPUT}/eval_stdout.log" || EVAL_EXIT=$?
+    set +e
+    EVAL_EXIT=0
+    CUDA_VISIBLE_DEVICES=0 python src/eval_downstream.py --config "${CONFIG_PATH}" \
+        2>&1 | tee "${RUN_OUTPUT}/eval_stdout.log"
+    EVAL_EXIT=${PIPESTATUS[0]}
+    set -e
 
-        # Upload results (runs even if eval failed)
-        python -c "
+    # Upload results (runs even if eval failed)
+    python -c "
 import glob, os, traceback
 output_dir = '${RUN_OUTPUT}'
 blob_prefix = '${BLOB_OUT}'
@@ -214,27 +217,13 @@ except Exception as e:
     print('[${EP_TAG}] Upload FAILED: %s' % e)
     traceback.print_exc()
 "
-        exit ${EVAL_EXIT}
-    ) &
-    PIDS+=($!)
-    echo "  PID: ${PIDS[-1]}"
-done
 
-# ── Wait for all 4 to finish ────────────────────────────────────────
-echo ""
-echo "=== Waiting for all 4 probes to finish ==="
-echo "  PIDs: ${PIDS[*]}"
+    # Free RAM held by cached features before next probe starts
+    rm -rf "${RUN_OUTPUT}/feature_cache" || true
 
-ALL_OK=0
-for i in 0 1 2 3; do
-    if wait ${PIDS[$i]}; then
-        CODE=0
-    else
-        CODE=$?
-    fi
-    EXIT_CODES+=($CODE)
-    echo "  ${CHECKPOINTS[$i]} (GPU ${GPU_IDS[$i]}): exit code ${CODE}"
-    if [ $CODE -ne 0 ]; then
+    EXIT_CODES+=($EVAL_EXIT)
+    echo "  ${CKPT_NAME}: exit code ${EVAL_EXIT}"
+    if [ $EVAL_EXIT -ne 0 ]; then
         ALL_OK=1
     fi
 done
