@@ -1278,6 +1278,9 @@ def main(args):
 
 
 if __name__ == '__main__':
+    # Line-buffer stdout so per-epoch prints appear in real time under `tee`
+    # (default block buffering hides progress until ~4KB accumulates).
+    sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(description='Downstream glaucoma classification')
     parser.add_argument('--config', type=str, required=True,
                         help='Path to YAML config file')
