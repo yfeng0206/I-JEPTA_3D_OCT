@@ -7,9 +7,11 @@ Summary of I-JEPA pretraining runs on 600K OCT slices for glaucoma detection.
 | Run | Init | LR | Epochs | Warmup | EMA | Diagnostics | Status |
 |-----|------|----|--------|--------|-----|-------------|--------|
 | [Random-init posfix](run6_random_posfix.md) | Random | 0.00025 | 100 | 5 | 0.996→1.0 | [plots](../../../results/pretraining/pretrain_random_posfix/) | **completed** |
-| ImageNet-init posfix | ImageNet ViT-B/16 | 0.00025 | 100 | 15 | 0.996→1.0 | — | planned |
+| DINO-init (planned) | DINOv2 or DINOv3 ViT-B/16 | TBD | 100 | TBD | 0.996→1.0 | — | Phase 3 |
 
-Both use: ViT-B/16, batch 64×4 GPUs×2 accum = 512 effective, weight decay 0.04→0.4, no early stopping. Fixed position encoding (posfix).
+ViT-B/16, batch 64×4 GPUs×2 accum = 512 effective, weight decay 0.04→0.4, no early stopping. Fixed position encoding (posfix).
+
+**ImageNet-init is deprecated** as the next continuation source. Based on [Zhou 2025](https://arxiv.org/abs/2509.03421v1), DINO-family beats MAE-family and ImageNet-supervised init for retinal tasks. Next pretraining experiment is DINO-init continuation. See `research_log.md` #9, #12 for the reasoning.
 
 ### Diagnostic Plots
 
