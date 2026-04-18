@@ -15,10 +15,13 @@ All on FairVision glaucoma held-out test split (3000 volumes). Encoder: random-i
 
 Best model: **fine-tune with MAE-style LLRD**. +0.009 Test AUC over best frozen probe (CrossAttnPool) — within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
 
-**Ablation findings**:
-- **CrossAttnPool (277K) beats d=1 AttentiveProbe (7.17M)** at 26× fewer parameters. The self-attention + FFN in the standard attentive probe is redundant for this task.
-- **MeanPool (2.3K, no attention, no position) beats d=1 AttentiveProbe**. Strong evidence that the d=1 probe overfits 6K volumes; a trivial linear readout on mean-pooled features is a stronger baseline than the literature-default.
-- **Attention with position still helps by +0.5% AUC** over mean_pool (CrossAttnPool 0.8791 vs MeanPool 0.8746). Small but real.
+**Ablation findings** (paired bootstrap, 95% CI, B=2000):
+- **CrossAttnPool (277K) beats d=1 AttentiveProbe (7.17M) significantly** (+0.009, p=0.002). Confirms "Attention, Please!" (ICLR 2026): standard attentive probes are over-parameterized.
+- **Mean-pool is within statistical noise of d=1** (+0.004, p=0.08, **ns**). d=1 fails to improve over mean-pool at 3000× more params — strong evidence of over-parameterization without AUC gain.
+- **Attention with position still adds measurable signal** (CrossAttnPool − MeanPool = +0.005, p=0.04). Real but small.
+- **Fine-tune decisively beats all frozen probes** (+0.009 vs CrossAttnPool, p=0.001; +0.017 vs d=1, p<0.001).
+
+Full analysis: [`docs/experiments/frozen/ablation_analysis.md`](docs/experiments/frozen/ablation_analysis.md).
 
 ![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
 

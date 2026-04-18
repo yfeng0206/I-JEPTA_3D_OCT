@@ -14,6 +14,8 @@ Pipeline: frozen ViT-B/16 → mean-pool patches within each slice → `(100 slic
 
 All rows share identical hyperparameters (bs=256, lr=4e-4, wd=0.05, dropout=0.2, 50 ep, patience=15, warmup=5) — the comparison isolates probe architecture only.
 
+**Statistical analysis**: [ablation_analysis.md](ablation_analysis.md) has bootstrap 95% CIs and paired-delta p-values for every comparison. Headline: CrossAttnPool beats d=1 significantly (p=0.002); MeanPool vs d=1 is NS (p=0.08) — we can't claim d=1 is worse, only that it fails to improve over MeanPool at 3000× more params.
+
 ## Key lessons
 
 1. **CrossAttnPool matches d=1 at 26× fewer params.** The single cross-attention pool with slice pos_embed is sufficient; the self-attention among slices + FFN in the I-JEPA-style d=1 probe add capacity that doesn't translate to AUC gains.
