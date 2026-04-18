@@ -12,6 +12,32 @@ Reference log for paper writing. Each entry records a problem or decision, the i
 
 ## Session Log
 
+### 2026-04-18 — Fine-tune v2 (LLRD γ=0.5, lr=2e-4) + probe-architecture ablations
+
+#### 15. Fine-tune overfit post-warmup → stronger LLRD + lower LR + gate fix
+
+**Context**: Fine-tune v1 (`willing_yogurt_6t1cvqhy7w`, LLRD γ=0.65, lr=4e-4) hit the frozen-probe ceiling during warmup (ep4 Val AUC 0.8781) then degraded after encoder started actually moving post-warmup, best saved was ep13 at 0.8665. Train loss fell from 0.39 → 0.17 while val loss climbed — classic fine-tune overfit on 6K samples with an 86M encoder.
+
+**Investigation**:
+- Reread our own past_warmup gate logic. For SSL pretraining the gate is needed (pre-warmup val_loss is an EMA-target artifact). For supervised fine-tune val AUC, that justification doesn't apply — ep4's 0.8781 was a real number we just didn't save.
+- Looked at what encoder layers were actually moving during v1 warmup: with γ=0.65 and lr=4e-4, bottom block LR was ~2.3e-6 and embed was ~1.5e-6. Not frozen but close. Post-warmup at peak LR (2.6e-4 top block) encoder moved enough to destroy good features.
+- Decided: keep the fine-tune philosophy but make the encoder essentially frozen for bottom layers (γ=0.5 → embed LR 1.5e-9) so only top blocks + probe + head adapt.
+
+**Fix 1 (gate)**: `src/eval_downstream.py` — removed `past_warmup` gate from best-model save + patience-reset; kept it only on the early-stop trigger. Now every epoch (including warmup) can save `best_model.pt` on val-AUC improvement. Commit `9f96c6b`.
+
+**Fix 2 (hyperparams)**: LLRD γ=0.65 → 0.5, base LR 4e-4 → 2e-4. Local config only.
+
+**Outcome** (`silver_music_r9b0ccn6nc`): Early-stopped at ep19 with patience=15 from ep4 peak. Results:
+- **Best epoch 4, Val AUC 0.8751, Test AUC 0.8878**
+- Sens 0.741 / Spec 0.877
+- vs frozen d=1 ep100: Val 0.8597 / Test 0.8706 → **fine-tune +0.017 Test AUC**
+
+That's within Zhou 2025's 2-4% fine-tune-vs-LP gap range. The insight: the meaningful signal comes from training the probe WITH encoder slightly warm, not from aggressive encoder fine-tuning. 6K volumes is too small to fine-tune 86M params without LLRD being aggressive.
+
+**References**: Zhou 2025 LP vs fine-tune gap; MAE LLRD recommendation (γ=0.65 for ViT-B, we went γ=0.5 for smaller dataset).
+
+---
+
 ### 2026-04-17 — Literature-tuned frozen probe sweep
 
 #### 1. Parallel 4-probe sweep hung silently after feature pre-compute
