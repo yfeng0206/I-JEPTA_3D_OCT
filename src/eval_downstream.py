@@ -619,8 +619,11 @@ def run_patch_downstream(config, device):
         train_auc = roc_auc_score(train_labels_np, train_probs_np) if len(np.unique(train_labels_np)) >= 2 else 0.5
 
         val_loss, val_auc = evaluate(probe, head, val_loader, criterion, device)
-        lr_probe = optimizer.param_groups[0]['lr']
-        lr_head = optimizer.param_groups[1]['lr']
+        # Head is always the last param group. lr_probe only exists when the
+        # probe has trainable params (mean_pool has none → its empty group
+        # was filtered, so only the head group remains — report probe LR 0).
+        lr_head = optimizer.param_groups[-1]['lr']
+        lr_probe = optimizer.param_groups[0]['lr'] if len(optimizer.param_groups) > 1 else 0.0
 
         improved = val_auc > best_auc
         marker = ' *' if improved else ''

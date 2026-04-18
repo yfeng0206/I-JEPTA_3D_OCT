@@ -148,12 +148,13 @@ for i in "${!CHECKPOINTS[@]}"; do
     CKPT_NAME="${CHECKPOINTS[$i]}"
     EP_TAG=$(echo "$CKPT_NAME" | sed 's/jepa_patch-//;s/.pth.tar//')
     # Output dir tag includes probe type + architecture shape so that
-    # cross-attn results don't collide with 'downstream_linear_d1_' paths.
-    if [ "${PROBE_TYPE}" = "cross_attn_pool" ]; then
-        PROBE_TAG="capool_h${PROBE_HEAD_DIM}"
-    else
-        PROBE_TAG="d${PROBE_DEPTH}"
-    fi
+    # cross-attn / mean-pool results don't collide with attentive paths.
+    # The same logic is used in the summary loop below; keep in sync.
+    case "${PROBE_TYPE}" in
+        cross_attn_pool) PROBE_TAG="capool_h${PROBE_HEAD_DIM}" ;;
+        mean_pool)       PROBE_TAG="mp" ;;
+        *)               PROBE_TAG="d${PROBE_DEPTH}" ;;
+    esac
     RUN_TAG="downstream_${PROBE_TYPE}_${EP_TAG}_${PROBE_TAG}_s${NUM_SLICES}"
     RUN_OUTPUT="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"
     BLOB_OUT="ijepa-downstream/${RUN_TAG}_${TIMESTAMP}"
@@ -199,7 +200,7 @@ logging:
 YAMLEOF
 
     echo ""
-    echo "=== [$((i+1))/4] Running ${EP_TAG} ==="
+    echo "=== [$((i+1))/${#CHECKPOINTS[@]}] Running ${EP_TAG} ==="
     echo "  Config: ${CONFIG_PATH}"
     echo "  Output: ${RUN_OUTPUT}"
 
@@ -254,7 +255,13 @@ echo "  Linear Probe Sweep Complete"
 echo "========================================"
 for i in "${!CHECKPOINTS[@]}"; do
     EP_TAG=$(echo "${CHECKPOINTS[$i]}" | sed 's/jepa_patch-//;s/.pth.tar//')
-    RUN_TAG="downstream_linear_${EP_TAG}_d${PROBE_DEPTH}_s${NUM_SLICES}"
+    # Must stay in sync with RUN_TAG construction in the build loop above.
+    case "${PROBE_TYPE}" in
+        cross_attn_pool) PROBE_TAG="capool_h${PROBE_HEAD_DIM}" ;;
+        mean_pool)       PROBE_TAG="mp" ;;
+        *)               PROBE_TAG="d${PROBE_DEPTH}" ;;
+    esac
+    RUN_TAG="downstream_${PROBE_TYPE}_${EP_TAG}_${PROBE_TAG}_s${NUM_SLICES}"
     RUN_OUTPUT="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"
     echo ""
     echo "--- ${EP_TAG} (exit: ${EXIT_CODES[$i]}) ---"
