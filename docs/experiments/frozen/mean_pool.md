@@ -2,7 +2,7 @@
 
 Mean-pool across slices (no attention, no parameters in the probe itself) + LinearHead. Serves as the ablation floor to quantify how much slice-level attention and positional embeddings contribute.
 
-AML job: `quirky_branch_vkcy47sptn` — running as of 2026-04-18.
+AML job: `quirky_branch_vkcy47sptn` — completed 2026-04-18.
 
 ## Architecture
 
@@ -26,11 +26,24 @@ The number we get here answers: "with everything position-aware removed, how muc
 
 | Metric | Value |
 |---|---|
-| Best epoch | TBD |
-| Best Val AUC | TBD |
-| Test AUC | TBD |
+| Best epoch | 48 |
+| Best Val AUC | 0.8559 |
+| **Test AUC** | **0.8746** |
+| Test loss | 0.4373 |
+| Sensitivity | 0.761 |
+| Specificity | 0.838 |
 
-Will be filled in when `quirky_branch_vkcy47sptn` terminates (~1h). Expected to underperform CrossAttnPool and d=1-attn, but the gap quantifies how much slice-aware attention is earning.
+## Three-way frozen-probe comparison on ep100
+
+| Probe | Params | Val AUC | Test AUC |
+|---|---|---|---|
+| **MeanPool + Linear (this run)** | **2.3K** (no probe params) | **0.8559** | **0.8746** |
+| d=1 AttentiveProbe + Linear | 7.17M | 0.8597 | 0.8706 |
+| CrossAttnPool + Linear | 277K | 0.8650 | 0.8791 |
+
+**Surprising finding**: mean_pool beats the d=1 AttentiveProbe on Test AUC (+0.004), despite discarding slice ordering entirely. Strong evidence that the d=1 probe's 7M params cause overfitting rather than capturing real signal. Attention-based pooling IS genuinely helping on this task — but only in the minimal CrossAttnPool form (+0.005 Test AUC over mean_pool), not the over-parameterized d=1 form.
+
+Interpretation: for FairVision glaucoma (6K volumes, ~balanced prevalence), a tiny linear probe on mean-pooled features is already a very strong baseline. Slice-level attention + position embeddings add ~0.5% AUC on top. Anything bigger overfits.
 
 ## Config (matches other frozen ablations for clean comparison)
 

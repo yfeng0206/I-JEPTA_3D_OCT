@@ -10,7 +10,7 @@ All results use FairVision glaucoma held-out Test split (3000 volumes). Encoder:
 |---|---|---|---|---|
 | Frozen | AttentiveProbe d=1 + Linear | 7.17M | 0.8706 | [frozen/d1_sweep.md](frozen/d1_sweep.md) |
 | Frozen | CrossAttnPool + Linear | 277K | 0.8791 | [frozen/cross_attn_pool.md](frozen/cross_attn_pool.md) |
-| Frozen | MeanPool + Linear | 2.3K | running | [frozen/mean_pool.md](frozen/mean_pool.md) |
+| Frozen | MeanPool + Linear | 2.3K | 0.8746 | [frozen/mean_pool.md](frozen/mean_pool.md) |
 | Finetune | AttentiveProbe d=1 + Linear, LLRD γ=0.5 | 7.17M + 86M encoder | 0.8878 | [finetune/llrd.md](finetune/llrd.md) |
 
 Best overall: **fine-tune with MAE-style LLRD at Test AUC 0.8878**. +0.017 over the frozen d=1 baseline.

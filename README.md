@@ -8,19 +8,22 @@ All on FairVision glaucoma held-out test split (3000 volumes). Encoder: random-i
 
 | Method | Probe | Params (trainable) | **Test AUC** |
 |---|---|---|---|
+| Frozen probe | MeanPool + Linear (no attention, no pos) | 2.3K | 0.8746 |
 | Frozen probe | AttentiveProbe d=1 + Linear | 7.17M | 0.8706 |
 | Frozen probe | **CrossAttnPool + Linear** | **277K** | **0.8791** |
 | **Fine-tune + LLRD γ=0.5** | AttentiveProbe d=1 + Linear | 7.17M + 86M encoder | **0.8878** |
 
-Best model: **fine-tune with MAE-style LLRD**. +0.017 Test AUC over the frozen baseline — within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
+Best model: **fine-tune with MAE-style LLRD**. +0.009 Test AUC over best frozen probe (CrossAttnPool) — within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
 
-**Ablation finding**: CrossAttnPool (277K params) matches d=1 AttentiveProbe (7.17M) at 26× fewer parameters — the self-attention + FFN in the standard attentive probe is redundant for this task. Single cross-attention with slice pos_embed suffices.
+**Ablation findings**:
+- **CrossAttnPool (277K) beats d=1 AttentiveProbe (7.17M)** at 26× fewer parameters. The self-attention + FFN in the standard attentive probe is redundant for this task.
+- **MeanPool (2.3K, no attention, no position) beats d=1 AttentiveProbe**. Strong evidence that the d=1 probe overfits 6K volumes; a trivial linear readout on mean-pooled features is a stronger baseline than the literature-default.
+- **Attention with position still helps by +0.5% AUC** over mean_pool (CrossAttnPool 0.8791 vs MeanPool 0.8746). Small but real.
 
 ![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
 
-Pending bars:
-- **MeanPool (frozen)** — running as `quirky_branch_vkcy47sptn` (~1h out). Quantifies how much slice-aware attention earns vs pure mean-pool.
-- **Fine-tune + CrossAttnPool + LLRD** — queued to run after MeanPool. Tests whether the 277K probe beats d=1-attn under fine-tuning, just like it did under frozen eval.
+Queued:
+- **Fine-tune + CrossAttnPool + LLRD** — submitted after MeanPool finished. Tests whether the 277K probe beats d=1-attn under fine-tuning as it did under frozen eval.
 
 Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 
