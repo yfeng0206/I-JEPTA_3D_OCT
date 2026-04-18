@@ -14,11 +14,11 @@ All on FairVision glaucoma held-out test split (3000 volumes). Encoder: random-i
 
 Best model: **fine-tune with MAE-style LLRD**. +0.017 Test AUC over the frozen baseline — within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
 
-**Ablation finding**: CrossAttnPool (277K params) matches d=1 AttentiveProbe (7.17M) — the full self-attention + FFN in d=1 is redundant for this task. Single cross-attention with slice pos_embed suffices.
+**Ablation finding**: CrossAttnPool (277K params) matches d=1 AttentiveProbe (7.17M) at 26× fewer parameters — the self-attention + FFN in the standard attentive probe is redundant for this task. Single cross-attention with slice pos_embed suffices.
 
-![Pretraining-epoch sweep](results/downstream/linear_sweep_random_posfix_d1/auc_per_checkpoint.png)
+![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
 
-Monotonic improvement with pretraining length: +0.015 Test AUC from ep25 → ep100.
+MeanPool bar will be filled in once `quirky_branch_vkcy47sptn` lands (~1h). Sweep across pretraining epochs (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 
 ## Method
 
