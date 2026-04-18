@@ -1215,14 +1215,16 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         lr_head = optimizer.param_groups[-1]['lr']
 
         should_stop = False
-        # Only track best / early-stop after warmup: during warmup the LR
-        # is linearly ramping from 0, so the encoder has barely moved and
-        # val AUC isn't a meaningful signal. Same principle as pretraining.
-        # Epoch loop is 1..N, so warmup is finished when epoch > warmup_epochs.
+        # Track best_model across all epochs (warmup included). Val AUC on
+        # a supervised task is a real metric, not an EMA-target artifact —
+        # if the model happens to peak during LR ramp-up, that's a
+        # legitimate checkpoint to keep. We still gate early-stop triggers
+        # on past_warmup so a noisy warmup dip can't prematurely end the
+        # run.
         past_warmup = epoch > train_cfg.get('warmup_epochs', 3)
         if is_main:
             improved = val_auc > best_auc
-            marker = ' *' if (improved and past_warmup) else ''
+            marker = ' *' if improved else ''
             print('Epoch %2d/%d (%5.0fs) | Train: %.4f | Val: %.4f | AUC: %.4f | LR: %.1e/%.1e/%.1e%s'
                   % (epoch, epochs, elapsed, train_loss, val_loss, val_auc,
                      lr_enc, lr_probe, lr_head, marker))
@@ -1233,22 +1235,23 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
                                   lr_enc, lr_probe, lr_head, elapsed))
                 csv_file.flush()
 
-            if past_warmup:
-                if improved:
-                    best_auc = val_auc
-                    patience_counter = 0
-                    torch.save({
-                        'epoch': epoch,
-                        'encoder': raw.encoder.state_dict(),
-                        'probe': raw.probe.state_dict(),
-                        'head': raw.head.state_dict(),
-                        'val_auc': val_auc,
-                    }, os.path.join(output_dir, 'best_model.pt'))
-                else:
-                    patience_counter += 1
-                    if patience_counter >= patience:
-                        print('Early stopping at epoch %d (patience=%d)' % (epoch, patience))
-                        should_stop = True
+            if improved:
+                best_auc = val_auc
+                patience_counter = 0
+                torch.save({
+                    'epoch': epoch,
+                    'encoder': raw.encoder.state_dict(),
+                    'probe': raw.probe.state_dict(),
+                    'head': raw.head.state_dict(),
+                    'val_auc': val_auc,
+                }, os.path.join(output_dir, 'best_model.pt'))
+            else:
+                patience_counter += 1
+                # Only allow early-stop after warmup so a single noisy warmup
+                # epoch doesn't kill a run whose real training hasn't started.
+                if past_warmup and patience_counter >= patience:
+                    print('Early stopping at epoch %d (patience=%d)' % (epoch, patience))
+                    should_stop = True
 
         # Broadcast early stop decision — ALL ranks must reach this
         if world_size > 1:
