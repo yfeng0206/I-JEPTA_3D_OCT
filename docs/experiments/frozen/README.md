@@ -8,9 +8,9 @@ Pipeline: frozen ViT-B/16 → mean-pool patches within each slice → `(100 slic
 
 | Probe | Params | Pos info | Val AUC | Test AUC | Detail |
 |---|---|---|---|---|---|
-| AttentiveProbe d=1 | 7.17M | Yes (77K pos_embed + self-attn) | 0.8597 | 0.8706 | [d1_sweep.md](d1_sweep.md) |
 | **CrossAttnPool** | **277K** | Yes (76K pos_embed + cross-attn) | **0.8650** | **0.8791** | [cross_attn_pool.md](cross_attn_pool.md) |
 | MeanPool + Linear | 2.3K | **No** | 0.8559 | 0.8746 | [mean_pool.md](mean_pool.md) |
+| AttentiveProbe d=1 | 7.17M | Yes (77K pos_embed + self-attn) | 0.8597 | 0.8706 | [d1_sweep.md](d1_sweep.md) |
 
 All rows share identical hyperparameters (bs=256, lr=4e-4, wd=0.05, dropout=0.2, 50 ep, patience=15, warmup=5) — the comparison isolates probe architecture only.
 

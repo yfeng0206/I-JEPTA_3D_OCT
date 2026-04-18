@@ -8,10 +8,10 @@ All on FairVision glaucoma held-out test split (3000 volumes). Encoder: random-i
 
 | Method | Probe | Params (trainable) | **Test AUC** |
 |---|---|---|---|
+| **Fine-tune + LLRD γ=0.5** | AttentiveProbe d=1 + Linear | 7.17M + 86M encoder | **0.8878** |
+| Frozen probe | **CrossAttnPool + Linear** | **277K** | **0.8791** |
 | Frozen probe | MeanPool + Linear (no attention, no pos) | 2.3K | 0.8746 |
 | Frozen probe | AttentiveProbe d=1 + Linear | 7.17M | 0.8706 |
-| Frozen probe | **CrossAttnPool + Linear** | **277K** | **0.8791** |
-| **Fine-tune + LLRD γ=0.5** | AttentiveProbe d=1 + Linear | 7.17M + 86M encoder | **0.8878** |
 
 Best model: **fine-tune with MAE-style LLRD**. +0.009 Test AUC over best frozen probe (CrossAttnPool) — within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
 
