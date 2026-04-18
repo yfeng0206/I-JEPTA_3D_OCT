@@ -36,6 +36,8 @@ PATCH_SIZE=${PATCH_SIZE:-16}
 CROP_SIZE=${CROP_SIZE:-256}
 PROBE_NUM_HEADS=${PROBE_NUM_HEADS:-12}
 PROBE_DEPTH=${PROBE_DEPTH:-2}
+PROBE_TYPE=${PROBE_TYPE:-attentive}        # 'attentive' | 'cross_attn_pool' | 'mean_pool'
+PROBE_HEAD_DIM=${PROBE_HEAD_DIM:-64}       # only used when PROBE_TYPE=cross_attn_pool
 HEAD_TYPE=${HEAD_TYPE:-linear}
 LR_PROBE=${LR_PROBE:-0.0001}
 LR_ENCODER=${LR_ENCODER:-0.000001}
@@ -188,8 +190,10 @@ model:
   patch_size: ${PATCH_SIZE}
   crop_size: ${CROP_SIZE}
   freeze_encoder: ${FREEZE_ENCODER}
+  probe_type: ${PROBE_TYPE}
   probe_num_heads: ${PROBE_NUM_HEADS}
   probe_depth: ${PROBE_DEPTH}
+  probe_head_dim: ${PROBE_HEAD_DIM}
   head_type: ${HEAD_TYPE}
 training:
   lr_probe: ${LR_PROBE}
