@@ -35,11 +35,11 @@ Linear probe sweep across 4 pretraining checkpoints from the random-init posfix 
 
 ## Plots
 
-![Val AUC per epoch](../../../../results/downstream/linear_sweep_random_posfix_d1/val_auc_per_epoch.png)
+![Val AUC per epoch](../../../results/downstream/linear_sweep_random_posfix_d1/val_auc_per_epoch.png)
 
-![Train vs Val loss grid](../../../../results/downstream/linear_sweep_random_posfix_d1/train_val_loss_grid.png)
+![Train vs Val loss grid](../../../results/downstream/linear_sweep_random_posfix_d1/train_val_loss_grid.png)
 
-![AUC per checkpoint](../../../../results/downstream/linear_sweep_random_posfix_d1/auc_per_checkpoint.png)
+![AUC per checkpoint](../../../results/downstream/linear_sweep_random_posfix_d1/auc_per_checkpoint.png)
 
 ## Observations
 
@@ -55,6 +55,6 @@ Linear probe sweep across 4 pretraining checkpoints from the random-init posfix 
 
 ## Follow-ups
 
-- **Fine-tune on ep100** — LLRD γ=0.65, 50 epochs, 10 warmup, 15 patience, past_warmup gate. Running as `willing_yogurt_6t1cvqhy7w`. Expected target ~0.89-0.91 Test AUC from Zhou 2025's fine-tune-vs-LP gap.
-- **Cross-attn pool ablation** — minimal 280K probe (single cross-attn, head_dim=64, no FFN, slice pos_embed) on ep100. Tests whether the d=1 attentive probe's 7M params are earning their keep.
-- **Mean-pool + linear ablation** — ~800 params, pure linear probe. Tests whether attention-based slice weighting matters at all for OCT glaucoma.
+- **Fine-tune on ep100 completed**: LLRD γ=0.5, lr=2e-4. Best Val 0.8751 at ep4, Test 0.8878 (+0.017 over frozen d=1). See [../finetune/llrd.md](../finetune/llrd.md).
+- **CrossAttnPool ablation completed**: 277K-param probe matches d=1 at 26× fewer params (Test 0.8791 vs 0.8706). See [cross_attn_pool.md](cross_attn_pool.md).
+- **Mean-pool ablation running**: quantifies the attention contribution. See [mean_pool.md](mean_pool.md).

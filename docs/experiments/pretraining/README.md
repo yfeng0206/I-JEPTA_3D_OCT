@@ -6,7 +6,7 @@ Self-supervised I-JEPA pretraining on 600K OCT slices (FairVision Training split
 
 | Run | Init | LR | Epochs | Warmup | EMA | Status |
 |---|---|---|---|---|---|---|
-| [Random-init posfix (run6)](run6_random_posfix.md) | Random | 0.00025 | 100 | 5 | 0.996→1.0 | **completed** — current baseline |
+| [Random-init 100ep](random_100ep.md) | Random | 0.00025 | 100 | 5 | 0.996→1.0 | **completed** — current baseline |
 | DINO-init continuation | DINOv2 or DINOv3 ViT-B/16 | TBD | 100 | TBD | 0.996→1.0 | planned (Phase 3) |
 
 Shared config: ViT-B/16, batch 64×4 GPUs × 2 accum = 512 effective, weight_decay 0.04→0.4 cosine, no early stopping.
@@ -24,10 +24,10 @@ Per-epoch plots under [`results/pretraining/pretrain_random_posfix/`](../../../r
 
 Regenerate: `python scripts/plot_pretraining.py --csv <log.csv> --stdout <stdout.log> --output <dir> --title <name>`.
 
-## Key takeaways (from run6_random_posfix + research_log.md)
+## Key takeaways (from random_100ep + research_log.md)
 
 1. **Peak LR 0.00025 for OCT + effective batch 512.** Correlated gradients from less diverse OCT data make the effective LR higher than nominal; I-JEPA's default 0.0005 for ImageNet is too hot here.
 2. **Warmup gate for early-stopping AND best-checkpoint save.** Pre-warmup epochs have artificially low val_loss because EMA target hasn't diverged from online encoder. See `lessons_learned.md` #2 + research_log.md #4.
 3. **I-JEPA loss goes up with training.** Monitor `rep_diversity` and `cos_sim` instead.
 4. **No early stopping.** Literature standard (RETFound, V-JEPA) is fixed-epoch. We run full 100 epochs and save checkpoints every 25.
-5. **Downstream AUC is the quality signal.** The d=1 linear probe sweep across ep25/50/75/100 picks the best encoder. See [frozen/random_posfix_d1_sweep.md](../downstream/frozen/random_posfix_d1_sweep.md).
+5. **Downstream AUC is the quality signal.** The d=1 linear probe sweep across ep25/50/75/100 picks the best encoder. See [frozen/d1_sweep.md](../frozen/d1_sweep.md).

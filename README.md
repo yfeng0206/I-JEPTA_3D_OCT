@@ -35,10 +35,10 @@ Harvard FairVision Glaucoma subset: 10,000 subjects (6K Train / 1K Val / 3K Test
 
 ## Roadmap
 
-- Phase 1 ✅ Random-init I-JEPA SSL → frozen probe + fine-tune evaluation
-- Phase 2 ⏳ Probe architecture ablations (CrossAttnPool done; MeanPool queued)
-- Phase 3 📋 DINO-init continuation (DINOv2 or DINOv3) + fine-tune
-- Phase 4 📋 3D-aware SSL extension (multi-view / axial)
+- Phase 1 (done): Random-init I-JEPA SSL → frozen probe + fine-tune evaluation
+- Phase 2 (in progress): Probe architecture ablations (CrossAttnPool done; MeanPool running)
+- Phase 3 (planned): DINO-init continuation (DINOv2 or DINOv3) + fine-tune
+- Phase 4 (planned): 3D-aware SSL extension (multi-view / axial)
 
 Details and backlog: [`docs/research_log.md`](docs/research_log.md).
 
@@ -46,10 +46,9 @@ Details and backlog: [`docs/research_log.md`](docs/research_log.md).
 
 | | |
 |---|---|
-| All experiment docs | [`docs/experiments`](docs/experiments) |
-| Pretraining run | [`docs/experiments/pretraining/run6_random_posfix.md`](docs/experiments/pretraining/run6_random_posfix.md) |
-| Frozen probe d=1 sweep | [`docs/experiments/downstream/frozen/random_posfix_d1_sweep.md`](docs/experiments/downstream/frozen/random_posfix_d1_sweep.md) |
-| Fine-tune LLRD | [`docs/experiments/downstream/unfrozen`](docs/experiments/downstream/unfrozen) |
+| Pretraining | [`docs/experiments/pretraining`](docs/experiments/pretraining) |
+| Frozen probe (d=1, CrossAttnPool, MeanPool) | [`docs/experiments/frozen`](docs/experiments/frozen) |
+| Fine-tune (LLRD on d=1) | [`docs/experiments/finetune`](docs/experiments/finetune) |
 | Model architecture | [`docs/architecture.md`](docs/architecture.md) |
 | Lessons learned | [`docs/lessons_learned.md`](docs/lessons_learned.md) |
 | Research log + paper bibliography | [`docs/research_log.md`](docs/research_log.md) |

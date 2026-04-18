@@ -64,4 +64,4 @@ Current baseline: random-init I-JEPA ViT-B/16, 100 epochs, fixed 2D sinusoidal p
 
 - **Healthy diagnostics throughout**: rep_diversity stable 0.20-0.27, cos_sim stable 0.78-0.87. No collapse, no divergence.
 - **Loss increase is expected**: I-JEPA loss increases as EMA target learns harder representations. Train loss decreased in late epochs (0.1445 → 0.1357) while val loss stayed in 0.14-0.15.
-- **Downstream sweep picked ep100 as winner**: Val AUC 0.8597, Test AUC 0.8706. See [frozen/random_posfix_d1_sweep.md](../downstream/frozen/random_posfix_d1_sweep.md).
+- **Downstream sweep picked ep100 as winner**: Val AUC 0.8597, Test AUC 0.8706. See [frozen/d1_sweep.md](../frozen/d1_sweep.md).

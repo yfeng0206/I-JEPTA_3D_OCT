@@ -61,7 +61,7 @@ That's within Zhou 2025's 2-4% fine-tune-vs-LP gap range. The insight: the meani
 **References**: Our own `lessons_learned.md` items #3 and #4 describe the historical NCCL timeout bugs; fix generalizes the pattern.
 
 #### 4. `best` checkpoint saved pre-warmup with artificially low val_loss
-**Context**: `run6_random_posfix.md` notes `jepa_patch-best.pth.tar` ended up being epoch 1. EMA target not yet diverged → trivial prediction task → val_loss low but not meaningful.
+**Context**: `random_100ep.md` notes `jepa_patch-best.pth.tar` ended up being epoch 1. EMA target not yet diverged → trivial prediction task → val_loss low but not meaningful.
 **Investigation**: Existing `past_warmup` guard only protected patience counting, not best-checkpoint writing.
 **Solution**: Gated the entire best-ckpt saving block (including the patience decrement) on `past_warmup`. Commit `135ba2a`.
 **References**: Our `lessons_learned.md` item #2 describes the warmup-epoch artificially-low loss. This fix extends that rule to checkpoint saving.
