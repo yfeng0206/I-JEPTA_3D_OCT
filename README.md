@@ -18,7 +18,11 @@ Best model: **fine-tune with MAE-style LLRD**. +0.017 Test AUC over the frozen b
 
 ![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
 
-MeanPool bar will be filled in once `quirky_branch_vkcy47sptn` lands (~1h). Sweep across pretraining epochs (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
+Pending bars:
+- **MeanPool (frozen)** — running as `quirky_branch_vkcy47sptn` (~1h out). Quantifies how much slice-aware attention earns vs pure mean-pool.
+- **Fine-tune + CrossAttnPool + LLRD** — queued to run after MeanPool. Tests whether the 277K probe beats d=1-attn under fine-tuning, just like it did under frozen eval.
+
+Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 
 ## Method
 
