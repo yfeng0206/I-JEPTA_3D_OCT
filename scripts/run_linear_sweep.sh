@@ -37,7 +37,13 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 mkdir -p "$CKPT_DIR"
 
-CHECKPOINTS=("jepa_patch-ep25.pth.tar" "jepa_patch-ep50.pth.tar" "jepa_patch-ep75.pth.tar" "jepa_patch-ep100.pth.tar")
+# CHECKPOINT_LIST overrides the default 4-checkpoint sweep. Space-separated
+# list of .pth.tar basenames, e.g. "jepa_patch-ep100.pth.tar" for an
+# ep100-only ablation.
+DEFAULT_CHECKPOINTS="jepa_patch-ep25.pth.tar jepa_patch-ep50.pth.tar jepa_patch-ep75.pth.tar jepa_patch-ep100.pth.tar"
+CHECKPOINT_LIST=${CHECKPOINT_LIST:-$DEFAULT_CHECKPOINTS}
+# shellcheck disable=SC2206
+CHECKPOINTS=($CHECKPOINT_LIST)
 
 echo "=== Linear Probe Sweep ==="
 echo "  Checkpoints: ${CHECKPOINTS[*]}"
@@ -138,7 +144,7 @@ cd "$(dirname "$0")/.."
 EXIT_CODES=()
 ALL_OK=0
 
-for i in 0 1 2 3; do
+for i in "${!CHECKPOINTS[@]}"; do
     CKPT_NAME="${CHECKPOINTS[$i]}"
     EP_TAG=$(echo "$CKPT_NAME" | sed 's/jepa_patch-//;s/.pth.tar//')
     # Output dir tag includes probe type + architecture shape so that
@@ -246,7 +252,7 @@ echo ""
 echo "========================================"
 echo "  Linear Probe Sweep Complete"
 echo "========================================"
-for i in 0 1 2 3; do
+for i in "${!CHECKPOINTS[@]}"; do
     EP_TAG=$(echo "${CHECKPOINTS[$i]}" | sed 's/jepa_patch-//;s/.pth.tar//')
     RUN_TAG="downstream_linear_${EP_TAG}_d${PROBE_DEPTH}_s${NUM_SLICES}"
     RUN_OUTPUT="/tmp/ijepa_outputs/${RUN_TAG}_${TIMESTAMP}"

@@ -91,3 +91,29 @@ class CrossAttnPool(nn.Module):
         pooled = attn @ v                                # (B, 1, head_dim)
         pooled = self.o_proj(pooled).squeeze(1)          # (B, embed_dim)
         return self.norm(pooled)
+
+
+class MeanPool(nn.Module):
+    """Unweighted mean across the slice dimension. Zero parameters.
+
+    Ablation floor for the attentive-probe family. Discards slice
+    ordering entirely — two volumes with the same set of slice features
+    in different axial orders pool to the same vector. Meant only to
+    quantify how much the position-aware probes (AttentiveProbe,
+    CrossAttnPool) are actually contributing. Not recommended for the
+    OCT-volume task itself: disease signals localize to specific axial
+    positions (glaucoma → optic cup region, AMD → macular middle,
+    etc.), so an order-blind pool throws away information.
+
+    Constructor args are kept for API parity with the other probes but
+    are not used internally.
+    """
+
+    def __init__(self, num_slices=100, embed_dim=768):
+        super(MeanPool, self).__init__()
+        self.num_slices = num_slices
+        self.embed_dim = embed_dim
+
+    def forward(self, x):
+        """x: (B, num_slices, embed_dim) -> (B, embed_dim)."""
+        return x.mean(dim=1)

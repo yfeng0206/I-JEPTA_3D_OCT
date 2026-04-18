@@ -66,9 +66,9 @@ import torch.distributed as dist
 from src.models.vision_transformer import (
     VisionTransformer, SliceEncoder, Block, VIT_EMBED_DIMS,
 )
-from src.models.attentive_pool_minimal import CrossAttnPool
+from src.models.attentive_pool_minimal import CrossAttnPool, MeanPool
 
-_PROBE_TYPES = ('attentive', 'cross_attn_pool')
+_PROBE_TYPES = ('attentive', 'cross_attn_pool', 'mean_pool')
 
 
 def _build_probe(probe_type, num_slices, embed_dim, model_cfg, device):
@@ -78,7 +78,10 @@ def _build_probe(probe_type, num_slices, embed_dim, model_cfg, device):
             "Unknown probe_type=%r. Valid values: %s"
             % (probe_type, ', '.join(_PROBE_TYPES))
         )
-    if probe_type == 'cross_attn_pool':
+    if probe_type == 'mean_pool':
+        probe = MeanPool(num_slices=num_slices, embed_dim=embed_dim).to(device)
+        desc = 'mean_pool (0 params, ablation floor)'
+    elif probe_type == 'cross_attn_pool':
         head_dim = model_cfg.get('probe_head_dim', 64)
         probe = CrossAttnPool(
             num_slices=num_slices, embed_dim=embed_dim, head_dim=head_dim,
@@ -551,10 +554,13 @@ def run_patch_downstream(config, device):
     print('  Total trainable: %s' % format(probe_params + head_params, ','))
 
     # ---- Optimizer ------------------------------------------------------------
+    # Skip empty param groups (e.g. MeanPool probe has zero parameters) so
+    # AdamW doesn't complain about a group with no tensors to optimize.
     param_groups = [
-        {'params': probe.parameters(), 'lr': train_cfg.get('lr_probe', 1e-4)},
-        {'params': head.parameters(), 'lr': train_cfg.get('lr_head', 1e-3)},
+        {'params': list(probe.parameters()), 'lr': train_cfg.get('lr_probe', 1e-4)},
+        {'params': list(head.parameters()), 'lr': train_cfg.get('lr_head', 1e-3)},
     ]
+    param_groups = [g for g in param_groups if len(g['params']) > 0]
     optimizer = torch.optim.AdamW(param_groups, weight_decay=train_cfg.get('weight_decay', 0.01))
     scheduler = cosine_schedule_with_warmup(
         optimizer, train_cfg.get('warmup_epochs', 3),
