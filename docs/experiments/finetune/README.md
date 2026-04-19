@@ -8,8 +8,11 @@ DDP on 4× T4 (16 GB each), batch_size=1/GPU, grad accumulation=4 → effective 
 
 | Run | AML job | Encoder init | Probe | Val AUC | Test AUC | Detail |
 |---|---|---|---|---|---|---|
-| LLRD γ=0.5 on ep100 | `silver_music_r9b0ccn6nc` | Random-init SSL ep100 | AttentiveProbe d=1 + Linear | **0.8751** (ep4) | **0.8878** | [llrd.md](llrd.md) |
-| LLRD γ=0.5 on ep100, CrossAttnPool | queued | Random-init SSL ep100 | CrossAttnPool + Linear (277K) | pending | pending | planned |
+| LLRD γ=0.5 on ep100, d=1 attentive | `silver_music_r9b0ccn6nc` | Random-init SSL ep100 | AttentiveProbe d=1 + Linear | **0.8751** (ep4) | **0.8878** | [llrd.md](llrd.md) |
+| LLRD γ=0.5 on ep100, CrossAttnPool | `plum_jicama_9tnw0xy5tk` | Random-init SSL ep100 | CrossAttnPool + Linear (277K) | running (ep5 peak 0.8729) | running | in-flight |
+| LLRD γ=0.5 on ep100, MeanPool | queued next | Random-init SSL ep100 | MeanPool + Linear (0 probe params) | planned | planned | sequential after plum_jicama |
+
+The last row completes a 2×3 matrix (frozen × fine-tune, 3 probes). Tests whether fine-tune uplift is probe-invariant or probe-dependent.
 
 Beats the frozen d=1 baseline (Test 0.8706) by **+0.017 Test AUC**, within Zhou 2025's 2-4% fine-tune-vs-LP gap for retinal tasks.
 

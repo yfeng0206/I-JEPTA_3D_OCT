@@ -25,8 +25,9 @@ Full analysis: [`docs/experiments/frozen/ablation_analysis.md`](docs/experiments
 
 ![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
 
-Queued:
-- **Fine-tune + CrossAttnPool + LLRD** — submitted after MeanPool finished. Tests whether the 277K probe beats d=1-attn under fine-tuning as it did under frozen eval.
+Queued (strictly sequential on `garyfeng4`):
+- **Fine-tune + CrossAttnPool + LLRD** — running (`plum_jicama_9tnw0xy5tk`, peak so far Val 0.8729 at ep5, patience will trigger by ~ep20).
+- **Fine-tune + MeanPool + LLRD** — queued next. Completes the 2×3 matrix (3 probes × frozen/fine-tune) to test whether fine-tune's uplift is probe-invariant.
 
 Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 
