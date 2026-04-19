@@ -241,22 +241,31 @@ def build_finetune_param_groups(encoder, probe, head, train_cfg):
         groups.append({
             'params': list(encoder.patch_embed.parameters()) + [encoder.pos_embed],
             'lr': embed_lr,
+            'name': 'embed',
         })
         for i, block in enumerate(encoder.blocks):
             lr_i = base_lr * (layer_decay ** (num_layers - (i + 1)))
-            groups.append({'params': list(block.parameters()), 'lr': lr_i})
-        groups.append({'params': list(encoder.norm.parameters()), 'lr': base_lr})
-        groups.append({'params': list(probe.parameters()), 'lr': base_lr})
-        groups.append({'params': list(head.parameters()), 'lr': lr_head})
+            groups.append({'params': list(block.parameters()), 'lr': lr_i,
+                           'name': f'block_{i}'})
+        groups.append({'params': list(encoder.norm.parameters()), 'lr': base_lr,
+                       'name': 'encoder_norm'})
+        groups.append({'params': list(probe.parameters()), 'lr': base_lr,
+                       'name': 'probe'})
+        groups.append({'params': list(head.parameters()), 'lr': lr_head,
+                       'name': 'head'})
+        # Drop empty groups so AdamW doesn't reject them (e.g. MeanPool probe
+        # has 0 trainable parameters).
+        groups = [g for g in groups if len(g['params']) > 0]
         return groups, 'llrd'
 
     # Flat fallback
     lr_encoder = train_cfg.get('lr_encoder', 5e-6)
     groups = [
-        {'params': list(encoder.parameters()), 'lr': lr_encoder},
-        {'params': list(probe.parameters()), 'lr': lr_probe},
-        {'params': list(head.parameters()), 'lr': lr_head},
+        {'params': list(encoder.parameters()), 'lr': lr_encoder, 'name': 'encoder'},
+        {'params': list(probe.parameters()), 'lr': lr_probe, 'name': 'probe'},
+        {'params': list(head.parameters()), 'lr': lr_head, 'name': 'head'},
     ]
+    groups = [g for g in groups if len(g['params']) > 0]
     return groups, 'flat'
 
 
@@ -1217,11 +1226,14 @@ def run_patch_finetune(config, device, rank=0, world_size=1):
         else:
             train_loss = total_loss / max(n_samples, 1)
         val_loss, val_auc = evaluate_finetune(model, val_loader, criterion, device)
-        # group[0] = deepest encoder layer (embed in LLRD, whole encoder in flat)
-        # group[-2] = probe, group[-1] = head — by contract from build_finetune_param_groups
-        lr_enc = optimizer.param_groups[0]['lr']
-        lr_probe = optimizer.param_groups[-2]['lr']
-        lr_head = optimizer.param_groups[-1]['lr']
+        # Read LRs by named tag rather than index so empty groups (e.g. MeanPool
+        # probe with 0 trainable params, filtered out) don't shift indices
+        # and cause the wrong LR to be reported.
+        _grp_lr = {g.get('name', f'g{i}'): g['lr']
+                   for i, g in enumerate(optimizer.param_groups)}
+        lr_enc = _grp_lr.get('embed', _grp_lr.get('encoder', 0.0))
+        lr_probe = _grp_lr.get('probe', 0.0)
+        lr_head = _grp_lr.get('head', 0.0)
 
         should_stop = False
         # Track best_model across all epochs (warmup included). Val AUC on

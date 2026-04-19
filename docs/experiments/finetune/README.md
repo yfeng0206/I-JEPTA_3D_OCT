@@ -6,17 +6,28 @@ DDP on 4× T4 (16 GB each), batch_size=1/GPU, grad accumulation=4 → effective 
 
 ## Current run
 
-| Run | AML job | Encoder init | Probe | Val AUC | Test AUC | Detail |
+| Run | AML job | Encoder init | Probe | Val AUC (peak ep) | Test AUC | Detail |
 |---|---|---|---|---|---|---|
 | LLRD γ=0.5 on ep100, d=1 attentive | `silver_music_r9b0ccn6nc` | Random-init SSL ep100 | AttentiveProbe d=1 + Linear | 0.8751 (ep4) | **0.8878** | [llrd.md](llrd.md) |
 | LLRD γ=0.5 on ep100, CrossAttnPool | `plum_jicama_9tnw0xy5tk` | Random-init SSL ep100 | CrossAttnPool + Linear (277K) | 0.8729 (ep5) | **0.8872** | [llrd.md](llrd.md) |
-| LLRD γ=0.5 on ep100, MeanPool | `nice_corn_q5180xmk8h` (running) | Random-init SSL ep100 | MeanPool + Linear (0 probe params) | pending | pending | in-flight |
+| LLRD γ=0.5 on ep100, MeanPool | `nice_corn_q5180xmk8h` | Random-init SSL ep100 | MeanPool + Linear (0 probe params) | 0.8717 (ep5) | **0.8868** | [llrd.md](llrd.md) |
 
-**Headline**: fine-tune + d=1 (0.8878) and fine-tune + CrossAttnPool (0.8872) are **statistically tied** (paired bootstrap p=0.60 on 3000-vol test). CrossAttnPool achieves the same result at 26× fewer probe params. Pareto-optimal.
+**Headline**: all three fine-tune runs are **statistically tied** on Test AUC (paired bootstrap, pairwise two-sided p > 0.6). The probe architecture — from 7.17M params (AttentiveProbe d=1) down to 0 probe params (MeanPool) — makes no measurable difference under fine-tuning on this task.
 
-Both significantly exceed the best frozen probe (+0.008 over frozen CrossAttnPool 0.8791, p=0.005).
+| Pairwise | Δ Test AUC | 95% CI | two-sided p | Verdict |
+|---|---|---|---|---|
+| FT d=1 − FT MeanPool | +0.0009 | [−0.004, +0.005] | 0.69 | tied |
+| FT CrossAttnPool − FT MeanPool | +0.0004 | [−0.001, +0.002] | 0.63 | tied |
+| FT d=1 − FT CrossAttnPool | +0.0005 | [−0.004, +0.005] | 0.81 | tied |
 
-Beats the frozen d=1 baseline (Test 0.8706) by **+0.017 Test AUC**, within Zhou 2025's 2-4% fine-tune-vs-LP gap for retinal tasks.
+All three fine-tune results significantly exceed the best frozen probe. Even FT + MeanPool (0.8868) beats frozen CrossAttnPool (0.8791) by +0.008 (p=0.013, *).
+
+Fine-tune uplift scales inversely with frozen-probe strength:
+- **d=1**: +0.017 uplift (p<0.001) — biggest, because frozen d=1 was the worst (over-parameterized)
+- **MeanPool**: +0.012 uplift (p<0.001) — encoder adaptation alone, no probe contribution
+- **CrossAttnPool**: +0.008 uplift (p=0.009) — smallest, frozen CrossAttnPool was already best
+
+Interpretation: whatever slice-weighting the attention probes learn in the frozen regime, the encoder's top-block + encoder.norm adaptation absorbs under fine-tune. The three probes converge to a common ceiling of ~0.887 Test AUC on FairVision glaucoma.
 
 ## Key lesson
 

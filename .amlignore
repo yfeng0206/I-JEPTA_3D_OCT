@@ -10,3 +10,7 @@ data/
 outputs/
 checkpoints/
 configs/aml_*.yml
+.vs/
+_tmp_*/
+.audit/
+results/

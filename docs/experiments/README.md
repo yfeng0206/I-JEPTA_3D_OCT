@@ -10,14 +10,16 @@ All results use FairVision glaucoma held-out Test split (3000 volumes). Encoder:
 |---|---|---|---|---|
 | **Finetune** | AttentiveProbe d=1 + Linear, LLRD γ=0.5 | 7.17M + 86M encoder | **0.8878** | [finetune/llrd.md](finetune/llrd.md) |
 | **Finetune** | CrossAttnPool + Linear, LLRD γ=0.5 | 277K + 86M encoder | **0.8872** | [finetune/llrd.md](finetune/llrd.md) |
-| Finetune | MeanPool + Linear, LLRD γ=0.5 | 2.3K + 86M encoder | running | [finetune/llrd.md](finetune/llrd.md) |
+| **Finetune** | MeanPool + Linear, LLRD γ=0.5 | 2.3K + 86M encoder | **0.8868** | [finetune/llrd.md](finetune/llrd.md) |
 | Frozen | CrossAttnPool + Linear | 277K | 0.8791 | [frozen/cross_attn_pool.md](frozen/cross_attn_pool.md) |
 | Frozen | MeanPool + Linear | 2.3K | 0.8746 | [frozen/mean_pool.md](frozen/mean_pool.md) |
 | Frozen | AttentiveProbe d=1 + Linear | 7.17M | 0.8706 | [frozen/d1_sweep.md](frozen/d1_sweep.md) |
 
 Best overall: **fine-tune with MAE-style LLRD at Test AUC 0.8878**. +0.017 over the frozen d=1 baseline.
 
-Ablation finding: **CrossAttnPool matches d=1 at 26× fewer params** — the self-attn + FFN in the I-JEPA-style attentive probe is redundant for this task.
+Primary ablation finding: **under fine-tune, the probe architecture is irrelevant.** All three probes land within 0.001 AUC of each other (pairwise p > 0.6). MeanPool (0 probe params) matches AttentiveProbe d=1 (7.17M probe params) when the encoder is unfrozen.
+
+Secondary finding (frozen regime only): **CrossAttnPool beats d=1 at 26× fewer params** (+0.009 AUC, p=0.002) — the self-attn + FFN in the I-JEPA-style attentive probe is over-parameterized for frozen-probe protocols.
 
 ## Structure
 

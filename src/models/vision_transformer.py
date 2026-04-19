@@ -59,15 +59,6 @@ def get_2d_sincos_pos_embed(embed_dim, grid_size):
     return pos_embed  # (H*W, D)
 
 
-def _get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
-    assert embed_dim % 2 == 0
-    emb_h = get_1d_sincos_pos_embed(embed_dim // 2, grid[1, 0, :, 0])  # (H, D/2)
-    emb_w = get_1d_sincos_pos_embed(embed_dim // 2, grid[0, 0, 0, :])  # (W, D/2)
-    return np.concatenate([emb_h, emb_w], axis=1)  # (H*W — broadcast), but we need care
-
-    # The above is a simplification; the standard approach tiles properly:
-
-
 def get_1d_sincos_pos_embed(embed_dim, grid_size_or_positions):
     """Generate 1-D sinusoidal positional embeddings.
 
@@ -98,24 +89,18 @@ def get_1d_sincos_pos_embed(embed_dim, grid_size_or_positions):
     return emb
 
 
-# Override the helper to produce correct 2-D embeddings
-def _get_2d_sincos_pos_embed_from_grid_proper(embed_dim, grid):
-    """Proper 2-D sincos from a (2, 1, H, W) grid."""
+def _get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
+    """2-D sincos pos_embed from a (2, 1, H, W) grid produced by np.meshgrid(w, h)."""
     assert embed_dim % 2 == 0
     # meshgrid(w, h) with default 'xy' indexing:
-    #   grid[0]: shape (1, H, W) — width coordinates  (constant along rows)
-    #   grid[1]: shape (1, H, W) — height coordinates (constant along cols)
+    #   grid[0]: (1, H, W) width coords  (constant along rows)
+    #   grid[1]: (1, H, W) height coords (constant along cols)
     emb_h = get_1d_sincos_pos_embed(embed_dim // 2, grid[1, 0, :, 0])  # (H, D/2)
     emb_w = get_1d_sincos_pos_embed(embed_dim // 2, grid[0, 0, 0, :])  # (W, D/2)
-    # Tile: each (h, w) position gets [emb_h[h], emb_w[w]]
     H, W = grid.shape[2], grid.shape[3]
     emb_h_tiled = np.repeat(emb_h, W, axis=0)  # (H*W, D/2)
     emb_w_tiled = np.tile(emb_w, (H, 1))       # (H*W, D/2)
     return np.concatenate([emb_h_tiled, emb_w_tiled], axis=1)  # (H*W, D)
-
-
-# Replace the naive helper with the proper one
-_get_2d_sincos_pos_embed_from_grid = _get_2d_sincos_pos_embed_from_grid_proper  # noqa: F811
 
 
 # ===================================================================

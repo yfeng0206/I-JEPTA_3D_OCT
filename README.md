@@ -9,28 +9,23 @@ All on FairVision glaucoma held-out test split (3000 volumes). Encoder: random-i
 | Method | Probe | Params (trainable) | **Test AUC** |
 |---|---|---|---|
 | **Fine-tune + LLRD γ=0.5** | AttentiveProbe d=1 + Linear | 7.17M + 86M encoder | **0.8878** |
-| **Fine-tune + LLRD γ=0.5** | CrossAttnPool + Linear (277K, 26× smaller probe) | 277K + 86M encoder | **0.8872** |
-| Fine-tune + LLRD γ=0.5 | MeanPool + Linear | 2.3K + 86M encoder | running |
+| **Fine-tune + LLRD γ=0.5** | CrossAttnPool + Linear | 277K + 86M encoder | **0.8872** |
+| **Fine-tune + LLRD γ=0.5** | **MeanPool + Linear (0 probe params)** | **2.3K + 86M encoder** | **0.8868** |
 | Frozen probe | CrossAttnPool + Linear | 277K | 0.8791 |
 | Frozen probe | MeanPool + Linear (no attention, no pos) | 2.3K | 0.8746 |
 | Frozen probe | AttentiveProbe d=1 + Linear | 7.17M | 0.8706 |
 
-Best model: **fine-tune with MAE-style LLRD**. +0.009 Test AUC over best frozen probe (CrossAttnPool) — within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
+**Headline finding — fine-tune collapses the probe ablation.** All three fine-tune runs land within 0.001 AUC of each other (p > 0.6 all pairwise). Under fine-tuning, the probe architecture is irrelevant: MeanPool (0 probe params, just a 2.3K linear head) matches the 7.17M AttentiveProbe and the 277K CrossAttnPool. Whatever slice-weighting the attention probes learn in the frozen regime, the encoder's top-block + encoder.norm adaptation absorbs under fine-tune.
 
-**Ablation findings** (paired bootstrap, 95% CI, B=2000):
-- **Frozen: CrossAttnPool (277K) beats d=1 AttentiveProbe (7.17M)** (+0.009, p=0.002). Standard attentive probe is over-parameterized.
-- **Frozen: mean-pool is within noise of d=1** (+0.004, p=0.08, ns). d=1's 3000× extra capacity buys nothing.
-- **Frozen: CrossAttnPool > MeanPool** (+0.005, p=0.04). Attention + position adds small but real signal.
-- **Fine-tune: CrossAttnPool ties d=1** (Δ=−0.0005, p=0.60, ns). At 26× fewer probe params, CrossAttnPool matches the standard attentive probe under fine-tuning. **Pareto-optimal.**
-- **Fine-tune adds significant uplift**: +0.008 over frozen CrossAttnPool (p=0.005), +0.017 over frozen d=1 (p<0.001).
+**Ablation findings** (paired bootstrap, B=2000, 95% CI):
+- **Frozen: probe architecture matters.** CrossAttnPool (277K) beats d=1 (7.17M) by +0.009 (p=0.002). CrossAttnPool beats MeanPool by +0.005 (p=0.04). d=1 fails to improve over MeanPool (p=0.08, ns) despite 3000× more params — d=1 is over-parameterized.
+- **Fine-tune: probe architecture is noise.** d=1 vs MeanPool: Δ=+0.0009 (p=0.69, ns). CrossAttnPool vs MeanPool: Δ=+0.0004 (p=0.63, ns). d=1 vs CrossAttnPool: Δ=+0.0005 (p=0.81, ns).
+- **Fine-tune uplift is real on every probe**: +0.0172 on d=1 (p<0.001), +0.0122 on MeanPool (p<0.001), +0.0080 on CrossAttnPool (p=0.009). Uplift scales inversely with probe capacity — d=1 had the most room to recover, CrossAttnPool the least.
+- **Practical takeaway**: for fine-tune protocols, MeanPool is Pareto-optimal (zero probe params, matches best). For frozen-probe protocols, CrossAttnPool (277K) is Pareto-optimal.
 
 Full analysis: [`docs/experiments/frozen/ablation_analysis.md`](docs/experiments/frozen/ablation_analysis.md).
 
 ![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
-
-Queued (strictly sequential on `garyfeng4`):
-- **Fine-tune + CrossAttnPool + LLRD** — running (`plum_jicama_9tnw0xy5tk`, peak so far Val 0.8729 at ep5, patience will trigger by ~ep20).
-- **Fine-tune + MeanPool + LLRD** — queued next. Completes the 2×3 matrix (3 probes × frozen/fine-tune) to test whether fine-tune's uplift is probe-invariant.
 
 Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 

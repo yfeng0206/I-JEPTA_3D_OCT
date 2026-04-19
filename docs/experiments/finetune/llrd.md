@@ -1,32 +1,48 @@
-# Fine-tune: LLRD γ=0.5 on ep100 — d=1 AttentiveProbe and CrossAttnPool
+# Fine-tune: LLRD γ=0.5 on ep100 — three probes × one encoder
 
-Two parallel fine-tune runs with identical LLRD + optimizer settings, differing only in the slice-aggregation probe. Both initialize from the random-init I-JEPA ViT-B/16 ep100 checkpoint, unfreeze the encoder, and use MAE-style Layer-wise LR Decay (γ=0.5).
+Three parallel fine-tune runs with identical LLRD + optimizer settings, differing only in the slice-aggregation probe. All three initialize from the random-init I-JEPA ViT-B/16 ep100 checkpoint, unfreeze the encoder, and use MAE-style Layer-wise LR Decay (γ=0.5).
 
 ## Results — headline
 
-| Run | AML job | Probe | Params | Best epoch | Best Val AUC | Test AUC |
+| Run | AML job | Probe | Probe params | Best epoch | Val AUC | Test AUC |
 |---|---|---|---|---|---|---|
-| d=1 attentive fine-tune | `silver_music_r9b0ccn6nc` | AttentiveProbe d=1 + Linear | 7.17M + 86M enc | 4 | 0.8751 | **0.8878** |
-| CrossAttnPool fine-tune | `plum_jicama_9tnw0xy5tk` | CrossAttnPool + Linear | 277K + 86M enc | 5 | 0.8729 | **0.8872** |
+| d=1 attentive fine-tune | `silver_music_r9b0ccn6nc` | AttentiveProbe d=1 + Linear | 7.17M | 4 | 0.8751 | **0.8878** |
+| CrossAttnPool fine-tune | `plum_jicama_9tnw0xy5tk` | CrossAttnPool + Linear | 277K | 5 | 0.8729 | **0.8872** |
+| MeanPool fine-tune | `nice_corn_q5180xmk8h` | MeanPool + Linear | **0** (just 2.3K head) | 5 | 0.8717 | **0.8868** |
 
-The two are statistically indistinguishable on Test AUC (paired bootstrap Δ=−0.0005, 95% CI [−0.005, +0.004], p=0.60). **CrossAttnPool matches d=1 at 26× fewer probe params under fine-tuning** — the Pareto-optimal combination.
+All three runs land within 0.001 Test AUC of each other. Paired bootstrap (B=2000) confirms they are statistically indistinguishable:
 
-Compared to their frozen-probe versions:
-- Fine-tune CrossAttnPool vs frozen CrossAttnPool: +0.008 Test AUC (p=0.005) **
-- Fine-tune d=1 vs frozen d=1: +0.017 Test AUC (p<0.001) ***
+| Pairwise | Δ Test AUC | 95% CI | two-sided p | Verdict |
+|---|---|---|---|---|
+| d=1 − MeanPool | +0.0009 | [−0.004, +0.005] | 0.69 | tied |
+| CrossAttnPool − MeanPool | +0.0004 | [−0.001, +0.002] | 0.63 | tied |
+| d=1 − CrossAttnPool | +0.0005 | [−0.004, +0.005] | 0.81 | tied |
 
-Fine-tuning uplift is real, within Zhou 2025's 2-4% fine-tune-vs-LP gap range for retinal tasks.
+**Under fine-tune, probe architecture is irrelevant on this task.** The encoder's top-block + encoder.norm adaptation absorbs whatever slice-weighting the attention probes provide in the frozen regime.
 
-## Sensitivity / Specificity
+## Fine-tune uplift vs frozen — scales inversely with probe capacity
 
-| Run | Sensitivity | Specificity | At threshold 0.5 |
-|---|---|---|---|
-| d=1 attentive fine-tune | 0.741 | 0.877 | Conservative (over-calls negative) |
-| CrossAttnPool fine-tune | 0.822 | 0.779 | More balanced |
+| Probe | Frozen Test AUC | Fine-tune Test AUC | Uplift | p (two-sided) |
+|---|---|---|---|---|
+| d=1 AttentiveProbe (7.17M) | 0.8706 | 0.8878 | **+0.0172** | <0.001 *** |
+| MeanPool (0 probe params) | 0.8746 | 0.8868 | **+0.0122** | <0.001 *** |
+| CrossAttnPool (277K) | 0.8791 | 0.8872 | **+0.0080** | 0.009 ** |
 
-Different operating points despite tied AUC — each architecture settles at a different threshold-0.5 sweet spot.
+The probe that had the most to recover (d=1, over-parameterized in frozen) gains the most from fine-tuning. The probe that was already near ceiling frozen (CrossAttnPool) gains the least. MeanPool's +0.012 uplift is pure encoder-side adaptation — the probe has zero trainable parameters.
 
-## LLRD setup (shared by both runs)
+Even fine-tune + MeanPool (0.8868) beats the best frozen probe (CrossAttnPool, 0.8791) by +0.008 Test AUC (p=0.013, *). Fine-tune without any attentive probing still wins.
+
+## Sensitivity / Specificity (threshold 0.5)
+
+| Run | Sensitivity | Specificity |
+|---|---|---|
+| d=1 attentive fine-tune | 0.741 | 0.877 |
+| CrossAttnPool fine-tune | 0.822 | 0.779 |
+| MeanPool fine-tune | 0.827 | 0.769 |
+
+Different operating points despite tied AUC. CrossAttnPool and MeanPool land in a similar balanced region; d=1 is conservative at threshold 0.5. All three AUCs are near-identical, so a downstream threshold sweep would reach the same working point from any starting probe.
+
+## LLRD setup (shared by all runs)
 
 For ViT-B with 12 transformer blocks, γ=0.5, base LR 2e-4:
 
@@ -41,24 +57,33 @@ encoder.norm                2.00e-04            base LR
 probe + head                2.00e-04            base LR
 ```
 
-Implemented in `build_finetune_param_groups` in `src/eval_downstream.py`. Groups tagged by name (`embed`, `block_0..11`, `encoder_norm`, `probe`, `head`) so the optimizer can filter empty groups (e.g. when probe is MeanPool with 0 params).
+Implemented in `build_finetune_param_groups` in `src/eval_downstream.py`. Groups tagged by name (`embed`, `block_0..11`, `encoder_norm`, `probe`, `head`) so the optimizer can filter empty groups (MeanPool has 0 probe params → its group is dropped from the optimizer entirely).
 
-## Training dynamics (both runs)
+## Why the peaks are during warmup
 
-Both peaked during warmup (silver_music ep4, plum_jicama ep5). Post-warmup the encoder starts actually moving, and val AUC declines:
+All three runs peaked at ep4-5 during the 10-epoch warmup. At ep5, the top encoder block's effective LR is only ~5e-5 (half of its post-warmup value) — the encoder has barely moved. What IS training at full speed during warmup is:
+- **encoder.norm** at base LR 2e-4 (LayerNorm scale/bias on the final representation)
+- **head** at base LR 2e-4 (Linear(768→1) + LayerNorm)
+- For d=1 and CrossAttnPool: **probe** at base LR 2e-4
 
-| Epoch | silver_music (d=1) Val | plum_jicama (CrossAttnPool) Val |
-|---|---|---|
-| 1 | 0.8463 | 0.8416 |
-| 2 | 0.8655 | 0.8623 |
-| 3 | 0.8677 | 0.8667 |
-| 4 | **0.8751 (peak)** | 0.8709 |
-| 5 | 0.8693 | **0.8729 (peak)** |
-| 10 (warmup ends) | 0.8615 | 0.8630 |
-| 15 | 0.8427 | 0.8313 |
-| 19 / 20 | 0.8410 (early stop) | 0.8386 (early stop) |
+Post-warmup, the top encoder block reaches LR ~1e-4, starts moving, and the train loss keeps falling (overfit) while val loss climbs. Patience=15 triggers early stopping around ep19-20.
 
-Both overfit post-warmup despite γ=0.5 keeping bottom encoder layers essentially frozen. The overfit is driven by the probe training alongside the slightly-adapting top-encoder layers, not by wholesale encoder destruction.
+The fact that all three probe architectures converge to the same Test AUC at the same early epoch suggests **the lift is dominated by encoder.norm + head adaptation** — which are identical across the three runs — rather than by probe-specific learning.
+
+## Training dynamics
+
+| Epoch | d=1 Val | CrossAttnPool Val | MeanPool Val |
+|---|---|---|---|
+| 1 | 0.8463 | 0.8416 | 0.8439 |
+| 2 | 0.8655 | 0.8623 | 0.8636 |
+| 3 | 0.8677 | 0.8667 | 0.8664 |
+| 4 | **0.8751** | 0.8709 | 0.8715 |
+| 5 | 0.8693 | **0.8729** | **0.8717** |
+| 10 (warmup ends) | 0.8615 | 0.8630 | 0.8639 |
+| 15 | 0.8427 | 0.8313 | 0.8321 |
+| 19/20 (early stop) | 0.8410 | 0.8386 | 0.8455 |
+
+All three peak at ep4-5, plateau through ep10, then decline as the encoder over-adapts. The gate fix (commit `9f96c6b`) is what preserves the warmup peak — without it, best_model.pt would snapshot post-warmup at ~1 pp lower AUC.
 
 ## Shared config
 
@@ -77,23 +102,19 @@ Both overfit post-warmup despite γ=0.5 keeping bottom encoder layers essentiall
 | AMP | fp16 autocast |
 | GPUs | 4× T4 (DDP) |
 
-## Interpretation — which probe wins
+## Interpretation — the two-regime story
 
-Under **frozen eval**, CrossAttnPool decisively beat d=1 (p=0.002, +0.009 Test AUC).
+**Frozen eval**: probe architecture matters. CrossAttnPool beats d=1 (p=0.002, +0.009), beats MeanPool (p=0.04, +0.005). The probe has to do all the work of slice-weighting on its own; d=1 at 7M params overfits the 6K-volume dataset while CrossAttnPool at 277K finds the sweet spot.
 
-Under **fine-tune eval**, they tie (p=0.60).
+**Fine-tune eval**: probe architecture is noise. d=1 / CrossAttnPool / MeanPool all tie at ~0.887 AUC. Encoder top-block + LayerNorm adaptation provides enough additional capacity that the probe doesn't need to do anything sophisticated.
 
-Why the regime-dependent result:
-- With frozen encoder, the probe is the only path the optimizer can use to fit the data. A 7M d=1 probe burns more capacity on overfitting than learning; the 277K CrossAttnPool finds the sweet spot.
-- With fine-tune, the encoder itself becomes the adaptive capacity. The probe plays a smaller role — whether it has 7M or 277K params matters less because the encoder's top blocks can compensate.
-- In both regimes, CrossAttnPool is at worst tied with d=1, never worse — making it Pareto-optimal across evaluation protocols.
-
-Paper claim: **"A minimal cross-attention pool (~277K params) is Pareto-optimal across both frozen and fine-tune regimes on multi-slice OCT classification. The standard I-JEPA-style attentive probe (7M+ params) provides no AUC gain over the minimal variant in either regime, replicating the 'Attention, Please!' (ICLR 2026) finding on medical 3D-volume data."**
+Paper claim:
+> *"Probe architecture matters for frozen-probe evaluation only. Under fine-tune, a trivial mean-pool with zero probe parameters matches a 7M AttentiveProbe on multi-slice OCT classification. The common practice of bolting attentive probes onto fine-tuned encoders is unjustified on this task — encoder adaptation absorbs the probe's role."*
 
 ## Note: the gate fix was essential
 
-Both runs peaked during warmup (ep4-5). Without the gate fix (commit `9f96c6b` — remove past_warmup gate from best-model save), the saved checkpoint would be from epoch 11+ (first post-warmup), which is already past the peak. We'd have reported 2-3% lower Test AUC for each run.
+All three runs peaked during warmup (ep4-5). Without the gate fix (commit `9f96c6b` — remove past_warmup gate from best-model save), the saved checkpoint would be from epoch 11+ (first post-warmup), already past the peak. We'd have reported ~1 pp lower Test AUC for each run.
 
-## Planned next
+## Completeness
 
-`nice_corn_q5180xmk8h` — LLRD fine-tune with MeanPool probe (0 probe params). Completes the 2×3 matrix (3 probes × frozen/fine-tune). Tests whether fine-tune uplift holds when probe contributes zero trainable params.
+This run (`nice_corn_q5180xmk8h`, fine-tune + MeanPool) closes the 2×3 matrix: 3 probes × {frozen, fine-tune}. No more cells pending.
