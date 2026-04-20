@@ -4,23 +4,58 @@ Architecture-agnostic occlusion attribution for the three fine-tune runs that ti
 
 AML job: `plucky_soccer_0ht73k9nr9`. Pipeline: [`scripts/interpretability.py`](../../scripts/interpretability.py).
 
-## Method
+## Attribution chain — from pixels back to the logit
 
-For each of 3000 Test volumes and each fine-tune model (MeanPool, CrossAttnPool, AttentiveProbe d=1):
+Forward flow during inference:
 
 ```
-1. Cache per-slice features F ∈ (64, 768) via the fine-tuned encoder.
-2. Baseline logit = head(probe(F)).
-3. For each slice s in 0..63:
-     F_masked = F with F[s] := 0
-     logit_s  = head(probe(F_masked))
-     contribution[s] = baseline - logit_s       # how much slice s pushed the logit
-4. Aggregate contribution(s) across diseased / healthy volumes.
+OCT volume → (64 slices, 3 channels, 256×256 pixels)
+     │
+     ▼  Fine-tuned ViT-B/16 encoder (per slice, once each)
+(64, 256 patches, 768 dim)           ← per-patch tokens
+     │
+     ▼  mean over 256 patches, per slice
+(64, 768)  "F"                        ← per-slice feature tensor
+     │
+     ▼  probe  (MeanPool / CrossAttnPool / AttentiveProbe d=1)
+(768,)  pooled volume vector
+     │
+     ▼  LinearHead = LayerNorm → Linear(768, 1)
+logit (scalar) → sigmoid → P(glaucoma)
 ```
 
-Batched as `(S+1, S, D)` per volume — baseline + all 64 masked variants in a single forward — so baseline and masked values share the same autocast/fp16 path. Architecture-agnostic: correct for MeanPool, CrossAttnPool, and the d=1 AttentiveProbe alike (which **isn't true** for gradient attribution through a nonlinear probe).
+**Inverse attribution** (what we actually compute):
 
-Patch-level attribution: same protocol at the patch granularity for selected volumes. Re-forward top-3 slices through the encoder, preserve per-patch tokens, occlude each of 256 patches, recompute slice-token mean, and measure delta-logit.
+At each granularity, we zero one input and record how much the logit changes. This is architecture-agnostic — works identically for all three probes — and it's causal (a real intervention on the model), not a gradient approximation that breaks under non-linear probes.
+
+```
+Slice-level (phase 2):
+  baseline_logit = logit(F)                 # use the cached features
+  for s in 0..63:
+      F'[s]   := 0                           # zero the s-th slice's features
+      logit_s = logit(F')
+      slice_contribution[s] = baseline_logit - logit_s
+
+  → slice_contrib_{model}.npz  shape (3000, 64)
+
+Patch-level (phase 3, for 20 selected volumes × top-3 slices):
+  For each selected (volume, slice_s):
+      Re-forward slice_s through the encoder WITHOUT patch mean-pool.
+      → patch_tokens ∈ (256, 768)
+      baseline_slice_token = mean(patch_tokens)
+      for p in 0..255:
+          alt_slice_token = (sum(patch_tokens) - patch_tokens[p]) / 255
+          F'[s] := alt_slice_token           # substitute altered slice into cached (64, 768)
+          logit_p = logit(F')
+          patch_contribution[p] = baseline_logit - logit_p
+
+  → reshape (256,) to (16, 16) → upsample to (256, 256) → overlay on the B-scan
+  → heatmaps_{model}/vol{N}_slice{s}.png
+```
+
+Batched as `(S+1, S, D)` and `(P, S, D)` respectively, so baseline and masked values share the same autocast/fp16 path (numerically self-consistent).
+
+Why we dropped the gradient-based approach Codex flagged ([review discussion](../experiments/README.md)): gradient × input is valid only for MeanPool + LinearHead (which is linear in the per-slice features up to LayerNorm). For CrossAttnPool and d=1, there's a non-linear probe between X and the pooled vector — gradient attribution gives misleading numbers. Occlusion is architecture-agnostic by construction.
 
 ## Headline finding
 
@@ -60,11 +95,32 @@ FairVision volumes are Zeiss Cirrus HD-OCT 200×200×200 optic disc cubes. B-sca
 
 Superior and inferior disc rim thinning are **the** classic glaucoma findings (Garway-Heath et al., Ophthalmology 2000; Hood et al., Prog Retin Eye Res 2007). The model — all three architectures — discovered this pattern without any anatomical priors.
 
-Example patch heatmap on slice 43 of a correctly classified glaucoma volume (label=1, pred=0.99):
+Representative overlays, two per model (one TP + one TN), selected by strongest per-slice contribution among the 60 heatmaps per model:
 
-![B-scan through optic disc with patch heatmap](../../results/summary/heatmap_examples/vol0312_slice43.png)
+![Heatmap grid across 3 FT probes](../../results/summary/heatmap_grid.png)
 
-The left panel shows a B-scan cutting through the optic nerve head — the characteristic cup excavation (central depression in the retinal surface with underlying hypo-reflective tissue) is visible. The right panel shows the per-patch Δlogit overlay; note that the patch-level signal is diffuse across the B-scan (the whole slice carries information), while the *slice-level* signal concentrates the predictive weight on this specific B-scan.
+How to read a single row:
+- **Left panel**: original 256×256 B-scan of one OCT slice.
+- **Right panel**: (16, 16) per-patch Δlogit overlay, upsampled to 256×256 and blended onto the B-scan. Red = patch *increases* the logit (pushes toward glaucoma); blue = patch *decreases* it (pushes toward healthy). Color intensity is per-image — vmax = max |contribution| in that specific heatmap.
+- **Title** reports the slice-level contribution and the volume's ground-truth label + predicted probability.
+
+What the rows show:
+- **Row 1 — MeanPool glaucoma, +0.109**. Clear retinal thinning on the right side of the B-scan. Patch attribution concentrates along the retinal layer band itself.
+- **Row 2 — MeanPool healthy, −0.075**. Normal retinal architecture; attribution falls outside the retinal band.
+- **Row 3 — CrossAttnPool glaucoma, +0.170**. Strong slice-level signal but diffuse per-patch attribution because CrossAttnPool's single attention head applies one softmax weight across all patches in this slice (see "why CrossAttnPool's heatmaps are flatter" below).
+- **Row 4 — CrossAttnPool healthy, −0.055**. Diffuse red/blue mosaic; individual patches vote in both directions but sum to a mild healthy-pushing signal.
+- **Row 5 — d=1 glaucoma, +0.188**. **The clearest optic disc B-scan in the grid**. The cup excavation (central depression in the retinal surface with darker underlying tissue) is visible on the left. Patch attribution traces the retinal band.
+- **Row 6 — d=1 healthy, −0.432**. Very strong suppressor; mixed red/blue patches along the retinal band indicate the model is reading retinal layer thickness.
+
+### Why CrossAttnPool's heatmaps look flatter than MeanPool's
+
+The per-patch contribution formula is the same across models: zero one patch, recompute the slice-token mean, re-run probe+head, take Δlogit. What differs is how the *slice token* (after patch mean-pool) gets consumed by the probe:
+
+- **MeanPool probe** combines all 64 slice tokens with equal 1/64 weight. Changing one patch in slice *s* directly perturbs slice *s*'s token, which then contributes 1/64 of the pooled vector. Per-patch attribution inherits whatever the head makes of that 1/64 perturbation — localized.
+- **CrossAttnPool probe** applies a softmax attention over the 64 slice tokens. If slice *s* gets attention weight *a(s)*, a per-patch perturbation in slice *s* is scaled by *a(s)* before reaching the head. When *a(s)* is small (other slices dominate), patch-level attribution is washed out. When *a(s)* is large, it amplifies.
+- **d=1 AttentiveProbe** has self-attention across slices + an FFN; a per-patch perturbation propagates through multiple non-linear transformations, producing high-contrast localized attribution.
+
+This is why d=1's heatmap amplitudes are largest (+0.188 / −0.432 in the grid) despite all three models producing tied Test AUC. **The probe architecture affects the local interpretability of attribution even when it doesn't affect aggregate accuracy.**
 
 ## Why MeanPool works: the encoder encodes position as content
 
