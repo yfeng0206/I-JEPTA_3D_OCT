@@ -33,9 +33,11 @@ docs/experiments/
     d1_sweep.md          AttentiveProbe d=1 sweep across ep25/50/75/100
     cross_attn_pool.md   minimal cross-attention (277K params) on ep100
     mean_pool.md         mean-pool + linear (ablation floor) on ep100
+    ablation_analysis.md paired-bootstrap stats on all 6 runs
   finetune/
     README.md
-    llrd.md              unfrozen encoder + LLRD γ=0.5 on ep100
+    llrd.md              unfrozen encoder + LLRD γ=0.5 on ep100 (3 probes)
+  interpretability.md    occlusion attribution: 3 probes converge on disc-rim
 ```
 
 ## Reference

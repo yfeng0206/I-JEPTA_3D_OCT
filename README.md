@@ -23,9 +23,17 @@ All on FairVision glaucoma held-out test split (3000 volumes). Encoder: random-i
 - **Fine-tune uplift is real on every probe**: +0.0172 on d=1 (p<0.001), +0.0122 on MeanPool (p<0.001), +0.0080 on CrossAttnPool (p=0.009). Uplift scales inversely with probe capacity — d=1 had the most room to recover, CrossAttnPool the least.
 - **Practical takeaway**: for fine-tune protocols, MeanPool is Pareto-optimal (zero probe params, matches best). For frozen-probe protocols, CrossAttnPool (277K) is Pareto-optimal.
 
-Full analysis: [`docs/experiments/frozen/ablation_analysis.md`](docs/experiments/frozen/ablation_analysis.md).
+Full statistical analysis: [`docs/experiments/frozen/ablation_analysis.md`](docs/experiments/frozen/ablation_analysis.md).
 
 ![Probe-architecture ranking on ep100](results/summary/probe_ranking_ep100.png)
+
+## Interpretability — why the three probes tie
+
+Occlusion attribution (architecture-agnostic) on all three fine-tune probes. **All three converge on the same 4-slice band** corresponding to the superior and inferior disc rim — classic glaucoma anatomy. MeanPool and CrossAttnPool contribution curves correlate at r=0.94, confirming the tied Test AUCs aren't coincidental.
+
+![Slice-level occlusion attribution](results/summary/slice_contribution_curves.png)
+
+Full writeup: [`docs/experiments/interpretability.md`](docs/experiments/interpretability.md).
 
 Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 
