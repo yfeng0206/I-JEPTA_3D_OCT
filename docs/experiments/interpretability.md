@@ -42,8 +42,12 @@ Patch-level (phase 3, for 20 selected volumes × top-3 slices):
   For each selected (volume, slice_s):
       Re-forward slice_s through the encoder WITHOUT patch mean-pool.
       → patch_tokens ∈ (256, 768)
-      baseline_slice_token = mean(patch_tokens)
+      baseline_slice_token = mean(patch_tokens)            # over all 256 patches
       for p in 0..255:
+          # Leave-one-out: drop patch p, recompute mean over the remaining 255.
+          # (We use LOO at the patch level rather than zero-mask-but-keep-256
+          # so the pooled slice token stays a genuine per-patch mean, which
+          # matches what MeanPool / CrossAttnPool / d=1 expect to consume.)
           alt_slice_token = (sum(patch_tokens) - patch_tokens[p]) / 255
           F'[s] := alt_slice_token           # substitute altered slice into cached (64, 768)
           logit_p = logit(F')

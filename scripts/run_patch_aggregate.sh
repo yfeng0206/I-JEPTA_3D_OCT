@@ -113,6 +113,10 @@ download_blob "$INTERP_BLOB_PREFIX/features_crossattn.npz" "$FEATURES_DIR/featur
 download_blob "$INTERP_BLOB_PREFIX/features_d1.npz"        "$FEATURES_DIR/features_d1.npz"
 
 echo "=== Running patch_aggregate.py ==="
+# Disable set -e around the Python call so a Python failure still hits the
+# upload block below (otherwise we lose the stdout log which is the main
+# thing needed to diagnose). Re-enable after.
+set +e
 python scripts/patch_aggregate.py \
     --data-dir "${DATA_DIR}/data" \
     --model-dir "$MODEL_DIR" \
@@ -123,6 +127,7 @@ python scripts/patch_aggregate.py \
     --target-slices $TARGET_SLICES \
     2>&1 | tee "$OUTPUT_DIR/patch_aggregate_stdout.log"
 EXIT=${PIPESTATUS[0]}
+set -e
 echo "=== Python exit code: $EXIT ==="
 
 echo "=== Output files ==="

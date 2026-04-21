@@ -177,6 +177,28 @@ def process_model(m, args, test_dataset, device):
     N, S, D = F_cache.shape
     assert S == args.num_slices, (S, args.num_slices)
 
+    # --- Cache alignment guard ---
+    # The cached features must be in the same row-order as the current
+    # test_dataset iteration, otherwise attributions would silently attach
+    # to the wrong volume. Verify N and spot-check labels on 5 samples.
+    if len(test_dataset) != N:
+        raise RuntimeError(
+            f'[{name}] cache alignment fail: features N={N} but '
+            f'test_dataset len={len(test_dataset)}. Re-generate the cache.'
+        )
+    sample_idx = np.linspace(0, N - 1, num=min(5, N), dtype=int)
+    for i in sample_idx:
+        _, lbl = test_dataset[int(i)]
+        if int(lbl) != int(labels[i]):
+            raise RuntimeError(
+                f'[{name}] cache alignment fail: row {i} cached label='
+                f'{int(labels[i])} but test_dataset returns {int(lbl)}. '
+                f'File ordering may have drifted — regenerate the cache.'
+            )
+    print(f'  cache alignment OK (N={N}, label spot-check on '
+          f'rows {sample_idx.tolist()} match)')
+    # --- end guard ---
+
     ckpt_path = os.path.join(args.model_dir, name, 'best_model.pt')
     print(f'  loading {ckpt_path}')
     encoder, probe, head = load_model(

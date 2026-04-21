@@ -111,6 +111,9 @@ download_ckpt "$CROSSATTN_BLOB_PREFIX" "$MODEL_DIR/crossattn/best_model.pt"
 download_ckpt "$D1_BLOB_PREFIX"        "$MODEL_DIR/d1/best_model.pt"
 
 echo "=== Running interpretability pipeline ==="
+# Disable set -e around the Python call so a Python failure still hits the
+# upload block below (otherwise we lose the stdout log).
+set +e
 python scripts/interpretability.py \
     --data-dir "${DATA_DIR}/data" \
     --model-dir "$MODEL_DIR" \
@@ -124,6 +127,7 @@ python scripts/interpretability.py \
     --skip-existing \
     2>&1 | tee "$OUTPUT_DIR/interp_stdout.log"
 EXIT=${PIPESTATUS[0]}
+set -e
 echo "=== Python exit code: $EXIT ==="
 
 echo "=== Output files ==="
