@@ -63,15 +63,17 @@ All three fine-tune models — despite architectural differences of 7.17M params
 
 ![Slice contribution curves](../../results/summary/slice_contribution_curves.png)
 
+**Note on the x-axis**: the model is fed 64 slices `linspace`-sampled from the original 200-slice volume. The plot's bottom x-axis (0..199) is the position in the native volume; the top x-axis (0..63) is the subset index the model actually sees. So "subset slice 20" = original volume position ~63; "subset slice 43" = native position ~137.
+
 Peak positive-class (glaucoma) contribution per model:
 
-| Model | Probe params | Peak slice index | Axial position (of 199) | Peak Δlogit |
+| Model | Probe params | Peak subset idx | Native volume position | Peak Δlogit |
 |---|---|---|---|---|
-| FT + MeanPool | 0 | 43 | ~136 | +0.033 |
-| FT + CrossAttnPool | 277K | 44 | ~139 | +0.013 |
-| FT + AttentiveProbe d=1 | 7.17M | 45 | ~142 | +0.037 |
+| FT + MeanPool | 0 | 43 | ~137 / 199 | +0.033 |
+| FT + CrossAttnPool | 277K | 44 | ~140 / 199 | +0.013 |
+| FT + AttentiveProbe d=1 | 7.17M | 45 | ~143 / 199 | +0.037 |
 
-All three peaks land within 2 slices of each other. The three curves also share a secondary peak near slice 20 and a dip at slice ~30.
+All three peaks land within 2 subset slices (~6 native slices) of each other. The three curves also share a secondary peak near native position ~63 (subset idx ~20) and a dip around native position ~95 (subset idx ~30).
 
 ## Cross-model agreement
 
@@ -87,11 +89,11 @@ MeanPool and CrossAttnPool agree nearly perfectly on the *shape* of the contribu
 
 ## Anatomical validation — two peaks at the disc rim
 
-FairVision volumes are Zeiss Cirrus HD-OCT 200×200×200 optic disc cubes. B-scans in the slow-scan direction (our "slice" axis) pass through the optic nerve head at center. The two peaks + central dip pattern maps directly onto glaucoma anatomy:
+FairVision volumes are Zeiss Cirrus HD-OCT 200×200×200 optic disc cubes. B-scans in the slow-scan direction (our "slice" axis) pass through the optic nerve head at center. The two peaks + central dip pattern maps directly onto glaucoma anatomy (reported against the native 0..199 volume axis):
 
-- **Slice ~20 peak** → superior disc rim
-- **Slice ~30 dip** → disc center (the cup itself — relatively featureless compared to the rim)
-- **Slice ~43 peak** → inferior disc rim
+- **Peak at native position ~63** (subset idx ~20) → superior disc rim
+- **Dip at native position ~95** (subset idx ~30) → disc center (the cup itself, relatively featureless compared to the rim)
+- **Peak at native position ~137** (subset idx ~43) → inferior disc rim
 
 Superior and inferior disc rim thinning are **the** classic glaucoma findings (Garway-Heath et al., Ophthalmology 2000; Hood et al., Prog Retin Eye Res 2007). The model — all three architectures — discovered this pattern without any anatomical priors.
 
