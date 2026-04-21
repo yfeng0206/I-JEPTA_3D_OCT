@@ -16,7 +16,7 @@ Reference log for paper writing. Each entry records a problem or decision, the i
 
 #### 15. Fine-tune overfit post-warmup → stronger LLRD + lower LR + gate fix
 
-**Context**: Fine-tune v1 (`willing_yogurt_6t1cvqhy7w`, LLRD γ=0.65, lr=4e-4) hit the frozen-probe ceiling during warmup (ep4 Val AUC 0.8781) then degraded after encoder started actually moving post-warmup, best saved was ep13 at 0.8665. Train loss fell from 0.39 → 0.17 while val loss climbed — classic fine-tune overfit on 6K samples with an 86M encoder.
+**Context**: Fine-tune v1 (LLRD γ=0.65, lr=4e-4) hit the frozen-probe ceiling during warmup (ep4 Val AUC 0.8781) then degraded after encoder started actually moving post-warmup, best saved was ep13 at 0.8665. Train loss fell from 0.39 → 0.17 while val loss climbed — classic fine-tune overfit on 6K samples with an 86M encoder.
 
 **Investigation**:
 - Reread our own past_warmup gate logic. For SSL pretraining the gate is needed (pre-warmup val_loss is an EMA-target artifact). For supervised fine-tune val AUC, that justification doesn't apply — ep4's 0.8781 was a real number we just didn't save.
@@ -27,7 +27,7 @@ Reference log for paper writing. Each entry records a problem or decision, the i
 
 **Fix 2 (hyperparams)**: LLRD γ=0.65 → 0.5, base LR 4e-4 → 2e-4. Local config only.
 
-**Outcome** (`silver_music_r9b0ccn6nc`): Early-stopped at ep19 with patience=15 from ep4 peak. Results:
+**Outcome**: Early-stopped at ep19 with patience=15 from ep4 peak. Results:
 - **Best epoch 4, Val AUC 0.8751, Test AUC 0.8878**
 - Sens 0.741 / Spec 0.877
 - vs frozen d=1 ep100: Val 0.8597 / Test 0.8706 → **fine-tune +0.017 Test AUC**
@@ -41,7 +41,7 @@ That's within Zhou 2025's 2-4% fine-tune-vs-LP gap range. The insight: the meani
 ### 2026-04-17 — Literature-tuned frozen probe sweep
 
 #### 1. Parallel 4-probe sweep hung silently after feature pre-compute
-**Context**: Initial sweep `dreamy_basin_6rxm9myg2g` submitted with all 4 probes (ep25/50/75/100) running in parallel on 4 T4 GPUs via `CUDA_VISIBLE_DEVICES` isolation.
+**Context**: Initial sweep submitted with all 4 probes (ep25/50/75/100) running in parallel on 4 T4 GPUs via `CUDA_VISIBLE_DEVICES` isolation.
 **Symptom**: After ~50 min of feature pre-compute all 4 probes finished caching features, then stdout went silent for 2h+. No results uploaded.
 **Investigation**: Checked `std_log.txt` (last modified 2h earlier), `metrics-capability.log` (disk writes ~1.4 MB over 1.5h = essentially idle), blob storage (no `results.json` from any probe). Hypothesized RAM contention: 4 probes × 2 GB cached features + 4 DataLoader workers each forking with COW = 16 worker processes × 2 GB virtual memory.
 **Solution**: Rewrote `scripts/run_linear_sweep.sh` to run probes sequentially on GPU 0. Removed background `&`, added feature_cache cleanup between probes. Commit `f02ccf1`.
@@ -67,7 +67,7 @@ That's within Zhou 2025's 2-4% fine-tune-vs-LP gap range. The insight: the meani
 **References**: Our `lessons_learned.md` item #2 describes the warmup-epoch artificially-low loss. This fix extends that rule to checkpoint saving.
 
 #### 5. d=3 attentive probe overfit catastrophically
-**Context**: First sweep (`patient_grape_3v757g11t5`) ran probe with `PROBE_DEPTH=3` (21M trainable params), `WEIGHT_DECAY=0`, `dropout=0.1`. First probe (ep25) results: Train AUC 0.748 → 1.000 by epoch 20, Val AUC peaked 0.8437 at epoch 4 then drifted down, Val loss 0.49 → 1.70.
+**Context**: First sweep ran probe with `PROBE_DEPTH=3` (21M trainable params), `WEIGHT_DECAY=0`, `dropout=0.1`. First probe (ep25) results: Train AUC 0.748 → 1.000 by epoch 20, Val AUC peaked 0.8437 at epoch 4 then drifted down, Val loss 0.49 → 1.70.
 **Investigation**:
 - Reviewed literature on attentive probes: [V-JEPA](https://arxiv.org/html/2404.08471v1) uses 4-block probe (larger than ours); [Attention, Please! ICLR 2026](https://arxiv.org/abs/2506.10178) states attentive probes are "over-parameterized and inefficient" as a known problem; I-JEPA original paper uses single-block probe.
 - Re-read our own `lessons_learned.md` item #6: "The frozen encoder's representations are the limiting factor. More probe layers can't extract signal that isn't in the features."
@@ -231,7 +231,7 @@ That's within Zhou 2025's 2-4% fine-tune-vs-LP gap range. The insight: the meani
 - [x] Commit DDP + flush fixes (`135ba2a`, `61f08c3`)
 - [x] Sequential sweep rewrite (`f02ccf1`)
 - [x] Literature-tuned d=1 config + script parameterization (`e1eb9e5` + config)
-- [ ] `busy_roof_xjmvcyb7pm` sweep completion
+- [ ] Frozen d=1 sweep completion (ep25/50/75/100)
 - [ ] Download sweep CSVs, pick best val-AUC epoch across ep25/50/75/100
 - [ ] Fine-tune on best checkpoint (attentive probe d=1 + linear head, unfrozen encoder)
 - [ ] Mean-pool + linear head ablation (no attention) — tests whether attentive probe earns its keep

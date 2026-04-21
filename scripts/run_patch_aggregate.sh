@@ -20,7 +20,7 @@ MEANPOOL_BLOB_PREFIX=${MEANPOOL_BLOB_PREFIX:-"ijepa-downstream/downstream_patch_
 CROSSATTN_BLOB_PREFIX=${CROSSATTN_BLOB_PREFIX:-"ijepa-downstream/downstream_patch_s64_ep50_bs1_linear_20260418_192249"}
 D1_BLOB_PREFIX=${D1_BLOB_PREFIX:-"ijepa-downstream/downstream_patch_s64_ep50_bs1_linear_20260418_035940"}
 
-# Previously-computed per-slice feature caches (from plucky_soccer)
+# Previously-computed per-slice feature caches (from the interpretability run)
 INTERP_BLOB_PREFIX=${INTERP_BLOB_PREFIX:-"ijepa-interpretability/interpretability_20260420_002126"}
 
 BLOB_ACCOUNT=${BLOB_ACCOUNT:?'Set BLOB_ACCOUNT env var'}

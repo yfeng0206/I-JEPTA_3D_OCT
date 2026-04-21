@@ -4,11 +4,11 @@ Three parallel fine-tune runs with identical LLRD + optimizer settings, differin
 
 ## Results — headline
 
-| Run | AML job | Probe | Probe params | Best epoch | Val AUC | Test AUC |
-|---|---|---|---|---|---|---|
-| d=1 attentive fine-tune | `silver_music_r9b0ccn6nc` | AttentiveProbe d=1 + Linear | 7.17M | 4 | 0.8751 | **0.8878** |
-| CrossAttnPool fine-tune | `plum_jicama_9tnw0xy5tk` | CrossAttnPool + Linear | 277K | 5 | 0.8729 | **0.8872** |
-| MeanPool fine-tune | `nice_corn_q5180xmk8h` | MeanPool + Linear | **0** (just 2.3K head) | 5 | 0.8717 | **0.8868** |
+| Run | Probe | Probe params | Best epoch | Val AUC | Test AUC |
+|---|---|---|---|---|---|
+| d=1 attentive fine-tune | AttentiveProbe d=1 + Linear | 7.17M | 4 | 0.8751 | **0.8878** |
+| CrossAttnPool fine-tune | CrossAttnPool + Linear | 277K | 5 | 0.8729 | **0.8872** |
+| MeanPool fine-tune | MeanPool + Linear | **0** (just 2.3K head) | 5 | 0.8717 | **0.8868** |
 
 All three runs land within 0.001 Test AUC of each other. Paired bootstrap (B=2000) confirms they are statistically indistinguishable:
 
@@ -117,4 +117,4 @@ All three runs peaked during warmup (ep4-5). Without the gate fix (commit `9f96c
 
 ## Completeness
 
-This run (`nice_corn_q5180xmk8h`, fine-tune + MeanPool) closes the 2×3 matrix: 3 probes × {frozen, fine-tune}. No more cells pending.
+This run (fine-tune + MeanPool) closes the 2×3 matrix: 3 probes × {frozen, fine-tune}. No more cells pending.

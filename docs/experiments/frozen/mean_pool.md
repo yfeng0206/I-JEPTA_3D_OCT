@@ -2,7 +2,7 @@
 
 Mean-pool across slices (no attention, no parameters in the probe itself) + LinearHead. Serves as the ablation floor to quantify how much slice-level attention and positional embeddings contribute.
 
-AML job: `quirky_branch_vkcy47sptn` — completed 2026-04-18.
+Completed 2026-04-18.
 
 ## Architecture
 

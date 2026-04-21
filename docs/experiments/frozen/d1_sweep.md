@@ -2,7 +2,7 @@
 
 Linear probe sweep across 4 pretraining checkpoints from the random-init posfix run (`ijepa-results/patch_vit_base_ps16_ep100_bs64_lr0.00025_20260411_063607`). Probe depth=1 following I-JEPA paper convention, with small-data regularization (weight_decay=0.05, dropout=0.2) and literature-scaled LR.
 
-**AML job**: `busy_roof_xjmvcyb7pm` — completed 2026-04-17.
+**Completed**: 2026-04-17.
 
 ## Config
 

@@ -334,7 +334,7 @@ def main():
     ap.add_argument('--model-dir',    required=True,
                     help='Dir with <name>/best_model.pt for each of 3 FT models')
     ap.add_argument('--features-dir', required=True,
-                    help='Dir with features_<name>.npz from plucky_soccer')
+                    help='Dir with features_<name>.npz from the interpretability run')
     ap.add_argument('--output-dir',   required=True)
     ap.add_argument('--num-slices',   type=int, default=64)
     ap.add_argument('--slice-size',   type=int, default=256)

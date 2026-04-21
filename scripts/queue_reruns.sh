@@ -2,8 +2,9 @@
 # Sequential job queue: monitors each job, submits next when done.
 # Jobs run one at a time to avoid GPU contention on shared compute.
 
-RG="rg-npesu01"
-WS="CrossencoderRankerNPESU01"
+# Override via env vars at invocation time; do not hard-code workspace IDs.
+RG="${RG:?Set RG env var (resource group)}"
+WS="${WS:?Set WS env var (AzureML workspace name)}"
 CONFIG_DIR="configs"
 
 check_interval=1200  # 20 minutes

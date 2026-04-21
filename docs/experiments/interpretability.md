@@ -1,204 +1,100 @@
 # Interpretability — Occlusion Attribution on the 3 Fine-Tune Probes
 
-Architecture-agnostic occlusion attribution for the three fine-tune runs that tied at Test AUC ~0.887. The goal: validate the "encoder encodes position as content" hypothesis by asking each model — via direct causal intervention — *which slices actually drive its decision*.
+Architecture-agnostic occlusion attribution for the three fine-tune probes that tied at Test AUC ~0.887. Goal: validate that the probes actually use the same signal, and find what that signal is at the slice, patch, and pixel level.
 
-AML job: `plucky_soccer_0ht73k9nr9`. Pipeline: [`scripts/interpretability.py`](../../scripts/interpretability.py).
+Pipeline: [`scripts/interpretability.py`](../../scripts/interpretability.py). Results are derived from two AML jobs (initial attribution + patch aggregate over 3000 volumes) plus local post-hoc analyses.
 
-## Attribution chain — from pixels back to the logit
-
-Forward flow during inference:
+## Method
 
 ```
-OCT volume → (64 slices, 3 channels, 256×256 pixels)
-     │
-     ▼  Fine-tuned ViT-B/16 encoder (per slice, once each)
-(64, 256 patches, 768 dim)           ← per-patch tokens
-     │
-     ▼  mean over 256 patches, per slice
-(64, 768)  "F"                        ← per-slice feature tensor
-     │
-     ▼  probe  (MeanPool / CrossAttnPool / AttentiveProbe d=1)
-(768,)  pooled volume vector
-     │
-     ▼  LinearHead = LayerNorm → Linear(768, 1)
-logit (scalar) → sigmoid → P(glaucoma)
+OCT volume → (64 slices, 3, 256, 256)
+ → frozen-ish encoder → 256 patch tokens/slice
+ → mean over patches → (64, 768) slice tokens F
+ → probe → (768,) pooled vector
+ → LayerNorm + Linear → logit
+
+Inverse (all architecture-agnostic, all causal):
+  Slice-level:   for s in 0..63:  zero F[s], measure Δlogit
+  Window-level:  for w in 0..57:  zero F[w..w+6], measure Δlogit  (W=7)
+  Patch-level:   for p in 0..255: leave-one-out on patch tokens of target slice,
+                                  substitute altered mean into F, measure Δlogit
 ```
 
-**Inverse attribution** (what we actually compute):
+Occlusion is used instead of gradient × input because the CrossAttnPool and d=1 probes are non-linear in F — gradient attribution gives misleading numbers there. Occlusion remains valid for all three probes.
 
-At each granularity, we zero one input and record how much the logit changes. This is architecture-agnostic — works identically for all three probes — and it's causal (a real intervention on the model), not a gradient approximation that breaks under non-linear probes.
+## Key findings at a glance
 
-```
-Slice-level (phase 2):
-  baseline_logit = logit(F)                 # use the cached features
-  for s in 0..63:
-      F'[s]   := 0                           # zero the s-th slice's features
-      logit_s = logit(F')
-      slice_contribution[s] = baseline_logit - logit_s
+| # | Claim | Figure / sheet |
+|---|---|---|
+| 1 | All 3 probes agree on **which slices** matter | [`slice_contribution_curves.png`](../../results/summary/slice_contribution_curves.png) |
+| 2 | Wrong predictions use the **same pattern with weaker signal**, not different anatomy | [`slice_contribution_by_outcome.png`](../../results/summary/slice_contribution_by_outcome.png) |
+| 3 | The pattern is statistically robust (tight bootstrap CI at n=1466) | [`slice_contribution_ci.png`](../../results/summary/slice_contribution_ci.png) |
+| 4 | **Window occlusion (W=7) amplifies the signal ~7× and cleans it** | [`04_window_occlusion_W7.png`](../../results/summary/04_window_occlusion_W7.png) |
+| 5 | Per-patch attribution concentrates on the B-scan center | [`05_patch_aggregate.png`](../../results/summary/05_patch_aggregate.png) |
+| 6 | Individual B-scans show clinical landmarks (RNFL thinning, cup excavation) | [`heatmap_grid.png`](../../results/summary/heatmap_grid.png) |
+| 7 | **Probes agree at slice granularity, not patch granularity** (r=0.94 → r=0.10) | [`09_cross_probe_patch_agreement.png`](../../results/summary/09_cross_probe_patch_agreement.png) |
+| 8 | Window occlusion recovers 25× more signal than single-slice for MeanPool | [`10_completeness_window.png`](../../results/summary/10_completeness_window.png) |
+| 9 | **14-65% of patches are statistically non-zero** (95% bootstrap CI) | [`11_patch_ci_significance.png`](../../results/summary/11_patch_ci_significance.png) |
+| 10 | Attribution structure is nearly invariant to prediction confidence | [`13_attribution_vs_confidence.png`](../../results/summary/13_attribution_vs_confidence.png) |
 
-  → slice_contrib_{model}.npz  shape (3000, 64)
+## Cross-model agreement — full picture
 
-Patch-level (phase 3, for 20 selected volumes × top-3 slices):
-  For each selected (volume, slice_s):
-      Re-forward slice_s through the encoder WITHOUT patch mean-pool.
-      → patch_tokens ∈ (256, 768)
-      baseline_slice_token = mean(patch_tokens)            # over all 256 patches
-      for p in 0..255:
-          # Leave-one-out: drop patch p, recompute mean over the remaining 255.
-          # (We use LOO at the patch level rather than zero-mask-but-keep-256
-          # so the pooled slice token stays a genuine per-patch mean, which
-          # matches what MeanPool / CrossAttnPool / d=1 expect to consume.)
-          alt_slice_token = (sum(patch_tokens) - patch_tokens[p]) / 255
-          F'[s] := alt_slice_token           # substitute altered slice into cached (64, 768)
-          logit_p = logit(F')
-          patch_contribution[p] = baseline_logit - logit_p
-
-  → reshape (256,) to (16, 16) → upsample to (256, 256) → overlay on the B-scan
-  → heatmaps_{model}/vol{N}_slice{s}.png
-```
-
-Batched as `(S+1, S, D)` and `(P, S, D)` respectively, so baseline and masked values share the same autocast/fp16 path (numerically self-consistent).
-
-Why we dropped the gradient-based approach Codex flagged ([review discussion](../experiments/README.md)): gradient × input is valid only for MeanPool + LinearHead (which is linear in the per-slice features up to LayerNorm). For CrossAttnPool and d=1, there's a non-linear probe between X and the pooled vector — gradient attribution gives misleading numbers. Occlusion is architecture-agnostic by construction.
-
-## Headline finding
-
-All three fine-tune models — despite architectural differences of 7.17M params (d=1) to 0 probe params (MeanPool) — **converge on the same narrow slice region**.
-
-![Slice contribution curves](../../results/summary/slice_contribution_curves.png)
-
-**Note on the x-axis**: the model is fed 64 slices `linspace`-sampled from the original 200-slice volume. The plot's bottom x-axis (0..199) is the position in the native volume; the top x-axis (0..63) is the subset index the model actually sees. So "subset slice 20" = original volume position ~63; "subset slice 43" = native position ~137.
-
-Peak positive-class (glaucoma) contribution per model:
-
-| Model | Probe params | Peak subset idx | Native volume position | Peak Δlogit |
-|---|---|---|---|---|
-| FT + MeanPool | 0 | 43 | ~137 / 199 | +0.033 |
-| FT + CrossAttnPool | 277K | 44 | ~140 / 199 | +0.013 |
-| FT + AttentiveProbe d=1 | 7.17M | 45 | ~143 / 199 | +0.037 |
-
-All three peaks land within 2 subset slices (~6 native slices) of each other. The three curves also share a secondary peak near native position ~63 (subset idx ~20) and a dip around native position ~95 (subset idx ~30).
-
-## Cross-model agreement
-
-| Pair | Pearson r (mean_pos curve) | Top-1 slice agreement (positive volumes) | Within ±3 slices |
+| Pair | Slice-level r | Patch-level r (per-volume, 2 slices) | Interpretation |
 |---|---|---|---|
-| MeanPool vs CrossAttnPool | **0.94** | 45.4% | 64.5% |
-| MeanPool vs d=1 | 0.53 | 27.2% | 50.5% |
-| CrossAttnPool vs d=1 | 0.59 | 30.9% | 50.8% |
+| MeanPool vs CrossAttnPool | **0.94** | 0.08 / 0.10 | **Same slices, different patches** |
+| MeanPool vs d=1 | 0.53 | 0.11 / 0.10 | d=1 is noisier throughout |
+| CrossAttnPool vs d=1 | 0.59 | 0.09 / 0.10 | Same |
 
-MeanPool and CrossAttnPool agree nearly perfectly on the *shape* of the contribution curve (r=0.94). d=1's curve is noisier (it's the only probe with genuine slice-slice self-attention and an FFN, so its 7M params introduce higher-variance attribution) but still follows the same envelope.
+The probes robustly agree on WHICH slices are informative, but each picks a different patch subset within those slices. The disease signal is redundantly distributed across multiple patch groups within each informative slice — each probe learns its own subset.
 
-**Translation**: the tied Test AUCs aren't a coincidence. All three probes are exploiting the same underlying slice-level signal. The difference in probe architecture changes *how* they extract it but not *what* they extract.
+## Completeness under occlusion
 
-## Population-level two-peak structure
+Median `|sum(contribs)| / |baseline_logit|` ratio:
 
-FairVision volumes are Zeiss Cirrus HD-OCT 200×200×200 optic disc cubes. B-scans in the slow-scan direction (our "slice" axis) pass through the optic nerve head region. Population-averaged slice attribution shows a bimodal structure:
+| Model | Single-slice (W=1) | Window (W=7) | Amplification |
+|---|---|---|---|
+| MeanPool | **1.3%** | 32.4% | **25×** |
+| CrossAttnPool | 6.0% | 52.0% | 8.6× |
+| d=1 AttentiveProbe | 48.6% | **304.9%** | 6.3× |
 
-- **Peak at native position ~63** (subset idx ~20)
-- **Dip at native position ~95** (subset idx ~30)
-- **Peak at native position ~137** (subset idx ~43)
+- Under single-slice zero-mask, MeanPool contribs explain only 1.3% of the logit because removing 1 of 64 pool inputs barely moves the mean. Window W=7 recovers 25× more signal.
+- d=1 under window occlusion **overshoots** (sum > 3× logit) — direct evidence that its self-attention nonlinearly amplifies large perturbations. The choice of occlusion primitive matters more for d=1 than for MeanPool.
+- **Actionable**: window occlusion is the correct primitive for slice-level attribution on mean-pool models.
 
-**Caveat on anatomic interpretation**: a naive reading would map the two peaks to the superior and inferior optic disc rim. This interpretation is **not supported by per-volume data** — see [`interpretability_deeper.md` Claim 11](./interpretability_deeper.md). Within a single volume, the contributions at slice 20 and slice 43 are slightly *negatively* correlated (r ≈ -0.07 to -0.22 depending on probe), not positively correlated as a single bilateral anatomic structure would predict. The most likely explanation is **OD/OS laterality mixing**: right-eye and left-eye scans are stored in the raw array with the axial direction effectively flipped relative to anatomy, so right-eye volumes may peak at one position and left-eye at the other. Population average shows both peaks; individual volumes show one. A proper OD/OS flip (detecting disc laterality from the SLO image and reorienting) is needed before aggregate attribution can be read as bilateral-rim anatomy.
+## Population-level two-peak structure — with caveat
 
-Superior and inferior disc rim thinning are **the** classic glaucoma findings (Garway-Heath et al., Ophthalmology 2000; Hood et al., Prog Retin Eye Res 2007). The model — all three architectures — discovered this pattern without any anatomical priors.
+Population-averaged slice attribution shows a bimodal structure: peak at native position ~63, dip at ~95, peak at ~137. A naive reading maps this to superior + inferior optic disc rim.
 
-Representative overlays, two per model (one TP + one TN), selected by strongest per-slice contribution among the 60 heatmaps per model:
+**This interpretation is NOT supported by per-volume data.** Correlation between per-volume contribs at the two peaks is **slightly negative**:
 
-![Heatmap grid across 3 FT probes](../../results/summary/heatmap_grid.png)
+| Model | r (glaucoma class) |
+|---|---|
+| MeanPool | −0.22 |
+| CrossAttnPool | −0.07 |
+| d=1 | −0.14 |
 
-How to read a single row:
-- **Left panel**: original 256×256 B-scan of one OCT slice.
-- **Right panel**: (16, 16) per-patch Δlogit overlay, upsampled to 256×256 and blended onto the B-scan. Red = patch *increases* the logit (pushes toward glaucoma); blue = patch *decreases* it (pushes toward healthy). Color intensity is per-image — vmax = max |contribution| in that specific heatmap.
-- **Title** reports the slice-level contribution and the volume's ground-truth label + predicted probability.
+If both peaks came from the same bilateral anatomic structure, per-volume contribs should positively correlate (a diseased eye has signal at both rims). Negative correlation suggests the peaks reflect **OD/OS laterality mixing**: right-eye and left-eye scans are stored with flipped axial orientation, so each contributes to a different peak. Population average shows both; individual volumes show one.
 
-What the rows show:
-- **Row 1 — MeanPool glaucoma, +0.109**. Clear retinal thinning on the right side of the B-scan. Patch attribution concentrates along the retinal layer band itself.
-- **Row 2 — MeanPool healthy, −0.075**. Normal retinal architecture; attribution falls outside the retinal band.
-- **Row 3 — CrossAttnPool glaucoma, +0.170**. Strong slice-level signal but diffuse per-patch attribution because CrossAttnPool's single attention head applies one softmax weight across all patches in this slice (see "why CrossAttnPool's heatmaps are flatter" below).
-- **Row 4 — CrossAttnPool healthy, −0.055**. Diffuse red/blue mosaic; individual patches vote in both directions but sum to a mild healthy-pushing signal.
-- **Row 5 — d=1 glaucoma, +0.188**. **The clearest optic disc B-scan in the grid**. The cup excavation (central depression in the retinal surface with darker underlying tissue) is visible on the left. Patch attribution traces the retinal band.
-- **Row 6 — d=1 healthy, −0.432**. Very strong suppressor; mixed red/blue patches along the retinal band indicate the model is reading retinal layer thickness.
+**Until OD/OS flipping is implemented** (detect disc laterality from the SLO, then reorient), the "bilateral disc rim" reading should not be claimed. See `12_disc_rim_symmetry.png`.
 
-### Why CrossAttnPool's heatmaps look flatter than MeanPool's
+## Errors are weaker-signal, not wrong-anatomy
 
-The per-patch contribution formula is the same across models: zero one patch, recompute the slice-token mean, re-run probe+head, take Δlogit. What differs is how the *slice token* (after patch mean-pool) gets consumed by the probe:
+Stratifying by TP / FN / TN / FP: FN curves are scaled-down TP curves (same shape, smaller amplitude). Same for FP vs TN. The ~20% error rate at threshold 0.5 comes from signal-strength saturation on hard cases, not from the model attending to different slices. Also consistent with finding 10: attribution shape is confidence-invariant (|Pearson r| ≤ 0.25 between peak contrib magnitude and |logit|).
 
-- **MeanPool probe** combines all 64 slice tokens with equal 1/64 weight. Changing one patch in slice *s* directly perturbs slice *s*'s token, which then contributes 1/64 of the pooled vector. Per-patch attribution inherits whatever the head makes of that 1/64 perturbation — localized.
-- **CrossAttnPool probe** applies a softmax attention over the 64 slice tokens. If slice *s* gets attention weight *a(s)*, a per-patch perturbation in slice *s* is scaled by *a(s)* before reaching the head. When *a(s)* is small (other slices dominate), patch-level attribution is washed out. When *a(s)* is large, it amplifies.
-- **d=1 AttentiveProbe** has self-attention across slices + an FFN; a per-patch perturbation propagates through multiple non-linear transformations, producing high-contrast localized attribution.
+## Paper-ready claims
 
-This is why d=1's heatmap amplitudes are largest (+0.188 / −0.432 in the grid) despite all three models producing tied Test AUC. **The probe architecture affects the local interpretability of attribution even when it doesn't affect aggregate accuracy.**
+**Safe claims**:
+- All 3 probes, despite 0 → 7.17M probe params, converge on the same slice-level attribution structure (MeanPool↔CrossAttnPool slice-level r = 0.94).
+- A trivial MeanPool + Linear is Pareto-optimal for the fine-tune regime.
+- Errors come from weaker-signal, not wrong-anatomy; the attribution pattern is confidence-invariant.
+- Window occlusion (W=7) is the correct attribution primitive for mean-pool-based models; single-slice zero-mask systematically under-estimates signal.
 
-## Why MeanPool works: the encoder encodes position as content
-
-The hypothesis we set out to test:
-
-> "Under fine-tune, MeanPool matches CrossAttnPool because the encoder (via encoder.norm + LLRD top-block adaptation) can amplify disease-discriminative directions in feature space such that disease-relevant slices 'shout' after mean-pooling, even without an explicit slice_pos_embed."
-
-Evidence consistent with this:
-
-1. **MeanPool has no slice_pos_embed yet concentrates attribution on the same 4-slice band as the position-aware CrossAttnPool.** The concentration must come from the encoder outputs themselves, not from the probe.
-2. **MeanPool's curve amplitude is LARGER than CrossAttnPool's** (+0.033 vs +0.013 peak) — because in MeanPool, the encoder's adaptation IS the entire story, while CrossAttnPool splits the work between encoder and probe-attention.
-3. **d=1's curve has the largest peak (+0.037) but also the most noise** — its 7M-param self-attn + FFN over-parameterize what is essentially a weighted slice-pool problem; capacity that isn't needed produces noisy attribution without changing test AUC.
-
-The encoder's LayerNorm (at full base LR 2e-4, 1,536 params) plus top 5 transformer blocks (LRs ~6e-6 to 1e-4 under γ=0.5 LLRD) can reshape feature geometry enough to make the mean-pool effective.
-
-## Implications for paper claims
-
-Strengthened claims (with evidence from this experiment):
-- **"Under fine-tune, probe architecture is irrelevant on multi-slice OCT classification."** All three probes produce statistically tied Test AUC AND converge on the same *slice-level* attribution structure. The tie is causal, not coincidental.
-- **"A trivial mean-pool + linear head is Pareto-optimal for fine-tune protocols."** Zero probe params match 7M at the same task, and their slice-level attribution curves overlap at r=0.94.
-
-Revised claim (see `interpretability_deeper.md` Claim 8):
-- **"Probes converge at SLICE granularity but diverge at PATCH granularity."** Slice-level r=0.94 between MeanPool and CrossAttnPool; patch-level per-volume r≈0.10 across all pairs. The disease signal is redundantly distributed across multiple patch subsets within each informative slice; each probe learns its own subset. The aggregate per-class patch map still concentrates on the B-scan center across all probes, but individual-volume patch rankings are probe-specific.
-
-Previously-claimed anatomic interpretation — **NOT supported, retracted**:
-- ~~"Models rediscover superior + inferior disc rim."~~ Per-volume correlation between the two peaks is slightly negative (r ≈ -0.07 to -0.22), not positive. Most likely explanation: OD/OS laterality mixing in the dataset. Needs OD/OS flipping (disc-center detection via SLO) before the bilateral-rim reading can be tested. See `interpretability_deeper.md` Claim 11.
-
-## Deeper analyses (post-hoc, no new AML)
-
-See [`interpretability_deeper.md`](./interpretability_deeper.md) for five additional claims:
-
-- **Claim 8**: slice vs patch agreement (r = 0.94 vs r = 0.10)
-- **Claim 9**: window occlusion (W=7) recovers 25× more signal for MeanPool than single-slice zero-masking; d=1 overshoots (304% of the logit), evidencing nonlinear probe amplification
-- **Claim 10**: 14-65% of patches are statistically non-zero per bootstrap CI
-- **Claim 11**: per-volume disc-rim symmetry test — invalidates the bilateral-rim interpretation; likely OD/OS mixing
-- **Claim 12**: attribution shape is nearly invariant to prediction confidence (|r| ≤ 0.25 between peak magnitude and |logit|)
+**Claims to avoid without more evidence**:
+- "The model discovers superior + inferior disc rim" — unsupported without OD/OS flipping.
+- "The three probes look at the same pixels" — they don't (patch-level r ≈ 0.10).
 
 ## Reproducibility
 
-- AML job: `plucky_soccer_0ht73k9nr9` on `garyfeng4`, 4 GPUs (1 used for encoding), ~3 h wall time.
-- Outputs: blob prefix `ijepa-interpretability/interpretability_20260420_002126/`:
-  - `features_{meanpool,crossattn,d1}.npz` — (3000, 64, 768) fp16 per-slice features
-  - `slice_contrib_{meanpool,crossattn,d1}.npz` — per-volume slice contributions + class means
-  - `heatmaps_{meanpool,crossattn,d1}/` — 60 PNG overlays per model (20 vols × 3 slices each)
-  - `slice_contribution_curves.png` — the headline figure
-- Seed: 42 for volume selection. Occlusion is deterministic given the model weights.
+All .npz outputs and per-slice contribution tables are on blob at `ijepa-interpretability/`. Local post-hoc analyses (bootstrap CI, window occlusion, deeper correlations) are regenerated by [`scripts/deeper_interpretability_analysis.py`](../../scripts/deeper_interpretability_analysis.py) reading from a local archive of the AML outputs.
 
-## Stratified attribution — where do errors come from?
-
-Test AUC ~0.887 means ~20% of predictions at threshold 0.5 are wrong (~600 errors per model). Does the attribution pattern look different on errors vs correct predictions?
-
-![Stratified slice contribution](../../results/summary/slice_contribution_by_outcome.png)
-
-Each panel = one model. Within a panel, curves are averages grouped by confusion-matrix outcome:
-- Solid red = **TP** (correctly called glaucoma)
-- Dashed red = **FN** (missed glaucoma)
-- Solid blue = **TN** (correctly called healthy)
-- Dashed blue = **FP** (false alarm)
-
-**Finding**: FN curves have the **same shape** as TP curves but **smaller amplitude**. Same for FP vs TN. Errors don't come from the model attending to wrong anatomy — they come from the anatomy-correct attention signal being too weak to clear the threshold on hard cases.
-
-Implications:
-- **FN (missed glaucoma)**: the encoder produced weaker disc-rim tokens for these volumes — mild presentation, subtle RNFL thinning.
-- **FP (false alarm)**: healthy volumes with anatomic variation or imaging noise that looks disc-rim-like to the model.
-
-No "anti-pattern" on errors. The model always reads the same anatomy; signal strength is what separates confident correct from confident wrong.
-
-## Limitations
-
-1. **Single-seed per FT run**. We didn't retrain with different seeds to check that the curve shape is robust. The cross-architecture agreement (r=0.94 MeanPool↔CrossAttnPool) makes this less of a concern, but multi-seed would strengthen the paper.
-2. **Patch-level attribution amplitude is small** because slice-level signal dominates. To get clean patch heatmaps you'd need to normalize by slice-contribution magnitude or compute attribution conditional on the top slice being present. Not done in this run.
-3. **Zero-masking as the occlusion baseline**. Alternative (replace with per-channel test-set mean) would give slightly different magnitudes. The qualitative shape of the curves wouldn't change.
-4. **64 slices linspace-sampled from 200**. Native resolution is 200 B-scans, we use 64. Finer sampling (e.g. 100) might shift peak locations by 1-2 slices but the anatomical interpretation holds.
+Single-seed per FT run is a known limitation. Cross-architecture agreement (r = 0.94 MP↔CA at slice level) makes single-seed less of a concern but multi-seed would strengthen the paper.

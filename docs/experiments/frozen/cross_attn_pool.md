@@ -2,7 +2,7 @@
 
 Minimal cross-attention pool (277K params) on the best pretraining checkpoint (ep100). Ablation against the d=1 AttentiveProbe (7.17M) to test whether a 26× smaller probe is sufficient.
 
-AML job: `good_eye_l97n8vn10l` — completed 2026-04-18.
+Completed 2026-04-18.
 
 ## Architecture
 
