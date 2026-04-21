@@ -156,6 +156,26 @@ New claim enabled:
   - `slice_contribution_curves.png` — the headline figure
 - Seed: 42 for volume selection. Occlusion is deterministic given the model weights.
 
+## Stratified attribution — where do errors come from?
+
+Test AUC ~0.887 means ~20% of predictions at threshold 0.5 are wrong (~600 errors per model). Does the attribution pattern look different on errors vs correct predictions?
+
+![Stratified slice contribution](../../results/summary/slice_contribution_by_outcome.png)
+
+Each panel = one model. Within a panel, curves are averages grouped by confusion-matrix outcome:
+- Solid red = **TP** (correctly called glaucoma)
+- Dashed red = **FN** (missed glaucoma)
+- Solid blue = **TN** (correctly called healthy)
+- Dashed blue = **FP** (false alarm)
+
+**Finding**: FN curves have the **same shape** as TP curves but **smaller amplitude**. Same for FP vs TN. Errors don't come from the model attending to wrong anatomy — they come from the anatomy-correct attention signal being too weak to clear the threshold on hard cases.
+
+Implications:
+- **FN (missed glaucoma)**: the encoder produced weaker disc-rim tokens for these volumes — mild presentation, subtle RNFL thinning.
+- **FP (false alarm)**: healthy volumes with anatomic variation or imaging noise that looks disc-rim-like to the model.
+
+No "anti-pattern" on errors. The model always reads the same anatomy; signal strength is what separates confident correct from confident wrong.
+
 ## Limitations
 
 1. **Single-seed per FT run**. We didn't retrain with different seeds to check that the curve shape is robust. The cross-architecture agreement (r=0.94 MeanPool↔CrossAttnPool) makes this less of a concern, but multi-seed would strengthen the paper.
