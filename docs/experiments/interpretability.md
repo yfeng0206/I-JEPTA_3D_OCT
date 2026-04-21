@@ -22,22 +22,36 @@ Inverse (all architecture-agnostic, all causal):
 
 Occlusion is used instead of gradient × input because the CrossAttnPool and d=1 probes are non-linear in F — gradient attribution gives misleading numbers there. Occlusion remains valid for all three probes.
 
+## Slice-level attribution — all three probes converge
+
+Single-slice zero-mask occlusion, averaged across 1,466 glaucoma + 1,534 healthy volumes, plotted against native volume slice position (0-199):
+
+![Slice contribution curves (single-slice)](../../results/summary/slice_contribution_curves.png)
+
+All three probes show the same shape: peaks at native ~63 and ~137, dip at ~95. MeanPool and CrossAttnPool correlate at **r = 0.94**. d=1 (green) is noisier but traces the same envelope.
+
+## Window occlusion — the cleaner primitive
+
+Zeroing 7 consecutive slices instead of 1 amplifies the signal ~7× (peaks reach ±0.22 instead of ±0.03) and smooths single-volume noise. This is the attribution primitive we recommend using going forward:
+
+![Window occlusion W=7](../../results/summary/04_window_occlusion_W7.png)
+
 ## Key findings at a glance
 
 | # | Claim | Figure / sheet |
 |---|---|---|
-| 1 | All 3 probes agree on **which slices** matter | [`slice_contribution_curves.png`](../../results/summary/slice_contribution_curves.png) |
+| 1 | All 3 probes agree on **which slices** matter (r=0.94 slice-level) | figure above |
 | 2 | Wrong predictions use the **same pattern with weaker signal**, not different anatomy | [`slice_contribution_by_outcome.png`](../../results/summary/slice_contribution_by_outcome.png) |
 | 3 | The pattern is statistically robust (tight bootstrap CI at n=1466) | [`slice_contribution_ci.png`](../../results/summary/slice_contribution_ci.png) |
-| 4 | **Window occlusion (W=7) amplifies the signal ~7× and cleans it** | [`04_window_occlusion_W7.png`](../../results/summary/04_window_occlusion_W7.png) |
+| 4 | **Window occlusion (W=7) amplifies the signal ~7× and cleans it** | figure above |
 | 5 | Per-patch attribution concentrates on the B-scan center | [`05_patch_aggregate.png`](../../results/summary/05_patch_aggregate.png) |
-| 6 | Individual B-scans show clinical landmarks (RNFL thinning, cup excavation) | [`heatmap_grid.png`](../../results/summary/heatmap_grid.png) |
-| 7 | **Probes agree at slice granularity, not patch granularity** (r=0.94 → r=0.10) | [`09_cross_probe_patch_agreement.png`](../../results/summary/09_cross_probe_patch_agreement.png) |
+| 6 | Individual B-scans show clinical landmarks (RNFL thinning, cup excavation) | embedded below |
+| 7 | **Probes agree at slice granularity, not patch granularity** (r=0.94 → r=0.10) | embedded below |
 | 8 | Window occlusion recovers 25× more signal than single-slice for MeanPool | [`10_completeness_window.png`](../../results/summary/10_completeness_window.png) |
 | 9 | **14-65% of patches are statistically non-zero** (95% bootstrap CI) | [`11_patch_ci_significance.png`](../../results/summary/11_patch_ci_significance.png) |
 | 10 | Attribution structure is nearly invariant to prediction confidence | [`13_attribution_vs_confidence.png`](../../results/summary/13_attribution_vs_confidence.png) |
 
-## Cross-model agreement — full picture
+## Cross-model agreement — same slices, different patches
 
 | Pair | Slice-level r | Patch-level r (per-volume, 2 slices) | Interpretation |
 |---|---|---|---|
@@ -45,7 +59,15 @@ Occlusion is used instead of gradient × input because the CrossAttnPool and d=1
 | MeanPool vs d=1 | 0.53 | 0.11 / 0.10 | d=1 is noisier throughout |
 | CrossAttnPool vs d=1 | 0.59 | 0.09 / 0.10 | Same |
 
+![Cross-probe patch agreement](../../results/summary/09_cross_probe_patch_agreement.png)
+
 The probes robustly agree on WHICH slices are informative, but each picks a different patch subset within those slices. The disease signal is redundantly distributed across multiple patch groups within each informative slice — each probe learns its own subset.
+
+Representative B-scan overlays (6 curated examples, 1 TP + 1 TN per probe) with patch-level heatmaps:
+
+![Heatmap grid](../../results/summary/heatmap_grid.png)
+
+Visible clinical anatomy in these examples: RNFL thinning (MeanPool glaucoma, top), optic disc cup excavation (d=1 glaucoma, middle rows), retinal-band attribution (all).
 
 ## Completeness under occlusion
 
@@ -75,7 +97,9 @@ Population-averaged slice attribution shows a bimodal structure: peak at native 
 
 If both peaks came from the same bilateral anatomic structure, per-volume contribs should positively correlate (a diseased eye has signal at both rims). Negative correlation suggests the peaks reflect **OD/OS laterality mixing**: right-eye and left-eye scans are stored with flipped axial orientation, so each contributes to a different peak. Population average shows both; individual volumes show one.
 
-**Until OD/OS flipping is implemented** (detect disc laterality from the SLO, then reorient), the "bilateral disc rim" reading should not be claimed. See `12_disc_rim_symmetry.png`.
+![Disc rim symmetry test](../../results/summary/12_disc_rim_symmetry.png)
+
+**Until OD/OS flipping is implemented** (detect disc laterality from the SLO, then reorient), the "bilateral disc rim" reading should not be claimed.
 
 ## Errors are weaker-signal, not wrong-anatomy
 

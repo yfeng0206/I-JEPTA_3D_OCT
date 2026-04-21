@@ -29,11 +29,13 @@ Full statistical analysis: [`docs/experiments/frozen/ablation_analysis.md`](docs
 
 ## Interpretability — why the three probes tie
 
-Occlusion attribution (architecture-agnostic) on all three fine-tune probes. **All three converge on the same 4-slice band** corresponding to the superior and inferior disc rim — classic glaucoma anatomy. MeanPool and CrossAttnPool contribution curves correlate at r=0.94, confirming the tied Test AUCs aren't coincidental.
+Architecture-agnostic occlusion attribution on all three fine-tune probes. **At the slice level, all three converge on the same bimodal structure along the disc-region axis** — MeanPool and CrossAttnPool curves correlate at r = 0.94, confirming the tied Test AUCs aren't coincidental.
 
-![Slice-level occlusion attribution](results/summary/slice_contribution_curves.png)
+Window occlusion (W=7 consecutive slices) gives ~7× cleaner signal than single-slice zero-masking and makes the shared structure obvious across all three probes:
 
-Full writeup: [`docs/experiments/interpretability.md`](docs/experiments/interpretability.md).
+![Window occlusion (W=7) across 3 fine-tune probes](results/summary/04_window_occlusion_W7.png)
+
+At the patch level, per-volume correlation between probes drops to ~0.10 — the probes agree on *which slices* matter but each picks a different patch subset within those slices. Full writeup + 10 findings (including an OD/OS retraction on the earlier "bilateral disc rim" reading): [`docs/experiments/interpretability.md`](docs/experiments/interpretability.md).
 
 Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 
@@ -53,9 +55,10 @@ Harvard FairVision Glaucoma subset: 10,000 subjects (6K Train / 1K Val / 3K Test
 ## Roadmap
 
 - Phase 1 (done): Random-init I-JEPA SSL → frozen probe + fine-tune evaluation
-- Phase 2 (in progress): Probe architecture ablations (CrossAttnPool done; MeanPool running)
-- Phase 3 (planned): DINO-init continuation (DINOv2 or DINOv3) + fine-tune
-- Phase 4 (planned): 3D-aware SSL extension (multi-view / axial)
+- Phase 2 (done): Probe architecture ablations — full 2×3 matrix (3 probes × frozen/fine-tune)
+- Phase 3 (done): Interpretability — occlusion attribution, patch aggregate, bootstrap CI
+- Phase 4 (in progress): Foundation-model baselines on same Test split (DINOv3, OCTCube)
+- Phase 5 (planned): 3D-aware SSL extension (multi-view / axial)
 
 Details and backlog: [`docs/research_log.md`](docs/research_log.md).
 
