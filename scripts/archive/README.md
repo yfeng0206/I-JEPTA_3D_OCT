@@ -1,0 +1,1 @@
+Superseded scripts no longer referenced by any current pipeline. plot_normfix_results.py generated normfix-era comparison plots (now in ../../results/archive/); it was written before the results/summary/ layout was introduced and is retained for historical reference only.
