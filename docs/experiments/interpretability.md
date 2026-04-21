@@ -96,23 +96,47 @@ Median `|sum(contribs)| / |baseline_logit|` ratio:
 - d=1 under window occlusion **overshoots** (sum > 3× logit) — direct evidence that its self-attention nonlinearly amplifies large perturbations. The choice of occlusion primitive matters more for d=1 than for MeanPool.
 - **Actionable**: window occlusion is the correct primitive for slice-level attribution on mean-pool models.
 
-## Population-level two-peak structure — with caveat
+## Population-level two-peak structure — OD/OS mirror artefact (confirmed)
 
-Population-averaged slice attribution shows a bimodal structure: peak at native position ~63, dip at ~95, peak at ~137. A naive reading maps this to superior + inferior optic disc rim.
+Population-averaged slice attribution shows a bimodal structure: peak at native position ~63, dip at ~95, peak at ~137. A naive reading maps this to superior + inferior optic disc rim. **That reading is wrong.** The two peaks are almost entirely an OD/OS axial-storage mirror artefact, not bilateral anatomy.
 
-**This interpretation is NOT supported by per-volume data.** Correlation between per-volume contribs at the two peaks is **slightly negative**:
+### Test 1: per-volume peak correlation (first warning)
 
-| Model | r (glaucoma class) |
+| Model | r (glaucoma class, peak@63 vs peak@137) |
 |---|---|
 | MeanPool | −0.22 |
 | CrossAttnPool | −0.07 |
 | d=1 | −0.14 |
 
-If both peaks came from the same bilateral anatomic structure, per-volume contribs should positively correlate (a diseased eye has signal at both rims). Negative correlation suggests the peaks reflect **OD/OS laterality mixing**: right-eye and left-eye scans are stored with flipped axial orientation, so each contributes to a different peak. Population average shows both; individual volumes show one.
+A bilateral anatomic structure would give **positive** per-volume correlation (a diseased eye has signal at both rims). Observed is slightly **negative**, inconsistent with bilaterality.
 
 ![Disc rim symmetry test](../../results/summary/12_disc_rim_symmetry.png)
 
-**Until OD/OS flipping is implemented** (detect disc laterality from the SLO, then reorient), the "bilateral disc rim" reading should not be claimed.
+### Test 2: k=2 clustering on per-volume curves → mirror images
+
+Clustering glaucoma-class per-volume slice-contribution curves into 2 groups (L2-normalised, k-means, n_init=10):
+
+| Probe | corr(c₁, c₂) raw | **corr(c₁, flip(c₂))** | cluster sizes | verdict |
+|---|---|---|---|---|
+| MeanPool | −0.124 | **+0.971** | 843 / 623 | MIRROR |
+| CrossAttnPool | −0.478 | **+0.988** | 820 / 646 | MIRROR |
+| d=1 | +0.228 | +0.237 | 807 / 659 | noisy (structure weaker) |
+
+The two clusters are near-perfect mirror images of each other along the slice axis for MeanPool and CrossAttnPool. That is the direct signature of OD/OS storage flipping: each eye has a dominant signal at ONE side of the disc; right-eye and left-eye scans are stored with flipped axial orientation; population-averaging shows both positions.
+
+![OD/OS mirror test](../../results/summary/14_odos_mirror_test.png)
+
+### Test 3: pseudo-OD/OS realignment
+
+Using the k=2 cluster label as pseudo-laterality and flipping one cluster along the slice axis: the population curve's two peaks collapse asymmetrically — the dominant peak strengthens, the secondary peak weakens substantially (CrossAttnPool: right-side peak drops from +0.013 → ~+0.001). Residual bimodality is consistent with some mix of imperfect clustering on borderline vols and a small genuine bilateral component.
+
+![Pseudo-OD/OS realignment](../../results/summary/15_odos_aligned_curves.png)
+
+### What this means
+
+- The "model discovers superior + inferior disc rim" reading is **rejected**.
+- Each individual eye's attribution has one primary peak (likely the major RNFL arcade on one side of the disc); the axial storage convention for OD vs OS flips that peak to opposite slice indices; the population average gives an illusion of bilateral symmetry.
+- A proper SLO-based OD/OS detector + per-volume flip was not implemented — FairVision SLOs are disc-centered, so disc-position cues don't give laterality; the indirect clustering test suffices to answer the question about whether the two peaks are real bilateral anatomy (they aren't).
 
 ## Errors are weaker-signal, not wrong-anatomy
 
@@ -128,7 +152,7 @@ Stratifying by TP / FN / TN / FP: FN curves are scaled-down TP curves (same shap
 - At the patch level, probes show moderate agreement (per-volume r ≈ 0.35–0.48), weaker than slice-level but not near-zero; 84–91% of patches have 95% bootstrap CI excluding zero on glaucoma means.
 
 **Claims to avoid without more evidence**:
-- "The model discovers superior + inferior disc rim" — unsupported without OD/OS flipping.
+- ~~"The model discovers superior + inferior disc rim"~~ — **rejected** by k=2 mirror-clustering analysis: the two peaks are an OD/OS axial-storage artefact, not bilateral anatomy.
 - "The three probes look at entirely different patches" — the earlier r ≈ 0.10 reading was driven by fp16 quantisation; after the fix, patch-level agreement is moderate (r ≈ 0.35–0.48), not negligible.
 
 ## Reproducibility
