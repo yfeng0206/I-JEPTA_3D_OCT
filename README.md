@@ -35,7 +35,7 @@ Window occlusion (W=7 consecutive slices) gives ~7× cleaner signal than single-
 
 ![Window occlusion (W=7) across 3 fine-tune probes](results/summary/04_window_occlusion_W7.png)
 
-At the patch level, per-volume correlation between probes drops to ~0.10 — the probes agree on *which slices* matter but each picks a different patch subset within those slices. Full writeup + 10 findings (including an OD/OS retraction on the earlier "bilateral disc rim" reading): [`docs/experiments/interpretability.md`](docs/experiments/interpretability.md).
+At the patch level, per-volume correlation between probes is more moderate (r ≈ 0.35–0.48 after an fp16-precision fix on the occlusion pipeline; the earlier r ≈ 0.10 was driven by fp16 ULP quantisation) — probes agree strongly on *which slices* matter and meaningfully on which patches within, though less tightly than at the slice level. Full writeup + 10 findings (including an OD/OS retraction on the earlier "bilateral disc rim" reading and the fp16 precision fix): [`docs/experiments/interpretability.md`](docs/experiments/interpretability.md).
 
 Pretraining-epoch sweep (ep25/50/75/100) lives at [`docs/experiments/frozen/d1_sweep.md`](docs/experiments/frozen/d1_sweep.md).
 

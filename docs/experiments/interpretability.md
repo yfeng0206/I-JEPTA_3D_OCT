@@ -46,22 +46,22 @@ Zeroing 7 consecutive slices instead of 1 amplifies the signal ~7× (peaks reach
 | 4 | **Window occlusion (W=7) amplifies the signal ~7× and cleans it** | figure above |
 | 5 | Per-patch attribution concentrates on the B-scan center | [`05_patch_aggregate.png`](../../results/summary/05_patch_aggregate.png) |
 | 6 | Individual B-scans show clinical landmarks (RNFL thinning, cup excavation) | embedded below |
-| 7 | **Probes agree at slice granularity, not patch granularity** (r=0.94 → r=0.10) | embedded below |
+| 7 | **Probes agree strongly at slice level (r=0.94) AND meaningfully at patch level (r=0.35–0.48)** | embedded below |
 | 8 | Window occlusion recovers 25× more signal than single-slice for MeanPool | [`10_completeness_window.png`](../../results/summary/10_completeness_window.png) |
-| 9 | **14-65% of patches are statistically non-zero** (95% bootstrap CI) | [`11_patch_ci_significance.png`](../../results/summary/11_patch_ci_significance.png) |
+| 9 | **84–91% of patches are statistically non-zero** (95% bootstrap CI, glaucoma class, B=500) | [`11_patch_ci_significance.png`](../../results/summary/11_patch_ci_significance.png) |
 | 10 | Attribution structure is nearly invariant to prediction confidence | [`13_attribution_vs_confidence.png`](../../results/summary/13_attribution_vs_confidence.png) |
 
-## Cross-model agreement — same slices, different patches
+## Cross-model agreement — strong at slice level, moderate at patch level
 
-| Pair | Slice-level r | Patch-level r (per-volume, 2 slices) | Interpretation |
+| Pair | Slice-level r | Patch-level r (per-volume, slice 20 / 43) | Interpretation |
 |---|---|---|---|
-| MeanPool vs CrossAttnPool | **0.94** | 0.08 / 0.10 | **Same slices, different patches** |
-| MeanPool vs d=1 | 0.53 | 0.11 / 0.10 | d=1 is noisier throughout |
-| CrossAttnPool vs d=1 | 0.59 | 0.09 / 0.10 | Same |
+| MeanPool vs CrossAttnPool | **0.94** | **0.45 / 0.48** | Strong slice agreement; moderate patch agreement |
+| MeanPool vs d=1 | 0.53 | 0.36 / 0.33 | Both lower; d=1 the least similar to the pooling pair |
+| CrossAttnPool vs d=1 | 0.59 | 0.41 / 0.46 | Moderate agreement at both levels |
 
 ![Cross-probe patch agreement](../../results/summary/09_cross_probe_patch_agreement.png)
 
-The probes robustly agree on WHICH slices are informative, but each picks a different patch subset within those slices. The disease signal is redundantly distributed across multiple patch groups within each informative slice — each probe learns its own subset.
+After removing the fp16 precision floor in the occlusion pipeline (see caveat below), the probes show substantial patch-level agreement (r ≈ 0.35–0.48) — not the near-zero r ≈ 0.10 reported in the earlier version. Slice-level agreement (0.94) is still considerably stronger, so the hierarchy "slice > patch" stands; but the "same slices, different patches" claim from the first version was largely a precision artifact. The probes look at overlapping patches, just less tightly than they agree on slices.
 
 Representative B-scan overlays (6 curated examples, 1 TP + 1 TN per probe) with patch-level heatmaps:
 
@@ -71,16 +71,16 @@ Visible clinical anatomy in these examples: RNFL thinning (MeanPool glaucoma, to
 
 ### Reading these maps honestly: shared-scale + slice-mean subtraction
 
-The per-subplot color scaling above (`vmax = |Δ|.max()` per image) can make a map whose deltas are all in a narrow range like +0.002..+0.008 saturate to "solid blue," which looks more interpretable than it is. Two post-hoc transforms disambiguate:
+The per-subplot color scaling in the overlay above (`vmax = |Δ|.max()` per image) can make a map with a narrow dynamic range saturate to "solid blue," looking more decisive than it is. Two post-hoc transforms disambiguate:
 
-- **B**: use a shared zero-centered vmax across all cells. For 6 curated examples (1 TP + 1 TN per probe, slice 20 or 43 chosen per volume by signal magnitude), the global max |Δ| is **±0.0078** — i.e., the entire patch-level signal lives in a very narrow band. Under shared scale most cells look near-white, which is the honest rendering.
-- **C**: plot `Δ_local(p) = Δ(p) − mean(Δ)` to strip the "whole slice matters as a unit" component. The residual reveals within-slice spatial structure at a similar magnitude to the mean — evidence that local variation exists, but does not dominate.
+- **B** — shared zero-centered vmax across all cells. For 6 curated examples (1 TP + 1 TN per probe, slice 20 or 43 chosen per volume by signal magnitude), the global max |Δ| in the fp32 occlusion is **±0.003** — still narrow, confirming the per-patch signal is small in absolute terms.
+- **C** — plot `Δ_local(p) = Δ(p) − mean(Δ)`. Strips the "whole slice matters as a unit" component and exposes within-slice spatial structure.
 
 ![Heatmap B+C comparison](../../results/summary/heatmap_grid_BC.png)
 
-Operationally: the patch-level heatmaps in `heatmap_grid.png` mostly reflect *which slice* the probe has decided is informative. The per-patch Δlogit is small (max ±0.008 in our curated set) because each patch contributes ~1/256 of the slice mean for MeanPool/CrossAttnPool; what little local structure exists is not the dominant attribution signal. This is consistent with the patch-level cross-probe r ≈ 0.10 above: slice-level is where the probes agree and where the interpretation is well-posed.
+Operationally: even with fp32 occlusion, per-patch Δlogit stays small (±0.003 in the curated set) because each patch contributes ~1/256 of the slice mean. What changes vs the fp16 version is that the within-slice variation is now continuous (not ULP-quantised), and the per-patch map genuinely reflects spatial structure rather than rounding steps. This is consistent with the new cross-probe patch r ≈ 0.35–0.48 above — there IS meaningful spatial agreement between probes, hidden under fp16 quantisation noise in the earlier analysis.
 
-> **Caveat on the current patch-level numbers**: the original `patch_aggregate.py` and the phase-3 heatmap path in `interpretability.py` ran probe+head under `autocast()`, so the patch-level Δlogit values carried fp16 precision. The subtraction of two near-equal fp16 logits snapped the per-patch delta to fp16 ULPs (global max ±0.008 across all 3000 volumes — essentially a few discrete steps). The `04_ …` slice-level and window-level figures are unaffected (those deltas are ±0.03–0.22, well above the fp16 floor), but patch-level numbers (±0.008 max, 14–65% significant patches, cross-probe patch r ≈ 0.10) predate the fix and will be refreshed from the next rerun of `run_patch_aggregate.sh`.
+> **Note on how this was fixed**: the original `patch_aggregate.py` and the phase-3 heatmap path in `interpretability.py` ran probe+head under `autocast()`, so the per-patch Δlogit snapped to fp16 ULPs (global max ±0.008, effectively a handful of discrete steps). The slice- and window-level figures were always unaffected (those deltas are ±0.03–0.22, well above the fp16 floor). Patch-level figures and tables in this doc were refreshed from the fp32 rerun (AML job `bright_store_h0tdrcmg6n`, blob `ijepa-interpretability/patch_aggregate_20260421_084000/`).
 
 ## Completeness under occlusion
 
@@ -125,10 +125,11 @@ Stratifying by TP / FN / TN / FP: FN curves are scaled-down TP curves (same shap
 - A trivial MeanPool + Linear is Pareto-optimal for the fine-tune regime.
 - Errors come from weaker-signal, not wrong-anatomy; the attribution pattern is confidence-invariant.
 - Window occlusion (W=7) is the correct attribution primitive for mean-pool-based models; single-slice zero-mask systematically under-estimates signal.
+- At the patch level, probes show moderate agreement (per-volume r ≈ 0.35–0.48), weaker than slice-level but not near-zero; 84–91% of patches have 95% bootstrap CI excluding zero on glaucoma means.
 
 **Claims to avoid without more evidence**:
 - "The model discovers superior + inferior disc rim" — unsupported without OD/OS flipping.
-- "The three probes look at the same pixels" — they don't (patch-level r ≈ 0.10).
+- "The three probes look at entirely different patches" — the earlier r ≈ 0.10 reading was driven by fp16 quantisation; after the fix, patch-level agreement is moderate (r ≈ 0.35–0.48), not negligible.
 
 ## Reproducibility
 
