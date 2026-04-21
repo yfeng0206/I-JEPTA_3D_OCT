@@ -91,13 +91,15 @@ MeanPool and CrossAttnPool agree nearly perfectly on the *shape* of the contribu
 
 **Translation**: the tied Test AUCs aren't a coincidence. All three probes are exploiting the same underlying slice-level signal. The difference in probe architecture changes *how* they extract it but not *what* they extract.
 
-## Anatomical validation — two peaks at the disc rim
+## Population-level two-peak structure
 
-FairVision volumes are Zeiss Cirrus HD-OCT 200×200×200 optic disc cubes. B-scans in the slow-scan direction (our "slice" axis) pass through the optic nerve head at center. The two peaks + central dip pattern maps directly onto glaucoma anatomy (reported against the native 0..199 volume axis):
+FairVision volumes are Zeiss Cirrus HD-OCT 200×200×200 optic disc cubes. B-scans in the slow-scan direction (our "slice" axis) pass through the optic nerve head region. Population-averaged slice attribution shows a bimodal structure:
 
-- **Peak at native position ~63** (subset idx ~20) → superior disc rim
-- **Dip at native position ~95** (subset idx ~30) → disc center (the cup itself, relatively featureless compared to the rim)
-- **Peak at native position ~137** (subset idx ~43) → inferior disc rim
+- **Peak at native position ~63** (subset idx ~20)
+- **Dip at native position ~95** (subset idx ~30)
+- **Peak at native position ~137** (subset idx ~43)
+
+**Caveat on anatomic interpretation**: a naive reading would map the two peaks to the superior and inferior optic disc rim. This interpretation is **not supported by per-volume data** — see [`interpretability_deeper.md` Claim 11](./interpretability_deeper.md). Within a single volume, the contributions at slice 20 and slice 43 are slightly *negatively* correlated (r ≈ -0.07 to -0.22 depending on probe), not positively correlated as a single bilateral anatomic structure would predict. The most likely explanation is **OD/OS laterality mixing**: right-eye and left-eye scans are stored in the raw array with the axial direction effectively flipped relative to anatomy, so right-eye volumes may peak at one position and left-eye at the other. Population average shows both peaks; individual volumes show one. A proper OD/OS flip (detecting disc laterality from the SLO image and reorienting) is needed before aggregate attribution can be read as bilateral-rim anatomy.
 
 Superior and inferior disc rim thinning are **the** classic glaucoma findings (Garway-Heath et al., Ophthalmology 2000; Hood et al., Prog Retin Eye Res 2007). The model — all three architectures — discovered this pattern without any anatomical priors.
 
@@ -145,12 +147,24 @@ The encoder's LayerNorm (at full base LR 2e-4, 1,536 params) plus top 5 transfor
 ## Implications for paper claims
 
 Strengthened claims (with evidence from this experiment):
-- **"Under fine-tune, probe architecture is irrelevant on multi-slice OCT classification."** All three probes produce statistically tied Test AUC AND converge on the same anatomical locus. The tie is causal, not coincidental.
-- **"A trivial mean-pool + linear head is Pareto-optimal for fine-tune protocols."** Zero probe params match 7M at the same task, and their attribution patterns overlap at r=0.94.
-- **"The fine-tune encoder learns to encode slice-level position information implicitly via content patterns."** Position-blind MeanPool localizes attribution to a 4-slice band aligned with disc rim anatomy.
+- **"Under fine-tune, probe architecture is irrelevant on multi-slice OCT classification."** All three probes produce statistically tied Test AUC AND converge on the same *slice-level* attribution structure. The tie is causal, not coincidental.
+- **"A trivial mean-pool + linear head is Pareto-optimal for fine-tune protocols."** Zero probe params match 7M at the same task, and their slice-level attribution curves overlap at r=0.94.
 
-New claim enabled:
-- **"Models trained without anatomical supervision rediscover clinically-relevant disc-rim attention patterns."** Three independently-trained probes, trained only on binary labels, all concentrate attribution on the superior + inferior disc rim — locations clinicians use to diagnose glaucoma. Interpretability comes for free from the fine-tune + mean-pool protocol.
+Revised claim (see `interpretability_deeper.md` Claim 8):
+- **"Probes converge at SLICE granularity but diverge at PATCH granularity."** Slice-level r=0.94 between MeanPool and CrossAttnPool; patch-level per-volume r≈0.10 across all pairs. The disease signal is redundantly distributed across multiple patch subsets within each informative slice; each probe learns its own subset. The aggregate per-class patch map still concentrates on the B-scan center across all probes, but individual-volume patch rankings are probe-specific.
+
+Previously-claimed anatomic interpretation — **NOT supported, retracted**:
+- ~~"Models rediscover superior + inferior disc rim."~~ Per-volume correlation between the two peaks is slightly negative (r ≈ -0.07 to -0.22), not positive. Most likely explanation: OD/OS laterality mixing in the dataset. Needs OD/OS flipping (disc-center detection via SLO) before the bilateral-rim reading can be tested. See `interpretability_deeper.md` Claim 11.
+
+## Deeper analyses (post-hoc, no new AML)
+
+See [`interpretability_deeper.md`](./interpretability_deeper.md) for five additional claims:
+
+- **Claim 8**: slice vs patch agreement (r = 0.94 vs r = 0.10)
+- **Claim 9**: window occlusion (W=7) recovers 25× more signal for MeanPool than single-slice zero-masking; d=1 overshoots (304% of the logit), evidencing nonlinear probe amplification
+- **Claim 10**: 14-65% of patches are statistically non-zero per bootstrap CI
+- **Claim 11**: per-volume disc-rim symmetry test — invalidates the bilateral-rim interpretation; likely OD/OS mixing
+- **Claim 12**: attribution shape is nearly invariant to prediction confidence (|r| ≤ 0.25 between peak magnitude and |logit|)
 
 ## Reproducibility
 
