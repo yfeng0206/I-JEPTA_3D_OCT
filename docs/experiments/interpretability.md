@@ -69,6 +69,19 @@ Representative B-scan overlays (6 curated examples, 1 TP + 1 TN per probe) with 
 
 Visible clinical anatomy in these examples: RNFL thinning (MeanPool glaucoma, top), optic disc cup excavation (d=1 glaucoma, middle rows), retinal-band attribution (all).
 
+### Reading these maps honestly: shared-scale + slice-mean subtraction
+
+The per-subplot color scaling above (`vmax = |Δ|.max()` per image) can make a map whose deltas are all in a narrow range like +0.002..+0.008 saturate to "solid blue," which looks more interpretable than it is. Two post-hoc transforms disambiguate:
+
+- **B**: use a shared zero-centered vmax across all cells. For 6 curated examples (1 TP + 1 TN per probe, slice 20 or 43 chosen per volume by signal magnitude), the global max |Δ| is **±0.0078** — i.e., the entire patch-level signal lives in a very narrow band. Under shared scale most cells look near-white, which is the honest rendering.
+- **C**: plot `Δ_local(p) = Δ(p) − mean(Δ)` to strip the "whole slice matters as a unit" component. The residual reveals within-slice spatial structure at a similar magnitude to the mean — evidence that local variation exists, but does not dominate.
+
+![Heatmap B+C comparison](../../results/summary/heatmap_grid_BC.png)
+
+Operationally: the patch-level heatmaps in `heatmap_grid.png` mostly reflect *which slice* the probe has decided is informative. The per-patch Δlogit is small (max ±0.008 in our curated set) because each patch contributes ~1/256 of the slice mean for MeanPool/CrossAttnPool; what little local structure exists is not the dominant attribution signal. This is consistent with the patch-level cross-probe r ≈ 0.10 above: slice-level is where the probes agree and where the interpretation is well-posed.
+
+> **Caveat on the current patch-level numbers**: the original `patch_aggregate.py` and the phase-3 heatmap path in `interpretability.py` ran probe+head under `autocast()`, so the patch-level Δlogit values carried fp16 precision. The subtraction of two near-equal fp16 logits snapped the per-patch delta to fp16 ULPs (global max ±0.008 across all 3000 volumes — essentially a few discrete steps). The `04_ …` slice-level and window-level figures are unaffected (those deltas are ±0.03–0.22, well above the fp16 floor), but patch-level numbers (±0.008 max, 14–65% significant patches, cross-probe patch r ≈ 0.10) predate the fix and will be refreshed from the next rerun of `run_patch_aggregate.sh`.
+
 ## Completeness under occlusion
 
 Median `|sum(contribs)| / |baseline_logit|` ratio:

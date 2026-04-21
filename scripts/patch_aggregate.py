@@ -148,11 +148,13 @@ def patch_occlusion_volume(encoder, probe, head, F_v, slice_pixels, target_idx, 
     alt_slices = (total.unsqueeze(0) - patches) / (P - 1)          # (P, D)
     F_stack[1:, target_idx] = alt_slices
 
-    # 4) Forward through probe + head in one batch
-    with autocast():
-        pooled = probe(F_stack)                      # (P+1, D)
-        logits = head(pooled).squeeze(-1)            # (P+1,)
-    logits = logits.float().cpu().numpy()
+    # 4) Forward through probe + head in one batch — fp32, NO autocast.
+    #    With autocast, the (P+1,) logits carry fp16 precision and the
+    #    baseline-minus-masked delta snaps to fp16 ULPs (~±2⁻⁷..2⁻⁸),
+    #    quantising patch-level Δlogit to a handful of discrete steps and
+    #    hiding the genuine sub-percent signal. Fp32 probe+head preserves it.
+    pooled = probe(F_stack)                          # (P+1, D)
+    logits = head(pooled).squeeze(-1).float().cpu().numpy()
 
     baseline_logit = float(logits[0])
     masked_logits = logits[1:]                       # (P,)

@@ -338,13 +338,20 @@ def phase3_patch_heatmaps(model_cfg, features_path, contrib, dataset,
             template = template.unsqueeze(0).expand(P, -1, -1).clone()  # (P, S, D)
             template[:, s, :] = alt_slice
 
-            with autocast():
-                pooled = probe(template)                            # (P, D)
-                alt_logits = head(pooled).squeeze(-1)              # (P,)
-            alt_logits = alt_logits.float().cpu().numpy()
+            # fp32 probe+head (no autocast): under autocast the (P,) logits
+            # snap to fp16 ULPs and the baseline-minus-alt delta quantises
+            # to ~±2⁻⁷..2⁻⁸, burying the genuine sub-percent patch signal.
+            # Also recompute baseline locally so both sides share the same
+            # fp32 numerical path (phase 1's cached logit was itself produced
+            # under autocast and carries fp16 precision).
+            F_base = torch.from_numpy(F).to(device).unsqueeze(0)    # (1, S, D)
+            baseline_logit = head(probe(F_base)).squeeze().float().cpu().item()
+
+            pooled = probe(template)                                # (P, D)
+            alt_logits = head(pooled).squeeze(-1).float().cpu().numpy()
 
             # contribution of patch p = full_logit − logit_with_p_removed
-            patch_contrib = data['logits'][vol_idx] - alt_logits    # (256,)
+            patch_contrib = baseline_logit - alt_logits             # (256,)
             heatmap = patch_contrib.reshape(16, 16)
 
             # Save figure: original slice + heatmap overlay, side-by-side
