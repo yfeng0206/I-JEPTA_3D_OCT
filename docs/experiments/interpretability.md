@@ -30,6 +30,8 @@ Single-slice zero-mask occlusion, averaged across 1,466 glaucoma + 1,534 healthy
 
 All three probes show the same shape: peaks at native ~63 and ~137, dip at ~95. MeanPool and CrossAttnPool correlate at **r = 0.94**. d=1 (green) is noisier but traces the same envelope.
 
+> **Reading the y-axis (signed Δlogit).** The curve is *signed* mean Δlogit, not magnitude. Both peaks AND the central dip identify slices the model is using — peaks are slices whose removal *drops* the logit (evidence pushing **toward glaucoma**); the central dip goes negative, meaning those slices' removal *raises* the logit (evidence pushing **toward healthy**). Slices near zero are the ones the model genuinely ignores. So the informative axial range is the entire middle two-thirds of the volume, with the peripapillary peaks and central macular region carrying *opposite-direction* evidence.
+
 ## Window occlusion — the cleaner primitive
 
 Zeroing 7 consecutive slices instead of 1 amplifies the signal ~7× (peaks reach ±0.22 instead of ±0.03) and smooths single-volume noise. This is the attribution primitive we recommend using going forward:
