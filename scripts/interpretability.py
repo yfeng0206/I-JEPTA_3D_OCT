@@ -411,22 +411,19 @@ def phase4_plots(output_dir):
             print(f'[phase4] skip {name}: {path} missing')
             continue
         d = np.load(path)
-        contrib = d['contrib']
-        labels  = d['labels']
-        abs_pos = np.abs(contrib[labels == 1]).mean(axis=0)
-        abs_neg = np.abs(contrib[labels == 0]).mean(axis=0)
-        x = np.arange(len(abs_pos))
-        ax.plot(x, abs_pos, color=colors[name],
+        x = np.arange(len(d['mean_pos']))
+        ax.plot(x, d['mean_pos'], color=colors[name],
                 linestyle='-',  linewidth=2.0,
-                label=f'{displays[name]} (glaucoma, n={int((labels==1).sum())})')
-        ax.plot(x, abs_neg, color=colors[name],
+                label=f'{displays[name]} (glaucoma, n={int((d["labels"]==1).sum())})')
+        ax.plot(x, d['mean_neg'], color=colors[name],
                 linestyle='--', linewidth=1.2, alpha=0.6,
-                label=f'{displays[name]} (healthy,  n={int((labels==0).sum())})')
+                label=f'{displays[name]} (healthy,  n={int((d["labels"]==0).sum())})')
 
+    ax.axhline(0, color='k', linewidth=0.5, alpha=0.3)
     ax.set_xlabel('Slice index (0..63, linspace(0, 199, 64))')
-    ax.set_ylabel('Mean |Δlogit| per slice (occlusion magnitude)')
+    ax.set_ylabel('Mean Δlogit contribution per slice (occlusion)')
     ax.set_title('Slice-level occlusion attribution — 3 fine-tune probes\n'
-                 '(magnitude of logit change when each slice is zeroed)')
+                 '(how much does each slice push the logit toward its class?)')
     ax.legend(loc='upper right', fontsize=8)
     ax.grid(True, alpha=0.2)
     fig.tight_layout()
